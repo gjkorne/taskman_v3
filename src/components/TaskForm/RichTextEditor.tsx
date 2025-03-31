@@ -1,13 +1,13 @@
-import React from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
+  id?: string;
 }
 
-export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange, id }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: [StarterKit],
     content: value,
@@ -22,7 +22,10 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
   });
 
   return (
-    <div className="w-full bg-white rounded-lg border border-gray-300 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-colors">
+    <div 
+      className="w-full bg-white rounded-lg border border-gray-300 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-colors"
+      id={id}
+    >
       <EditorContent editor={editor} className="p-3" />
     </div>
   );

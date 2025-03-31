@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './components/Auth/AuthProvider';
 import { LoginForm } from './components/Auth/LoginForm';
 import { RegisterForm } from './components/Auth/RegisterForm';
 import { Layout } from './components/Layout';
-import { TaskList } from './components/TaskList';
+import { TaskList, TaskListRefType } from './components/TaskList';
 import { Timer } from './components/Timer';
 import { Reports } from './components/Reports';
 import { useAuth } from './lib/auth';
@@ -32,6 +32,19 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports'>('tasks');
+  const taskListRef = useRef<TaskListRefType>(null);
+
+  // Handler for when a task is created through the global button
+  const handleTaskCreated = () => {
+    // Only refresh if we're on the tasks view and the ref is available
+    if (activeView === 'tasks' && taskListRef.current) {
+      // Refresh the task list using the exposed method
+      taskListRef.current.refreshTaskList();
+      
+      // Additional handling if needed
+      console.log('Task created successfully!');
+    }
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -44,8 +57,12 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <Layout activeView={activeView} onViewChange={setActiveView}>
-                    {activeView === 'tasks' && <TaskList />}
+                  <Layout 
+                    activeView={activeView} 
+                    onViewChange={setActiveView}
+                    onTaskCreated={handleTaskCreated}
+                  >
+                    {activeView === 'tasks' && <TaskList ref={taskListRef} />}
                     {activeView === 'timer' && <Timer />}
                     {activeView === 'reports' && <Reports />}
                   </Layout>

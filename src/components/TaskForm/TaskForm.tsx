@@ -44,7 +44,7 @@ const CATEGORIES = {
   ]
 } as const;
 
-export function TaskForm() {
+export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
   // Comment out NLP-related state and functions since they will be developed later
   // const [taskInput, setTaskInput] = React.useState('');
 
@@ -162,7 +162,10 @@ export function TaskForm() {
       // Create a new task in the database
       await createTask.mutateAsync(data);
       
-      // Could add success message or redirect here
+      // Call the onTaskCreated callback if it exists
+      if (onTaskCreated) {
+        onTaskCreated();
+      }
     } catch (error) {
       // Set the form error to the error message
       setFormError(error instanceof Error ? error.message : 'Failed to create task');
@@ -189,10 +192,12 @@ export function TaskForm() {
           <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">Task Detail</h2>
           
           <div>
+            <label htmlFor="task-title" className="block text-sm font-semibold text-gray-800">Task Title</label>
             <input
               type="text"
               placeholder="What needs to be done?"
               autoFocus
+              id="task-title"
               {...register('title')}
               className={cn(
                 'mt-1 block w-full rounded-lg glass-input shadow-lg transition-all text-lg',
@@ -206,8 +211,8 @@ export function TaskForm() {
 
           <div>
             <div className="flex items-center justify-between">
-              <label className="block text-sm font-semibold text-gray-800">
-                Description
+              <label htmlFor="task-notes" className="block text-sm font-semibold text-gray-800">
+                Notes
               </label>
               <button
                 type="button"
@@ -232,7 +237,7 @@ export function TaskForm() {
                 name="description"
                 control={control}
                 render={({ field }) => (
-                  <RichTextEditor value={field.value || ''} onChange={field.onChange} />
+                  <RichTextEditor id="task-notes" value={field.value || ''} onChange={field.onChange} />
                 )}
               />
             </div>
@@ -252,6 +257,7 @@ export function TaskForm() {
                     <input
                       type="radio"
                       value={category}
+                      id={`category-${category}`}
                       {...register('category')}
                       className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                     />
@@ -278,6 +284,7 @@ export function TaskForm() {
                       <input
                         type="radio"
                         value={sub}
+                        id={`subcategory-${sub.replace(/\s+/g, '-').toLowerCase()}`}
                         {...register('subcategory')}
                         className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                       />
@@ -304,6 +311,7 @@ export function TaskForm() {
                 <input
                   type="radio"
                   value="urgent"
+                  id="priority-urgent"
                   {...register('priority')}
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
@@ -316,6 +324,7 @@ export function TaskForm() {
                 <input
                   type="radio"
                   value="high"
+                  id="priority-high"
                   {...register('priority')}
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
@@ -328,6 +337,7 @@ export function TaskForm() {
                 <input
                   type="radio"
                   value="medium"
+                  id="priority-medium"
                   {...register('priority')}
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
@@ -340,6 +350,7 @@ export function TaskForm() {
                 <input
                   type="radio"
                   value="low"
+                  id="priority-low"
                   {...register('priority')}
                   className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
