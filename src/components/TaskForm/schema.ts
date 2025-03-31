@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const taskInputSchema = z.object({
+export const taskInputSchema = z.object({
   rawInput: z.string()
     .min(1, 'Task description is required')
     .max(1000, 'Task description must be less than 1000 characters'),
