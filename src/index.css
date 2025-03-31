@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen;
+  }
+}
+
+@layer components {
+  .form-card {
+    @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl rounded-2xl;
+  }
+  
+  .glass-input {
+    @apply bg-white/50 border-white/20 focus:border-indigo-400 focus:ring-indigo-400/30 placeholder:text-gray-500/70;
+  }
+}
