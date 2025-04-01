@@ -1,3 +1,12 @@
+GIT Prompts
+
+git status
+git add .
+git commit -m 
+git push origin main
+
+
+
 Supabase
 
 Absolutely, Greg! Here's a **clean, step-by-step guide to setting up and using the Supabase CLI using only `cmd` (Command Prompt)** — no PowerShell or fancy terminal needed.
@@ -8,7 +17,7 @@ Absolutely, Greg! Here's a **clean, step-by-step guide to setting up and using t
 
 ---
 
-### 🗂 4. **Navigate to Your Project Folder**
+sup### 🗂 4. **Navigate to Your Project Folder**
 If your project is in `C:\Users\gjkor\taskman_v3`, run:
 ```cmd
 cd C:\Users\gjkor\taskman_v3

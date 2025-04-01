@@ -7,6 +7,8 @@ import { StatusBadge } from './StatusBadge';
 import { getTaskCategory } from '../../lib/categoryUtils';
 import { getPriorityBorderColor, getDueDateStyling, formatEstimatedTime, getEstimatedTimeClass } from '../../lib/taskUtils';
 import { Task } from '../../types/task';
+import { TimerControls } from '../Timer/TimerControls';
+import { useTimer } from '../../contexts/TimerContext';
 
 interface TaskCardProps {
   task: Task;
@@ -18,6 +20,10 @@ interface TaskCardProps {
 export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const category = getTaskCategory(task);
+  const { timerState } = useTimer();
+  
+  // Check if this task is being timed
+  const isBeingTimed = timerState.taskId === task.id && timerState.status === 'running';
 
   // Get the color for the ellipsis menu based on category
   const getCategoryColor = () => {
@@ -135,12 +141,23 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
       
       {/* Task Actions and Date */}
       <div className="absolute bottom-3 w-full pr-8 left-0 px-4 flex justify-between items-center">
-        {/* Action buttons - bottom left */}
-        <TaskActions 
-          taskId={task.id}
-          status={task.status}
-          updateTaskStatus={updateTaskStatus}
-        />
+        <div className="flex items-center space-x-2">
+          {/* Action buttons - bottom left */}
+          <TaskActions 
+            taskId={task.id}
+            status={task.status}
+            updateTaskStatus={updateTaskStatus}
+          />
+          
+          {/* Timer controls - next to action buttons */}
+          {task.status !== 'completed' && (
+            <TimerControls 
+              taskId={task.id} 
+              compact={true}
+              className={isBeingTimed ? "animate-pulse" : ""}
+            />
+          )}
+        </div>
         
         {/* Date information - bottom right */}
         <div className="text-xs text-gray-500 flex flex-col items-end">

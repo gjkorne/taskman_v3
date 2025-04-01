@@ -9,6 +9,7 @@ import { TaskList, TaskListRefType } from './components/TaskList';
 import { Timer } from './components/Timer';
 import { Reports } from './components/Reports';
 import { useAuth } from './lib/auth';
+import { TimerProvider } from './contexts/TimerContext';
 
 const queryClient = new QueryClient();
 
@@ -49,29 +50,31 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginForm />} />
-            <Route path="/register" element={<RegisterForm />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Layout 
-                    activeView={activeView} 
-                    onViewChange={setActiveView}
-                    onTaskCreated={handleTaskCreated}
-                  >
-                    {activeView === 'tasks' && <TaskList ref={taskListRef} />}
-                    {activeView === 'timer' && <Timer />}
-                    {activeView === 'reports' && <Reports />}
-                  </Layout>
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </BrowserRouter>
+        <TimerProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginForm />} />
+              <Route path="/register" element={<RegisterForm />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Layout 
+                      activeView={activeView} 
+                      onViewChange={setActiveView}
+                      onTaskCreated={handleTaskCreated}
+                    >
+                      {activeView === 'tasks' && <TaskList ref={taskListRef} />}
+                      {activeView === 'timer' && <Timer />}
+                      {activeView === 'reports' && <Reports />}
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </BrowserRouter>
+        </TimerProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

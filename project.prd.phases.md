@@ -4,13 +4,12 @@ Based on the PRD's Phase 2 (Core Task Management), here are potential features w
 
 x Task filtering by status, priority, etc.
 x Task sorting options
-*** Refactor question***
-- delayed {batch operations on tasks}
-Quick status updates without full edit
-Task categories/contexts
-Task search functionality
-List and grid view toggle
-Pagination for large task lists
+x- delayed {batch operations on tasks}
+xQuick status updates without full edit
+xTask categories/contexts
+xTask search functionality
+xList and grid view toggle
+xPagination for large task lists
 
 5. Phased Development Plan
 **5. Phased Development Plan**
