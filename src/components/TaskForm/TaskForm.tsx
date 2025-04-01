@@ -1,150 +1,36 @@
 import React from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { taskFormSchema, type TaskFormData } from './schema';
+import { Controller } from 'react-hook-form';
 import { RichTextEditor } from './RichTextEditor';
-import { useMutation } from '@tanstack/react-query';
 import { AlertCircle, ChevronDown, ChevronUp, Flag } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 import { TaskDebug } from './TaskDebug';
-import { CATEGORIES, updateSubcategoryInTags } from '../../types/categories';
+import { CATEGORIES } from '../../types/categories';
+import { useTaskForm } from '../../hooks/useTaskForm';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
-  // Setup React Hook Form
+  // Use our custom hook for form management
   const { 
     register, 
     handleSubmit, 
     control,
     formState: { errors },
     watch,
-    setValue
-  } = useForm<TaskFormData>({
-    resolver: zodResolver(taskFormSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      rawInput: '',
-      priority: 'medium',
-      category: '',
-      status: 'pending',
-      hasDueDate: false,
-      dueDate: '',
-      tags: [],
-      isDeleted: false,
-      estimatedTime: '',
-      subcategory: ''
-    }
+    setValue,
+    isLoading,
+    error
+  } = useTaskForm({
+    onSuccess: onTaskCreated
   });
 
-  // Watch the category and hasDueDate field to show related sections
+  // Watch specific form fields for conditional rendering
   const selectedCategory = watch('category') as keyof typeof CATEGORIES | '';
   const hasDueDate = watch('hasDueDate');
   const selectedSubcategory = watch('subcategory');
 
-  // This state is used to store the form error
-  const [formError, setFormError] = React.useState<string | null>(null);
-
   // This state is used to track whether the description is expanded or not
   const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
-
-  // This mutation is used to create a new task in the database
-  const createTaskMutation = useMutation({
-    mutationFn: async (data: TaskFormData) => {
-      // Get the current user session to ensure auth context is available
-      const { data: sessionData, error: authError } = await supabase.auth.getSession();
-      
-      if (authError) {
-        throw new Error(`Authentication error: ${authError.message}`);
-      }
-      
-      const { session } = sessionData;
-      if (!session) {
-        throw new Error('You must be logged in to create tasks');
-      }
-
-      // Add subcategory as a tag if selected
-      const tagsWithSubcategory = updateSubcategoryInTags(
-        data.tags || [], 
-        data.subcategory || ''
-      );
-
-      // Compile the task data
-      const taskData: Record<string, any> = {
-        title: data.title,
-        description: data.description || '',
-        priority: data.priority || 'medium',
-        status: data.status || 'pending',
-        category_name: data.category || null,
-        tags: tagsWithSubcategory,
-        is_deleted: data.isDeleted || false,
-        created_by: session.user.id
-        // Let Supabase handle timestamps automatically
-      };
-      
-      // Convert estimated time to interval format if provided
-      if (data.estimatedTime) {
-        // Parse to ensure it's a number and format as PostgreSQL interval
-        const minutes = parseInt(data.estimatedTime, 10);
-        if (!isNaN(minutes)) {
-          taskData.estimated_time = `${minutes} minutes`;
-        } 
-      }
-      
-      // Add due date if selected, with validation
-      if (data.hasDueDate && data.dueDate) {
-        const dueDate = new Date(data.dueDate);
-        if (!isNaN(dueDate.getTime())) {
-          taskData.due_date = dueDate.toISOString();
-        }
-      }
-      
-      // Create placeholder structure for future NLP features
-      if (data.rawInput) {
-        // Store raw input for future NLP processing
-        taskData.raw_input = data.rawInput;
-        
-        // Initialize placeholder for NLP fields (will be populated in future phases)
-        taskData.confidence_score = null;
-        taskData.extracted_entities = {};
-      }
-      
-      if (isDevelopment) {
-        console.log('Creating task with data:', taskData);
-      }
-      
-      // Insert into database
-      const { error, data: newTask } = await supabase
-        .from('tasks')
-        .insert([taskData])
-        .select('title');
-      
-      if (error) throw error;
-      
-      if (isDevelopment) {
-        console.log('Successfully created task:', newTask);
-      }
-      
-      return newTask;
-    },
-    onSuccess: () => {
-      if (onTaskCreated) onTaskCreated();
-    },
-    onError: (error: Error) => {
-      if (isDevelopment) {
-        console.error('Task creation error:', error);
-      }
-      setFormError(`Failed to create task: ${error.message}`);
-    }
-  });
-
-  // Submit function to create a task
-  const onSubmit = (data: TaskFormData) => {
-    setFormError(null);
-    createTaskMutation.mutate(data);
-  };
 
   // Handle subcategory selection
   const handleSubcategoryChange = (subcategory: string) => {
@@ -154,14 +40,14 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
   return (
     <div className="w-full">
       {isDevelopment && <TaskDebug />}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        {formError && (
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
           // Display the form error if there is one
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <p className="mt-1 text-sm text-red-700">{formError}</p>
+              <p className="mt-1 text-sm text-red-700">{error}</p>
             </div>
           </div>
         )}
@@ -404,9 +290,9 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
           <button
             type="submit"
             className="px-6 py-3 border border-transparent rounded-lg shadow-xl text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
-            disabled={createTaskMutation.isPending}
+            disabled={isLoading}
           >
-            {createTaskMutation.isPending ? 'Submitting...' : 'Submit'}
+            {isLoading ? 'Submitting...' : 'Submit'}
           </button>
         </div>
       </form>

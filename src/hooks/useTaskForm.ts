@@ -32,9 +32,24 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
       subcategory: '',
       dueDate: undefined,
       hasDueDate: false,
-      tags: []
+      tags: [],
+      rawInput: '',
+      estimatedTime: '',
+      isDeleted: false
     }
   });
+
+  // Destructure form methods for easier access
+  const { 
+    control, 
+    register, 
+    formState,
+    watch,
+    setValue,
+    getValues,
+    reset,
+    handleSubmit: rhfHandleSubmit
+  } = form;
 
   // Fetch task data if editing an existing task
   useEffect(() => {
@@ -58,7 +73,7 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
           const subcategory = getSubcategoryFromTags(data.tags || []);
           
           // Set form values
-          form.reset({
+          reset({
             title: data.title || '',
             description: data.description || '',
             status: data.status || 'pending',
@@ -67,7 +82,10 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
             subcategory: subcategory || '',
             dueDate: data.due_date ? new Date(data.due_date).toISOString().split('T')[0] : undefined,
             hasDueDate: !!data.due_date,
-            tags: Array.isArray(data.tags) ? data.tags : []
+            tags: Array.isArray(data.tags) ? data.tags : [],
+            estimatedTime: data.estimated_time ? String(data.estimated_time).replace(/\D/g, '') : '',
+            isDeleted: !!data.is_deleted,
+            rawInput: data.raw_input || ''
           });
         }
       } catch (err) {
@@ -82,7 +100,7 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
     }
     
     fetchTaskData();
-  }, [taskId, form]);
+  }, [taskId, reset]);
   
   // Handle form submission
   const handleSubmit = async (formData: TaskFormData) => {
@@ -110,8 +128,23 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
         priority: formData.priority || 'medium',
         category_name: formData.category || null,
         due_date: formData.hasDueDate ? formData.dueDate : null,
-        tags: updatedTags
+        tags: updatedTags,
+        is_deleted: formData.isDeleted || false
       };
+      
+      // Convert estimated time to interval format if provided
+      if (formData.estimatedTime) {
+        // Parse to ensure it's a number and format as PostgreSQL interval
+        const minutes = parseInt(formData.estimatedTime, 10);
+        if (!isNaN(minutes)) {
+          dataToSubmit.estimated_time = `${minutes} minutes`;
+        }
+      }
+      
+      // Add rawInput if present (for NLP processing)
+      if (formData.rawInput) {
+        dataToSubmit.raw_input = formData.rawInput;
+      }
       
       let result;
       
@@ -142,7 +175,7 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
       
       // Reset form if creating a new task
       if (!taskId) {
-        form.reset();
+        reset();
       }
       
     } catch (err: any) {
@@ -159,15 +192,24 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
   };
   
   return {
+    // Return the complete form object for advanced usage if needed
     form,
+    
+    // Return individual form methods for convenience
+    control,
+    register,
+    formState,
+    errors: formState.errors,
+    watch,
+    setValue,
+    getValues,
+    reset,
+    
+    // Return custom hook state
     isLoading,
     error,
-    handleSubmit: form.handleSubmit(handleSubmit),
-    formState: form.formState,
-    register: form.register,
-    setValue: form.setValue,
-    watch: form.watch,
-    getValues: form.getValues,
-    reset: form.reset
+    
+    // Return the submit handler
+    handleSubmit: rhfHandleSubmit(handleSubmit)
   };
 }
