@@ -241,6 +241,104 @@ export function getPriorityBorderColor(priority: string): string {
 }
 
 /**
+ * Parse and format estimated time from PostgreSQL interval format
+ * Formats like: '2 hours 30 minutes', '45 minutes', etc.
+ */
+export function formatEstimatedTime(estimatedTime: string | null): string | null {
+  if (!estimatedTime) return null;
+
+  // Handle the format stored in database (PostgreSQL interval)
+  // Example formats: '02:30:00', '45 minutes', '2 hours 30 minutes'
+  
+  // Check if it's in HH:MM:SS format
+  const timeRegex = /^(\d+):(\d+):(\d+)$/;
+  const timeMatch = estimatedTime.match(timeRegex);
+  
+  if (timeMatch) {
+    const hours = parseInt(timeMatch[1]);
+    const minutes = parseInt(timeMatch[2]);
+    
+    if (hours > 0 && minutes > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h`;
+    } else if (minutes > 0) {
+      return `${minutes}m`;
+    } else {
+      return 'Quick';
+    }
+  }
+  
+  // Check if it's in '45 minutes' or '2 hours 30 minutes' format
+  const minutesOnly = /^(\d+)\s+minutes?$/i;
+  const minutesMatch = estimatedTime.match(minutesOnly);
+  if (minutesMatch) {
+    const minutes = parseInt(minutesMatch[1]);
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      if (remainingMinutes > 0) {
+        return `${hours}h ${remainingMinutes}m`;
+      }
+      return `${hours}h`;
+    }
+    return `${minutes}m`;
+  }
+  
+  // If it's already formatted in "X hours Y minutes"
+  return estimatedTime;
+}
+
+/**
+ * Get an appropriate class based on estimated time length
+ */
+export function getEstimatedTimeClass(estimatedTime: string | null): string {
+  if (!estimatedTime) return 'text-gray-400';
+  
+  // Try to extract total minutes
+  let totalMinutes = 0;
+  
+  // Check if it's in HH:MM:SS format
+  const timeRegex = /^(\d+):(\d+):(\d+)$/;
+  const timeMatch = estimatedTime.match(timeRegex);
+  
+  if (timeMatch) {
+    const hours = parseInt(timeMatch[1]);
+    const minutes = parseInt(timeMatch[2]);
+    totalMinutes = hours * 60 + minutes;
+  } else {
+    // Check for 'X minutes' format
+    const minutesOnly = /^(\d+)\s+minutes?$/i;
+    const minutesMatch = estimatedTime.match(minutesOnly);
+    
+    if (minutesMatch) {
+      totalMinutes = parseInt(minutesMatch[1]);
+    } else {
+      // Try to handle 'X hours Y minutes' format
+      const hoursAndMinutes = /(\d+)\s+hours?(?:\s+(\d+)\s+minutes?)?/i;
+      const complexMatch = estimatedTime.match(hoursAndMinutes);
+      
+      if (complexMatch) {
+        const hours = parseInt(complexMatch[1] || '0');
+        const minutes = parseInt(complexMatch[2] || '0');
+        totalMinutes = hours * 60 + minutes;
+      }
+    }
+  }
+  
+  // Return appropriate color class based on task length
+  if (totalMinutes <= 15) {
+    return 'text-green-500 font-normal'; // Quick tasks
+  } else if (totalMinutes <= 60) {
+    return 'text-blue-500 font-normal'; // Medium tasks
+  } else if (totalMinutes <= 180) {
+    return 'text-amber-500 font-medium'; // Longer tasks
+  } else {
+    return 'text-red-500 font-medium'; // Very long tasks
+  }
+}
+
+/**
  * Get appropriate styling for due date based on how soon it is
  * @param dueDate - The due date as a string
  * @returns Object with className and text styling
