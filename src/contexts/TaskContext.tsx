@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Task } from '../types/task';
-import { TaskFilter, defaultFilters } from '../components/TaskList/FilterPanel';
-import { filterAndSortTasks } from '../lib/taskUtils';
+import { Task, TaskStatusType } from '../types/task';
 import { taskService } from '../services/api';
+import { TaskFilter, defaultFilters } from '../components/TaskList/FilterPanel';
+import { filterTasks, sortTasks } from '../lib/taskUtils';
 
 // Types for the context
 interface TaskContextType {
@@ -67,31 +67,38 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   const isDevelopment = process.env.NODE_ENV !== 'production';
   
   // Computed filtered tasks
-  const filteredTasks = filterAndSortTasks(tasks, filters, searchQuery);
+  const filteredTasks = sortTasks(filterTasks(tasks, filters, searchQuery), filters.sortBy, filters.sortOrder);
 
-  // Fetch tasks using taskService
+  // Fetch tasks from API
   const fetchTasks = async () => {
     setIsLoading(true);
     setError(null);
-
+    
     try {
-      const { data, error: apiError } = await taskService.getTasks();
+      const { data, error } = await taskService.getTasks();
       
-      if (apiError) {
-        if (isDevelopment) {
-          console.error("Error fetching tasks:", apiError);
-        }
-        setError("Failed to load tasks. Please try again later.");
-        return;
+      if (error) throw error;
+      
+      if (data) {
+        console.log('Loaded tasks with statuses:', data.map(t => ({ id: t.id, title: t.title, status: t.status })));
+        
+        // Ensure all tasks have a valid status from our TaskStatusType
+        const tasksWithValidStatus = data.map(task => {
+          // If task has no status or invalid status, set to 'pending'
+          if (!task.status || !['pending', 'active', 'paused', 'completed', 'archived'].includes(task.status)) {
+            return { ...task, status: 'pending' as TaskStatusType };
+          }
+          // Cast string status to TaskStatusType
+          return { ...task, status: task.status as TaskStatusType };
+        });
+        
+        setTasks(tasksWithValidStatus);
       }
       
-      setTasks(data || []);
+      setIsLoading(false);
     } catch (err) {
-      if (isDevelopment) {
-        console.error("Exception fetching tasks:", err);
-      }
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
+      console.error('Error fetching tasks:', err);
+      setError('Failed to load tasks');
       setIsLoading(false);
     }
   };

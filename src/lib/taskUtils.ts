@@ -121,19 +121,27 @@ function taskMatchesSearch(task: Task, searchQuery: string = ''): boolean {
  * Filter tasks based on filter criteria and search query
  */
 export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: string = ''): Task[] {
-  return tasks.filter(task => {
+  // IMPORTANT: Always extract active tasks first so they're always visible
+  const activeTasks = tasks.filter(task => task.status === 'active');
+  const otherTasks = tasks.filter(task => task.status !== 'active');
+  
+  // Filter the non-active tasks
+  const filteredOtherTasks = otherTasks.filter(task => {
     // Search query filter
     if (!taskMatchesSearch(task, searchQuery)) {
+      console.log('Filtering out task:', task.id, 'due to search query mismatch');
       return false;
     }
     
-    // Status filter - always keep 'active' tasks visible
-    if (filters.status.length > 0 && !filters.status.includes(task.status) && task.status !== 'active') {
+    // Status filter
+    if (filters.status.length > 0 && !filters.status.includes(task.status)) {
+      console.log('Filtering out task:', task.id, 'with status:', task.status);
       return false;
     }
 
     // Priority filter
     if (filters.priority.length > 0 && !filters.priority.includes(task.priority)) {
+      console.log('Filtering out task:', task.id, 'with priority:', task.priority);
       return false;
     }
 
@@ -141,22 +149,31 @@ export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: str
     if (filters.category.length > 0) {
       const taskCategory = getTaskCategory(task);
       if (!taskCategory || !filters.category.includes(taskCategory)) {
+        console.log('Filtering out task:', task.id, 'with category:', taskCategory);
         return false;
       }
     }
     
     // Due date filter
     if (filters.dueDate.length > 0 && !taskMatchesDueDate(task, filters.dueDate)) {
+      console.log('Filtering out task:', task.id, 'with due date:', task.due_date);
       return false;
     }
 
     // Show completed filter
     if (!filters.showCompleted && task.status === 'completed') {
+      console.log('Filtering out task:', task.id, 'with status:', task.status);
       return false;
     }
 
     return true;
   });
+
+  // Combine active tasks with filtered other tasks
+  const combinedTasks = [...activeTasks, ...filteredOtherTasks];
+  console.log('Active tasks:', activeTasks.length, 'Filtered other tasks:', filteredOtherTasks.length);
+  
+  return combinedTasks;
 }
 
 /**
