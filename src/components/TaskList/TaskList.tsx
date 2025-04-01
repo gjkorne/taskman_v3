@@ -25,6 +25,16 @@ export function TaskList() {
     viewMode: 'list'
   });
 
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      await fetchTasks();
+      setIsLoading(false);
+    };
+    
+    fetchData();
+  }, []);
+
   async function fetchTasks() {
     try {
       setIsRefreshing(true);
@@ -49,7 +59,19 @@ export function TaskList() {
         throw error;
       }
 
-      setTasks(data || []);
+      if (data) {
+        // Debug log to see the actual data from the database
+        console.log('Fetched tasks full data:', data);
+        console.log('Fetched tasks categories:', data.map(task => ({
+          id: task.id,
+          title: task.title,
+          category: task.category, 
+          category_name: task.category_name,
+          category_type: typeof task.category
+        })));
+        
+        setTasks(data || []);
+      }
     } catch (err: any) {
       console.error('Error fetching tasks:', err);
       setError(err.message || 'Failed to load tasks');
@@ -60,14 +82,6 @@ export function TaskList() {
   }
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      await fetchTasks();
-      setIsLoading(false);
-    };
-    
-    fetchData();
-    
     // Debug: Log task categories
     console.log('Tasks:', tasks.map(task => ({ 
       id: task.id, 

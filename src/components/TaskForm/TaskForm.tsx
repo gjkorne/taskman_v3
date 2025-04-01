@@ -132,11 +132,12 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
         description: data.description,
         priority: data.priority || 'medium',
         status: 'pending',
+        category_name: data.category,
         created_by: session.user.id
       };
 
       console.log('Session authenticated user ID:', session.user.id);
-      console.log('Creating task with minimal data:', JSON.stringify(taskData, null, 2));
+      console.log('Creating task with data:', JSON.stringify(taskData, null, 2));
       
       // Simple insertion with proper authentication
       const { error } = await supabase

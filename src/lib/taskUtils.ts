@@ -14,6 +14,19 @@ function taskMatchesSearch(task: Task, searchQuery: string = ''): boolean {
   const normalizedQuery = searchQuery.trim().toLowerCase();
   if (!normalizedQuery) return true;
   
+  // Detailed logging for troubleshooting 
+  console.log(`Searching task "${task.title}" with query "${normalizedQuery}"`, {
+    task_details: {
+      id: task.id,
+      title: task.title,
+      category: task.category,
+      category_name: task.category_name,
+      category_type: typeof task.category,
+      full_task: task
+    },
+    search_query: normalizedQuery
+  });
+  
   // Match against task content
   const matchesTitle = task.title.toLowerCase().includes(normalizedQuery);
   const matchesDescription = task.description?.toLowerCase()?.includes(normalizedQuery) || false;
@@ -23,17 +36,21 @@ function taskMatchesSearch(task: Task, searchQuery: string = ''): boolean {
   const matchesPriority = task.priority.toLowerCase().includes(normalizedQuery);
   const matchesStatus = task.status.toLowerCase().includes(normalizedQuery);
   
-  // Get category name if available
-  let categoryName = '';
-  if (task.category_name) {
-    categoryName = task.category_name.toLowerCase();
-  } else if (task.category !== null && task.category !== undefined) {
-    const category = getTaskCategory(task);
-    if (category) {
-      categoryName = category.toLowerCase();
-    }
+  // Special case for category searches when no category data exists
+  const isSearchingForCategory = 
+    normalizedQuery === 'work' || 
+    normalizedQuery === 'personal' || 
+    normalizedQuery === 'childcare';
+    
+  // If user is searching for a category but the task has no category, don't match
+  if (isSearchingForCategory && task.category_name === null) {
+    return false;
   }
-  const matchesCategory = categoryName ? categoryName.includes(normalizedQuery) : false;
+  
+  // Get category name (only use category_name field)
+  const categoryName = task.category_name ? task.category_name.toLowerCase() : '';
+  
+  const matchesCategory = categoryName.includes(normalizedQuery);
   
   // Return true if any field matches
   return matchesTitle || matchesDescription || matchesTags || 

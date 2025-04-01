@@ -31,7 +31,7 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
     status: 'pending',
     priority: 'medium',
     due_date: null,
-    category: '',
+    category: 'work', // Default to work category
     tags: []
   });
   
@@ -112,12 +112,18 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
       setIsLoading(true);
       setError(null);
       
+      // Debug log to see what's being submitted
+      console.log('Submitting form data:', formData);
+      
       // Map category to category_name for database
       const dataToSubmit = {
         ...formData,
         category_name: formData.category || null, // Use the new field name
         updated_at: new Date().toISOString()
       };
+      
+      // Debug log to see data after transformation
+      console.log('Data to submit to database:', dataToSubmit);
       
       let result;
       
@@ -257,12 +263,13 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category
+                Category <span className="text-red-500">*</span>
               </label>
               <select
                 name="category"
                 value={formData.category || ''}
                 onChange={handleChange}
+                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               >
                 <option value="">-- Select Category --</option>
