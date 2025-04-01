@@ -127,8 +127,8 @@ export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: str
       return false;
     }
     
-    // Status filter - keep 'in_progress' tasks visible regardless of status filter
-    if (filters.status.length > 0 && !filters.status.includes(task.status) && task.activity_state !== 'in_progress') {
+    // Status filter - always keep 'active' tasks visible
+    if (filters.status.length > 0 && !filters.status.includes(task.status) && task.status !== 'active') {
       return false;
     }
 

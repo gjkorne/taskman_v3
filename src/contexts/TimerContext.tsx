@@ -112,37 +112,29 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [timerState.status, timerState.startTime]);
   
-  // Function to update elapsed time
+  // Update elapsed time
   const updateElapsedTime = () => {
-    if (timerState.startTime) {
+    if (timerState.status === 'running' && timerState.startTime) {
       const now = new Date();
-      const elapsed = now.getTime() - timerState.startTime.getTime() + timerState.previouslyElapsed;
+      const currentElapsed = now.getTime() - timerState.startTime.getTime();
+      const totalElapsed = timerState.previouslyElapsed + currentElapsed;
       
       setTimerState(prev => ({
         ...prev,
-        elapsedTime: elapsed
+        elapsedTime: totalElapsed
       }));
     }
   };
   
-  // Format elapsed time as HH:MM:SS or compact version
-  const formatElapsedTime = (format: 'short' | 'long' = 'long'): string => {
-    const totalSeconds = Math.floor(timerState.elapsedTime / 1000);
+  // Format elapsed time for display
+  const formatElapsedTime = () => {
+    const totalMs = timerState.elapsedTime;
+    const totalSeconds = Math.floor(totalMs / 1000);
+    
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
     
-    if (format === 'short') {
-      if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-      } else if (minutes > 0) {
-        return `${minutes}m ${seconds}s`;
-      } else {
-        return `${seconds}s`;
-      }
-    }
-    
-    // Long format (HH:MM:SS)
     return [
       hours.toString().padStart(2, '0'),
       minutes.toString().padStart(2, '0'),
@@ -158,6 +150,28 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       // If we're timing a different task, stop that one first
       if (timerState.status !== 'idle' && timerState.taskId && timerState.taskId !== taskId) {
         await stopTimer();
+      }
+      
+      // If we're already timing this task and just resuming, use the existing session
+      if (timerState.status === 'paused' && timerState.taskId === taskId && timerState.sessionId) {
+        console.log('Resuming existing session:', timerState.sessionId);
+        
+        // Just update the status - don't create a new session
+        setTimerState({
+          ...timerState,
+          status: 'running',
+          startTime: new Date()
+        });
+        
+        // Force an immediate update
+        setTimeout(updateElapsedTime, 0);
+        
+        // Refresh task list
+        if (taskContext) {
+          await taskContext.refreshTasks();
+        }
+        
+        return;
       }
       
       // Create a new session
@@ -178,11 +192,10 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Created session:', session);
       
-      // Update task activity_state to in_progress and status to active
+      // Update task status to active
       const { error: taskError } = await supabase
         .from('tasks')
         .update({ 
-          activity_state: 'in_progress',
           status: 'active'
         })
         .eq('id', taskId);
@@ -258,12 +271,11 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         throw sessionError;
       }
       
-      // Update task activity_state to paused and status to in_progress
+      // Update task status to in_progress
       const { error: taskError } = await supabase
         .from('tasks')
         .update({ 
-          activity_state: 'paused',
-          status: 'in_progress',  // Set status to in_progress when paused
+          status: 'in_progress',
           actual_time: duration
         })
         .eq('id', timerState.taskId);
@@ -341,7 +353,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         .from('tasks')
         .update({
           status: 'completed',
-          activity_state: 'completed',
           actual_time: totalElapsed,
           completed_date: new Date().toISOString()
         })

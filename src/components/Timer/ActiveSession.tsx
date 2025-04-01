@@ -2,9 +2,13 @@ import { Play, Pause, Square, Clock } from 'lucide-react';
 import { useTimer } from '../../contexts/TimerContext';
 import { useTaskContext } from '../../contexts/TaskContext';
 
-export function ActiveSession() {
+interface ActiveSessionProps {
+  onTimerStateChange?: () => void;
+}
+
+export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime } = useTimer();
-  const { tasks } = useTaskContext();
+  const { tasks, refreshTasks } = useTaskContext();
   
   // Debug logging to see what's happening
   console.log('ActiveSession component rendering:', {
@@ -25,8 +29,31 @@ export function ActiveSession() {
   console.log('Found active task:', activeTask);
   
   if (!activeTask) {
-    console.log('Active task not found in tasks array, returning null');
-    return null;
+    console.log('Active task not found in tasks array - refreshing tasks');
+    // If we know there should be an active task but can't find it,
+    // trigger a refresh and render a loading indicator
+    refreshTasks();
+    if (onTimerStateChange) onTimerStateChange();
+    
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Clock className="h-5 w-5" />
+            <div>
+              <div className="text-xs font-medium opacity-90">Loading timer...</div>
+              <div className="h-4 w-32 bg-blue-500 animate-pulse rounded-md mt-1"></div>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <div className="font-mono text-lg font-bold">
+              {formatElapsedTime()}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
   
   const isRunning = timerState.status === 'running';
@@ -53,14 +80,20 @@ export function ActiveSession() {
             {/* Play/Pause button */}
             {isRunning ? (
               <button
-                onClick={() => pauseTimer()}
+                onClick={() => {
+                  pauseTimer();
+                  if (onTimerStateChange) onTimerStateChange();
+                }}
                 className="p-2 rounded-full bg-blue-500 hover:bg-blue-400 transition-colors"
               >
                 <Pause size={18} />
               </button>
             ) : (
               <button
-                onClick={() => startTimer(timerState.taskId!)}
+                onClick={() => {
+                  startTimer(timerState.taskId!);
+                  if (onTimerStateChange) onTimerStateChange();
+                }}
                 className="p-2 rounded-full bg-green-500 hover:bg-green-400 transition-colors"
               >
                 <Play size={18} />
@@ -69,7 +102,10 @@ export function ActiveSession() {
             
             {/* Stop button */}
             <button
-              onClick={() => stopTimer()}
+              onClick={() => {
+                stopTimer();
+                if (onTimerStateChange) onTimerStateChange();
+              }}
               className="p-2 rounded-full bg-red-500 hover:bg-red-400 transition-colors"
               title="Complete task"
             >

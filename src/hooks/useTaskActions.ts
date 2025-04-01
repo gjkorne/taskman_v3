@@ -45,8 +45,17 @@ export function useTaskActions(options: UseTaskActionsOptions = {}) {
       
       // Show success toast
       if (showToasts) {
-        const statusText = status.replace('_', ' ');
-        addToast(`Task marked as ${statusText}`, 'success');
+        // Make sure we're displaying a valid status name, not a task ID or other invalid value
+        const validStatuses = ['active', 'completed', 'archived', 'pending', 'in_progress'];
+        
+        if (validStatuses.includes(status.toLowerCase())) {
+          // Format the status string for display
+          const statusText = status.replace('_', ' ');
+          addToast(`Task marked as ${statusText}`, 'success');
+        } else {
+          // Fallback for unrecognized status values
+          addToast(`Task status updated successfully`, 'success');
+        }
       }
       
       // Trigger success callback

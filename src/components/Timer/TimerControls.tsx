@@ -6,9 +6,10 @@ interface TimerControlsProps {
   taskId: string;
   compact?: boolean;
   className?: string;
+  onTimerStateChange?: () => void;
 }
 
-export function TimerControls({ taskId, compact = false, className }: TimerControlsProps) {
+export function TimerControls({ taskId, compact = false, className, onTimerStateChange }: TimerControlsProps) {
   const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime } = useTimer();
   
   const isThisTaskActive = timerState.taskId === taskId && timerState.status !== 'idle';
@@ -38,7 +39,10 @@ export function TimerControls({ taskId, compact = false, className }: TimerContr
     // Full start button when timer is idle
     return (
       <button
-        onClick={() => startTimer(taskId)}
+        onClick={() => {
+          startTimer(taskId);
+          if (onTimerStateChange) onTimerStateChange();
+        }}
         className={cn(
           "px-3 py-1.5 text-sm rounded-md flex items-center space-x-2",
           "bg-emerald-500 hover:bg-emerald-600 text-white",

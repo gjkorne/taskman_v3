@@ -29,9 +29,10 @@ interface LayoutProps {
   activeView: 'tasks' | 'timer' | 'reports' | 'settings' | 'admin';
   onViewChange: (view: 'tasks' | 'timer' | 'reports' | 'settings' | 'admin') => void;
   onTaskCreated?: () => void;
+  onTimerStateChange?: () => void;
 }
 
-export function Layout({ children, activeView, onViewChange, onTaskCreated }: LayoutProps) {
+export function Layout({ children, activeView, onViewChange, onTaskCreated, onTimerStateChange }: LayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
   const [showTaskForm, setShowTaskForm] = React.useState(false);
 
@@ -112,7 +113,7 @@ export function Layout({ children, activeView, onViewChange, onTaskCreated }: La
       <div className="flex-1 flex flex-col">
         {/* Active Session Bar - Will appear when a task is being timed */}
         <div className="relative z-50">
-          <ActiveSession />
+          <ActiveSession onTimerStateChange={onTimerStateChange} />
         </div>
         
         {/* Main content */}

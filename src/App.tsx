@@ -57,6 +57,14 @@ function App() {
       console.log('Task created successfully!');
     }
   };
+  
+  // Force task list refresh when timer state changes
+  const handleTimerStateChange = () => {
+    if (taskListRef.current) {
+      console.log('Timer state changed, refreshing tasks');
+      taskListRef.current.refreshTaskList();
+    }
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -78,6 +86,7 @@ function App() {
                               activeView={activeView} 
                               onViewChange={setActiveView}
                               onTaskCreated={handleTaskCreated}
+                              onTimerStateChange={handleTimerStateChange}
                             >
                               {activeView === 'tasks' && <TaskList ref={taskListRef} />}
                               {activeView === 'timer' && <Timer />}

@@ -62,22 +62,43 @@ export default function AdminPage() {
     {
       id: 'check-active-tasks',
       title: 'Check Active Tasks',
-      description: 'Show all tasks with "in_progress" or "paused" activity state.',
+      description: 'Show all tasks with "active" status.',
       icon: <RefreshCcw size={24} />,
       dangerLevel: 'low',
       action: async () => {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('*')
-          .in('activity_state', ['in_progress', 'paused']);
-        
-        if (error) throw error;
-        
-        return { 
-          success: true, 
-          message: `Found ${data.length} active tasks`, 
-          data
-        };
+        try {
+          // Get the current user ID for proper filtering
+          const { data: authData } = await supabase.auth.getSession();
+          const userId = authData.session?.user.id;
+          
+          if (!userId) {
+            return { success: false, message: 'Authentication required' };
+          }
+          
+          // Query tasks with active status
+          const { data, error } = await supabase
+            .from('tasks')
+            .select('id, title, status')
+            .eq('status', 'active')
+            .eq('created_by', userId);
+          
+          if (error) {
+            console.error('Error fetching active tasks:', error);
+            throw error;
+          }
+          
+          return { 
+            success: true, 
+            message: `Found ${data?.length || 0} active tasks`, 
+            data: data || []
+          };
+        } catch (error) {
+          console.error('Error checking active tasks:', error);
+          return { 
+            success: false, 
+            message: error instanceof Error ? error.message : 'Unknown error occurred' 
+          };
+        }
       }
     }
   ];
@@ -139,6 +160,10 @@ export default function AdminPage() {
           <p className="text-amber-800">
             These tools are for system administration and debugging purposes only. 
             Use with caution as some actions may affect application data.
+          </p>
+          <p className="text-amber-800 mt-2">
+            <strong>Timer Debug Tools:</strong> Use "Reset Timer State" to fix issues with stuck timers 
+            or multiple active tasks. This will reset all your active timers and close open sessions.
           </p>
         </div>
         

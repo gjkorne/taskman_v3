@@ -10,52 +10,95 @@ export const resetAllTimerState = async () => {
     
     // Clear localStorage timer state
     localStorage.removeItem('timerState');
+    console.log('Local storage timer state cleared');
     
-    // Reset all tasks to idle activity state
-    const { error: taskError, count } = await supabase
-      .from('tasks')
-      .update({ 
-        activity_state: 'idle' 
-      })
-      .in('activity_state', ['in_progress', 'paused']);
+    // Step 1: Get the current user ID for proper filtering
+    const { data: authData } = await supabase.auth.getSession();
+    const userId = authData.session?.user.id;
     
-    if (taskError) {
-      console.error('Error resetting task activity states:', taskError);
-      throw taskError;
+    if (!userId) {
+      console.error('No authenticated user found');
+      return { success: false, message: 'Authentication required' };
     }
     
-    console.log(`Reset ${count} tasks to idle activity state`);
-    
-    // Close any open sessions
-    const { data: openSessions, error: sessionQueryError } = await supabase
-      .from('task_sessions')
-      .select('id')
-      .is('end_time', null);
-    
-    if (sessionQueryError) {
-      console.error('Error finding open sessions:', sessionQueryError);
-      throw sessionQueryError;
-    }
-    
-    if (openSessions.length > 0) {
-      const sessionIds = openSessions.map(s => s.id);
+    // Step 2: Reset all tasks to idle activity state (one by one to avoid .in() issues)
+    try {
+      // Get all active tasks first
+      const { data: activeTasks, error: queryError } = await supabase
+        .from('tasks')
+        .select('id')
+        .or('activity_state.eq.in_progress,activity_state.eq.paused')
+        .eq('created_by', userId);
       
-      // Close open sessions with the current time
-      const { error: sessionUpdateError } = await supabase
-        .from('task_sessions')
-        .update({ 
-          end_time: new Date().toISOString() 
-        })
-        .in('id', sessionIds);
-      
-      if (sessionUpdateError) {
-        console.error('Error closing open sessions:', sessionUpdateError);
-        throw sessionUpdateError;
+      if (queryError) {
+        console.error('Error querying active tasks:', queryError);
+        throw queryError;
       }
       
-      console.log(`Closed ${openSessions.length} open sessions`);
-    } else {
-      console.log('No open sessions found');
+      console.log(`Found ${activeTasks?.length || 0} active tasks`);
+      
+      // Update each task individually
+      let updatedCount = 0;
+      if (activeTasks && activeTasks.length > 0) {
+        for (const task of activeTasks) {
+          const { error: updateError } = await supabase
+            .from('tasks')
+            .update({ activity_state: 'idle' })
+            .eq('id', task.id)
+            .eq('created_by', userId);
+          
+          if (!updateError) {
+            updatedCount++;
+          } else {
+            console.error(`Error updating task ${task.id}:`, updateError);
+          }
+        }
+      }
+      
+      console.log(`Successfully reset ${updatedCount} tasks to idle activity state`);
+    } catch (taskError) {
+      console.error('Task reset error:', taskError);
+      // Continue with session reset even if task reset fails
+    }
+    
+    // Step 3: Close any open sessions (one by one to avoid .in() issues)
+    try {
+      // Get all open sessions
+      const { data: openSessions, error: sessionQueryError } = await supabase
+        .from('task_sessions')
+        .select('id')
+        .is('end_time', null)
+        .eq('created_by', userId);
+      
+      if (sessionQueryError) {
+        console.error('Error finding open sessions:', sessionQueryError);
+        throw sessionQueryError;
+      }
+      
+      console.log(`Found ${openSessions?.length || 0} open sessions`);
+      
+      // Close each session individually
+      let closedCount = 0;
+      if (openSessions && openSessions.length > 0) {
+        for (const session of openSessions) {
+          const { error: updateError } = await supabase
+            .from('task_sessions')
+            .update({ end_time: new Date().toISOString() })
+            .eq('id', session.id)
+            .eq('created_by', userId);
+          
+          if (!updateError) {
+            closedCount++;
+          } else {
+            console.error(`Error closing session ${session.id}:`, updateError);
+          }
+        }
+      }
+      
+      console.log(`Successfully closed ${closedCount} open sessions`);
+    } catch (sessionError) {
+      console.error('Session reset error:', sessionError);
+      // Continue even if session reset fails
     }
     
     return { success: true, message: 'Timer state reset successfully' };

@@ -12,7 +12,11 @@ export interface TaskListRefType {
   refreshTaskList: () => Promise<void>;
 }
 
-export const TaskList = forwardRef<TaskListRefType>((_, ref) => {
+interface TaskListProps {
+  onTimerStateChange?: () => void;
+}
+
+export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerStateChange }, ref) => {
   // Get everything we need from the task context
   const { 
     filteredTasks,
