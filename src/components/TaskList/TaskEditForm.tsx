@@ -2,56 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
-
-const CATEGORIES = {
-  childcare: [
-    'Core Care',
-    'Play & Engagement',
-    'Learning & Schoolwork',
-    'Routines',
-    'Outings & Activities',
-    'Admin'
-  ],
-  work: [
-    'Core Execution',
-    'Planning & Strategy',
-    'Communication & Meetings',
-    'Learning & Research',
-    'Maintenance/Admin',
-    'Projects & Deliverables'
-  ],
-  personal: [
-    'Health & Wellness',
-    'Relationships & Social',
-    'Home & Chores',
-    'Finance & Admin',
-    'Growth & Learning',
-    'Fun & Recreation'
-  ],
-  other: [
-    'Core',
-    'Unexpected/Interruptions',
-    'Unsorted',
-    'Overflow',
-    'External Requests',
-    'Reflections & Journaling'
-  ]
-} as const;
-
-interface Task {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  due_date: string | null;
-  estimated_time: string | null;
-  tags: string[] | null;
-  created_at: string;
-  created_by: string;
-  category?: string;
-  category_name?: string;
-}
+import { Task } from '../../types/task';
+import { CATEGORIES, updateSubcategoryInTags, getSubcategoryFromTags } from '../../types/categories';
 
 interface TaskEditFormProps {
   taskId: string | null;
@@ -148,18 +100,12 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
   };
   
   const handleSelectSubcategory = (subcategory: string) => {
-    const newTag = `subcategory:${subcategory}`;
-    if (!formData.tags?.includes(newTag)) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...(prev.tags || []), newTag]
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        tags: prev.tags?.filter(tag => tag !== newTag) || []
-      }));
-    }
+    // Use our shared utility to handle subcategory tags
+    const updatedTags = updateSubcategoryInTags(formData.tags || [], subcategory);
+    setFormData(prev => ({
+      ...prev,
+      tags: updatedTags
+    }));
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -390,7 +336,7 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
                       value={subcategory}
                       id={`subcategory-${subcategory.replace(/\s+/g, '-').toLowerCase()}`}
                       name="subcategory"
-                      checked={formData.tags?.includes(`subcategory:${subcategory}`)}
+                      checked={getSubcategoryFromTags(formData.tags || null) === subcategory}
                       onChange={() => handleSelectSubcategory(subcategory)}
                       className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                     />

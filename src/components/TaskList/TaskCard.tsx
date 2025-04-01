@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils';
 import { TaskActions } from './TaskActions';
 import { StatusBadge } from './StatusBadge';
 import { getTaskCategory } from '../../lib/categoryUtils';
-import { getPriorityBorderColor } from '../../lib/taskUtils';
+import { getPriorityBorderColor, getDueDateStyling } from '../../lib/taskUtils';
 
 // Task interface
 export interface Task {
@@ -52,8 +52,20 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
         "hover:shadow-md mb-2 border border-gray-200 bg-white"
       )}
     >
-      {/* Dropdown Menu Button */}
-      <div className="absolute right-2 top-2 z-20">
+      {/* Due Date - top right */}
+      {task.due_date && (
+        <div className="absolute right-2 top-2 z-20">
+          <span className={cn(getDueDateStyling(task.due_date).className, "text-xs flex items-center")}>
+            Due: {format(new Date(task.due_date), 'MMM d')}
+            {getDueDateStyling(task.due_date).urgencyText && (
+              <span className="ml-1">{getDueDateStyling(task.due_date).urgencyText}</span>
+            )}
+          </span>
+        </div>
+      )}
+      
+      {/* Dropdown Menu Button - middle right */}
+      <div className="absolute right-2 top-1/2 transform -translate-y-1/2 z-20">
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="p-2 hover:bg-gray-100 rounded-full"
@@ -89,14 +101,14 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
         )}
       </div>
       
-      {/* Status Badge - top right */}
-      <div className="absolute right-10 top-3">
+      {/* Status Badge - middle right */}
+      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
         <StatusBadge status={task.status} />
       </div>
       
       {/* Task Title - Prominent in top left */}
       <h3 className={cn(
-        "absolute left-3 top-3 text-left z-10 font-bold text-lg max-w-[65%] truncate shadow-sm px-3 py-1 rounded-r-lg bg-white",
+        "absolute left-3 top-3 text-left z-10 font-bold text-lg max-w-[55%] truncate shadow-sm px-3 py-1 rounded-r-lg bg-white",
         "border-l-4",
         getPriorityBorderColor(task.priority)
       )}>
@@ -117,9 +129,9 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
           updateTaskStatus={updateTaskStatus}
         />
         
-        {/* Date added - bottom right */}
-        <div className="text-xs text-gray-500">
-          {format(new Date(task.created_at), 'MMM d, yyyy')}
+        {/* Date information - bottom right */}
+        <div className="text-xs text-gray-500 flex flex-col items-end">
+          <span>Created: {format(new Date(task.created_at), 'MMM d, yyyy')}</span>
         </div>
       </div>
     </div>

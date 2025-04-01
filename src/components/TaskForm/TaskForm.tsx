@@ -8,43 +8,7 @@ import { AlertCircle, ChevronDown, ChevronUp, Flag } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 import { TaskDebug } from './TaskDebug';
-
-// Category data for UI organization
-// These subcategories are displayed in the UI but only 'category' is saved to the database
-const CATEGORIES = {
-  childcare: [
-    'Core Care',
-    'Play & Engagement',
-    'Learning & Schoolwork',
-    'Routines',
-    'Outings & Activities',
-    'Admin'
-  ],
-  work: [
-    'Core Execution',
-    'Planning & Strategy',
-    'Communication & Meetings',
-    'Learning & Research',
-    'Maintenance/Admin',
-    'Projects & Deliverables'
-  ],
-  personal: [
-    'Health & Wellness',
-    'Relationships & Social',
-    'Home & Chores',
-    'Finance & Admin',
-    'Growth & Learning',
-    'Fun & Recreation'
-  ],
-  other: [
-    'Core',
-    'Unexpected/Interruptions',
-    'Unsorted',
-    'Overflow',
-    'External Requests',
-    'Reflections & Journaling'
-  ]
-} as const;
+import { CATEGORIES, updateSubcategoryInTags } from '../../types/categories';
 
 export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
   // Setup React Hook Form
@@ -139,12 +103,9 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
       // Get the selected subcategory if any
       const subcategoryElement = document.querySelector('input[name="subcategory"]:checked') as HTMLInputElement;
       const selectedSubcategory = subcategoryElement?.value;
-      
+  
       // Add subcategory as a tag if selected
-      const tagsWithSubcategory = [...(data.tags || [])];
-      if (selectedSubcategory) {
-        tagsWithSubcategory.push(`subcategory:${selectedSubcategory}`);
-      }
+      const tagsWithSubcategory = updateSubcategoryInTags(data.tags || [], selectedSubcategory);
 
       // Compile the task data
       const taskData: Record<string, any> = {

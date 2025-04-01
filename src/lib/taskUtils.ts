@@ -174,3 +174,73 @@ export function getPriorityBorderColor(priority: string): string {
       return 'border-l-gray-100'; // Nearly invisible
   }
 }
+
+/**
+ * Get appropriate styling for due date based on how soon it is
+ * @param dueDate - The due date as a string
+ * @returns Object with className and text styling
+ */
+export function getDueDateStyling(dueDate: string | null): { className: string, urgencyText: string } {
+  if (!dueDate) {
+    return { className: 'text-gray-500 font-normal', urgencyText: '' };
+  }
+
+  const now = new Date();
+  const due = new Date(dueDate);
+  const diffTime = due.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Past due - red and bold
+  if (diffDays < 0) {
+    return { 
+      className: 'text-red-600 font-bold', 
+      urgencyText: 'Overdue!' 
+    };
+  }
+  
+  // Due today - orange and semibold
+  if (diffDays === 0) {
+    return { 
+      className: 'text-orange-600 font-semibold', 
+      urgencyText: 'Today!' 
+    };
+  }
+  
+  // Due tomorrow - amber and medium
+  if (diffDays === 1) {
+    return { 
+      className: 'text-amber-600 font-medium', 
+      urgencyText: 'Tomorrow' 
+    };
+  }
+  
+  // Due this week (within 7 days) - amber and normal
+  if (diffDays <= 7) {
+    return { 
+      className: 'text-amber-500 font-normal', 
+      urgencyText: 'Soon' 
+    };
+  }
+  
+  // Due within two weeks - light amber and light
+  if (diffDays <= 14) {
+    return { 
+      className: 'text-amber-400 font-light', 
+      urgencyText: '' 
+    };
+  }
+  
+  // Due within a month - very light and normal
+  if (diffDays <= 30) {
+    return { 
+      className: 'text-amber-300 font-normal', 
+      urgencyText: '' 
+    };
+  }
+  
+  // More than a month away - grey and light
+  return { 
+    className: 'text-gray-400 font-light', 
+    urgencyText: '' 
+  };
+}
