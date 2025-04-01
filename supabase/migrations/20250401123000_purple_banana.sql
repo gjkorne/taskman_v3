@@ -117,14 +117,14 @@ WHERE id NOT IN (SELECT DISTINCT user_id FROM categories WHERE name = 'Other');
 CREATE OR REPLACE VIEW category_migration_helper AS
 SELECT 
   t.id as task_id,
-  t.user_id,
-  t.category_name,
+  t.created_by as user_id,
+  t.category_name as task_category_name,
   c.id as category_id,
   c.name as category_name
 FROM 
   tasks t
 LEFT JOIN 
-  categories c ON LOWER(t.category_name) = LOWER(c.name) AND t.user_id = c.user_id
+  categories c ON LOWER(t.category_name) = LOWER(c.name) AND t.created_by = c.user_id
 WHERE 
   t.category_id IS NULL AND t.category_name IS NOT NULL;
 

@@ -5,7 +5,9 @@ git add .
 git commit -m "comment"
 git push origin main
 
-
+supabase login
+supabase link J3w!Ynj<6x,+,q2O
+supabase db push
 
 Supabase
 
