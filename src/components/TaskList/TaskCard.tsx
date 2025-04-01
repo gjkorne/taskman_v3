@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { MoreVertical } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { TaskActions } from './TaskActions';
+import { StatusBadge } from './StatusBadge';
+import { getCategoryBorderColor } from '../../lib/categoryUtils';
 
 // Task interface
 export interface Task {
@@ -29,48 +32,6 @@ interface TaskCardProps {
 
 export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  // Get category color based on task id or assigned category
-  const getCategoryStyle = (task: Task) => {
-    // Use category_name or category if available
-    if (task.category_name === 'work' || task.category === 'work' || task.category === 1) {
-      return "border-l-green-500";
-    } else if (task.category_name === 'personal' || task.category === 'personal' || task.category === 2) {
-      return "border-l-blue-500";
-    } else if (task.category_name === 'childcare' || task.category === 'childcare' || task.category === 3) {
-      return "border-l-cyan-500";
-    }
-    
-    // If no category, assign one based on task ID
-    const taskIdNum = parseInt(task.id.replace(/-/g, '').substring(0, 8), 16);
-    const categoryIndex = taskIdNum % 3;
-    
-    switch(categoryIndex) {
-      case 0: return "border-l-green-500"; // Work
-      case 1: return "border-l-blue-500";  // Personal
-      case 2: return "border-l-cyan-500";  // Childcare
-      default: return "border-l-gray-500";
-    }
-  };
-
-  // Format status for display
-  const formatStatus = (status: string) => {
-    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  // Get status color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'in_progress':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   return (
     <div 
@@ -118,19 +79,14 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
       
       {/* Status Badge - top right */}
       <div className="absolute right-10 top-3">
-        <span className={cn(
-          "px-2 py-1 text-xs rounded-full",
-          getStatusColor(task.status)
-        )}>
-          {formatStatus(task.status)}
-        </span>
+        <StatusBadge status={task.status} />
       </div>
       
       {/* Task Title - Prominent in top left */}
       <h3 className={cn(
         "absolute left-3 top-3 text-left z-10 font-bold text-lg max-w-[65%] truncate shadow-sm px-3 py-1 rounded-r-lg bg-white",
         "border-l-4",
-        getCategoryStyle(task)
+        getCategoryBorderColor(task)
       )}>
         {task.title}
       </h3>
@@ -143,44 +99,11 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
       {/* Task Actions and Date */}
       <div className="absolute bottom-3 w-full pr-8 left-0 px-4 flex justify-between items-center">
         {/* Action buttons - bottom left */}
-        <div className="flex space-x-2">
-          {task.status === 'pending' && (
-            <button 
-              onClick={() => updateTaskStatus(task.id, 'active')}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-              title="Start task"
-            >
-              Start
-            </button>
-          )}
-          {task.status === 'active' && (
-            <>
-              <button 
-                onClick={() => updateTaskStatus(task.id, 'in_progress')}
-                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded mr-1"
-                title="Pause task"
-              >
-                Pause
-              </button>
-              <button 
-                onClick={() => updateTaskStatus(task.id, 'completed')}
-                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-                title="Complete task"
-              >
-                Complete
-              </button>
-            </>
-          )}
-          {task.status === 'in_progress' && (
-            <button 
-              onClick={() => updateTaskStatus(task.id, 'active')}
-              className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-              title="Resume task"
-            >
-              Resume
-            </button>
-          )}
-        </div>
+        <TaskActions 
+          taskId={task.id}
+          status={task.status}
+          updateTaskStatus={updateTaskStatus}
+        />
         
         {/* Date added - bottom right */}
         <div className="text-xs text-gray-500">
