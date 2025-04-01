@@ -2,9 +2,9 @@ Phase 2:Core Task Management
 
 Based on the PRD's Phase 2 (Core Task Management), here are potential features we could work on next:
 
-- Task filtering by status, priority, etc.
-Task sorting options
-*** Refactor t
+x Task filtering by status, priority, etc.
+x Task sorting options
+*** Refactor question***
 Batch operations on tasks
 Quick status updates without full edit
 Task categories/contexts

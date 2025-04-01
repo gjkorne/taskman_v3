@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Filter, ChevronDown, ChevronUp, X, Flag, Grid, List, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Flag, Filter, CheckCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 // Define the filter types
@@ -66,14 +66,6 @@ export function FilterPanel({ filters, onFilterChange, onResetFilters }: FilterP
     }
   };
 
-  // Toggle view mode
-  const toggleViewMode = () => {
-    onFilterChange({
-      ...filters,
-      viewMode: filters.viewMode === 'grid' ? 'list' : 'grid'
-    });
-  };
-
   // Toggle show completed
   const toggleShowCompleted = () => {
     onFilterChange({
@@ -99,22 +91,6 @@ export function FilterPanel({ filters, onFilterChange, onResetFilters }: FilterP
           )}
         </div>
         <div className="flex items-center space-x-3">
-          {/* View toggle button */}
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleViewMode();
-            }}
-            className="p-1.5 rounded-md bg-gray-50 hover:bg-gray-100 transition-colors"
-            title={`Switch to ${filters.viewMode === 'grid' ? 'list' : 'grid'} view`}
-          >
-            {filters.viewMode === 'grid' ? (
-              <List className="h-4 w-4 text-gray-600" />
-            ) : (
-              <Grid className="h-4 w-4 text-gray-600" />
-            )}
-          </button>
-          
           {/* Reset filters button - only show if filters are active */}
           {(filters.status.length > 0 || filters.priority.length > 0 || filters.category.length > 0) && (
             <button 

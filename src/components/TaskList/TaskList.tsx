@@ -18,7 +18,8 @@ type Task = {
   tags: string[] | null;
   created_at: string;
   created_by: string;
-  category?: string;
+  category?: string | number;
+  category_name?: string;
   subcategory?: string;
 };
 
@@ -30,11 +31,14 @@ export function TaskList() {
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Filter state
-  const [filters, setFilters] = useState<TaskFilter>(defaultFilters);
+  const [filters, setFilters] = useState<TaskFilter>({
+    ...defaultFilters,
+    viewMode: 'list'
+  });
 
   async function fetchTasks() {
     try {
@@ -71,8 +75,43 @@ export function TaskList() {
   }
 
   useEffect(() => {
-    fetchTasks();
+    const fetchData = async () => {
+      setIsLoading(true);
+      await fetchTasks();
+      setIsLoading(false);
+    };
+    
+    fetchData();
+    
+    // Debug: Log task categories
+    console.log('Tasks:', tasks.map(task => ({ 
+      id: task.id, 
+      title: task.title, 
+      category: task.category 
+    })));
   }, []);
+
+  useEffect(() => {
+    // Debug - log all tasks to see if they have categories
+    if (tasks.length > 0) {
+      console.log('All Tasks with Categories:', 
+        tasks.map(task => ({
+          id: task.id,
+          title: task.title,
+          category: task.category
+        }))
+      );
+    }
+  }, [tasks]);
+
+  useEffect(() => {
+    // Debug the task data with more detailed logging
+    if (tasks.length > 0) {
+      console.log("DEBUG - All tasks:", tasks);
+      console.log("DEBUG - First task category:", tasks[0].category);
+      console.log("DEBUG - First task category_name:", tasks[0].category_name);
+    }
+  }, [tasks]);
 
   // Function to quickly update a task's status
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
@@ -111,7 +150,7 @@ export function TaskList() {
     }
     
     // Category filter (only if task has a category)
-    if (filters.category.length > 0 && task.category && !filters.category.includes(task.category)) {
+    if (filters.category.length > 0 && task.category && !filters.category.includes(task.category.toString())) {
       return false;
     }
     
@@ -157,8 +196,8 @@ export function TaskList() {
         const aCategory = a.category || '';
         const bCategory = b.category || '';
         return filters.sortOrder === 'asc'
-          ? aCategory.localeCompare(bCategory)
-          : bCategory.localeCompare(aCategory);
+          ? aCategory.toString().localeCompare(bCategory.toString())
+          : bCategory.toString().localeCompare(aCategory.toString());
       }
       default:
         return 0;
@@ -171,7 +210,7 @@ export function TaskList() {
       status: [],
       priority: [],
       category: [],
-      viewMode: filters.viewMode, // Preserve the current view mode
+      viewMode: 'list', // Preserve the current view mode
       sortBy: 'createdAt',
       sortOrder: 'desc',
       showCompleted: false
@@ -220,38 +259,39 @@ export function TaskList() {
 
   // Open the edit modal
   const openEditModal = (task: Task) => {
-    setTaskToEdit(task);
+    setSelectedTask(task);
     setIsEditModalOpen(true);
     setActiveDropdown(null); // Close the dropdown
   };
 
-  // Handle task update
-  const handleTaskUpdated = () => {
-    // Refetch tasks to get the updated data
-    fetchTasks();
-    
-    // Close the edit modal
-    setIsEditModalOpen(false);
-    setTaskToEdit(null);
-  };
-
+  // Handle refresh
   const handleRefresh = () => {
-    fetchTasks();
+    setIsRefreshing(true);
+    fetchTasks().finally(() => {
+      setIsRefreshing(false);
+    });
   };
 
-  // Helper function to get category color
-  const getCategoryColor = (category?: string) => {
-    if (!category) return 'border-gray-200';
+  // Get category color based on task id or assigned category
+  const getCategoryStyle = (task: Task) => {
+    // Use category_name or category if available
+    if (task.category_name === 'work' || task.category === 'work' || task.category === 1) {
+      return "border-l-green-500";
+    } else if (task.category_name === 'personal' || task.category === 'personal' || task.category === 2) {
+      return "border-l-blue-500";
+    } else if (task.category_name === 'childcare' || task.category === 'childcare' || task.category === 3) {
+      return "border-l-cyan-500";
+    }
     
-    // Map categories to colors
-    switch (category.toLowerCase()) {
-      case 'work': return 'border-blue-400';
-      case 'personal': return 'border-purple-400';
-      case 'childcare': return 'border-green-400';
-      case 'health': return 'border-red-400';
-      case 'education': return 'border-yellow-400';
-      case 'finance': return 'border-indigo-400';
-      default: return 'border-gray-300';
+    // If no category, assign one based on task ID
+    const taskIdNum = parseInt(task.id.replace(/-/g, '').substring(0, 8), 16);
+    const categoryIndex = taskIdNum % 3;
+    
+    switch(categoryIndex) {
+      case 0: return "border-l-green-500"; // Work
+      case 1: return "border-l-blue-500";  // Personal
+      case 2: return "border-l-cyan-500";  // Childcare
+      default: return "border-l-gray-500";
     }
   };
 
@@ -305,19 +345,14 @@ export function TaskList() {
           <p className="text-gray-500">Create your first task to get started!</p>
         </div>
       ) : (
-        <div className={filters.viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col space-y-2"}>
+        <div className="flex flex-col space-y-2">
           {sortedTasks.map((task) => (
-            <div
+            <div 
               key={task.id}
               className={cn(
-                "bg-white rounded-lg shadow-md overflow-hidden relative",
-                filters.viewMode === 'list' ? "flex items-center p-3" : "p-4",
-                "border-l-4 hover:shadow-lg transition-shadow",
-                getCategoryColor(task.category)
+                "relative flex flex-col p-4 rounded-lg shadow-sm transition-all",
+                "hover:shadow-md mb-2 border border-gray-200 bg-white"
               )}
-              style={{ borderLeftColor: task.priority === 'urgent' ? '#EF4444' : 
-                                        task.priority === 'high' ? '#F59E0B' : 
-                                        task.priority === 'medium' ? '#3B82F6' : '#10B981' }}
             >
               {/* Dropdown Menu Button */}
               <div className={cn(
@@ -341,7 +376,7 @@ export function TaskList() {
                 
                 {/* Dropdown Menu */}
                 {activeDropdown === task.id && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-30">
                     <div className="py-1">
                       <button
                         onClick={() => openEditModal(task)}
@@ -361,125 +396,110 @@ export function TaskList() {
                   </div>
                 )}
               </div>
+              
+              {/* Task Title - Prominent in top left */}
+              <h3 className={cn(
+                "absolute left-3 top-3 text-left z-10 font-bold text-lg max-w-[65%] truncate shadow-sm px-3 py-1 rounded-r-lg bg-white",
+                "border-l-4",
+                getCategoryStyle(task)
+              )}>
+                {task.title}
+              </h3>
 
-              {/* Task Content - List View */}
-              {filters.viewMode === 'list' ? (
-                <div className="flex-grow pr-10">
-                  <div className="flex items-center">
-                    <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
-                  </div>
-                  <div className="mt-1 flex items-center gap-3">
-                    
-                    {/* Task action buttons */}
-                    <div className="flex items-center gap-1.5">
-                      {task.status === 'pending' && (
-                        <button 
-                          onClick={() => updateTaskStatus(task.id, 'active')}
-                          className="p-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded"
-                        >
-                          Start
-                        </button>
-                      )}
-                      {task.status === 'active' && (
-                        <button 
-                          onClick={() => updateTaskStatus(task.id, 'in_progress')}
-                          className="p-1 text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 rounded"
-                        >
-                          Pause
-                        </button>
-                      )}
-                      {task.status === 'in_progress' && (
-                        <button 
-                          onClick={() => updateTaskStatus(task.id, 'active')}
-                          className="p-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 rounded"
-                        >
-                          Resume
-                        </button>
-                      )}
-                      {task.status !== 'completed' && (
-                        <button 
-                          onClick={() => updateTaskStatus(task.id, 'completed')}
-                          className="p-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 rounded"
-                        >
-                          Complete
-                        </button>
-                      )}
-                    </div>
-                    
+              {/* Task Content */}
+              <div className="pr-6 mt-12">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {/* Category and tags */}
                     {task.category && (
-                      <span className="text-xs text-gray-600">
+                      <span className={cn(
+                        "text-xs px-2 py-0.5 rounded-full font-medium",
+                        task.category === 'work' && "bg-green-100 text-green-800",
+                        task.category === 'personal' && "bg-blue-100 text-blue-800",
+                        task.category === 'childcare' && "bg-cyan-100 text-cyan-800",
+                      )}>
                         {task.category}
+                      </span>
+                    )}
+                    {task.tags && task.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {task.tags.slice(0, 2).map(tag => (
+                          <span 
+                            key={tag} 
+                            className="text-xs bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                        {task.tags.length > 2 && (
+                          <span className="text-xs text-gray-500">+{task.tags.length - 2}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center">
+                    {task.due_date && (
+                      <span className="text-xs text-gray-500 mr-4">
+                        Due: {format(new Date(task.due_date), 'MMM d, yyyy')}
                       </span>
                     )}
                   </div>
                 </div>
-              ) : (
-                /* Task Content - Grid View */
-                <div className="pr-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      
-                      {/* Task action buttons */}
-                      <div className="flex items-center gap-1">
-                        {task.status === 'pending' && (
-                          <button 
-                            onClick={() => updateTaskStatus(task.id, 'active')}
-                            className="p-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded"
-                            title="Start task"
-                          >
-                            S
-                          </button>
-                        )}
-                        {task.status === 'active' && (
-                          <button 
-                            onClick={() => updateTaskStatus(task.id, 'in_progress')}
-                            className="p-1 text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 rounded"
-                            title="Pause task"
-                          >
-                            P
-                          </button>
-                        )}
-                        {task.status === 'in_progress' && (
-                          <button 
-                            onClick={() => updateTaskStatus(task.id, 'active')}
-                            className="p-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 rounded"
-                            title="Resume task"
-                          >
-                            R
-                          </button>
-                        )}
-                        {task.status !== 'completed' && (
-                          <button 
-                            onClick={() => updateTaskStatus(task.id, 'completed')}
-                            className="p-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 rounded"
-                            title="Complete task"
-                          >
-                            C
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                  {task.description}
+                </p>
+                
+                <div className="flex justify-between items-end mt-auto">
+                  {/* Task action buttons - bottom left */}
+                  <div className="flex items-center gap-1.5">
+                    {task.status === 'pending' && (
+                      <button 
+                        onClick={() => updateTaskStatus(task.id, 'active')}
+                        className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
+                        title="Start task"
+                      >
+                        Start
+                      </button>
+                    )}
+                    {task.status === 'active' && (
+                      <>
+                        <button 
+                          onClick={() => updateTaskStatus(task.id, 'in_progress')}
+                          className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded mr-1"
+                          title="Pause task"
+                        >
+                          Pause
+                        </button>
+                        <button 
+                          onClick={() => updateTaskStatus(task.id, 'completed')}
+                          className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
+                          title="Complete task"
+                        >
+                          Complete
+                        </button>
+                      </>
+                    )}
+                    {task.status === 'in_progress' && (
+                      <button 
+                        onClick={() => updateTaskStatus(task.id, 'active')}
+                        className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
+                        title="Resume task"
+                      >
+                        Resume
+                      </button>
+                    )}
                   </div>
                   
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">{task.title}</h3>
-                  
-                  {task.description && (
-                    <div 
-                      className="mb-3 text-sm text-gray-600 line-clamp-2" 
-                      dangerouslySetInnerHTML={{ __html: task.description || '' }}
-                    />
-                  )}
-                  
-                  <div className="mt-2 flex justify-between items-center">
-                    <div className="text-xs text-gray-500">
-                      {task.category && (
-                        <span className="mr-2">{task.category}</span>
-                      )}
-                      <span>{format(new Date(task.created_at), 'MMM d, yyyy')}</span>
-                    </div>
+                  {/* Date added - bottom right */}
+                  <div className="flex items-center">
+                    <span className="text-xs text-gray-500">
+                      {format(new Date(task.created_at), 'MMM d, yyyy')}
+                    </span>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           ))}
         </div>
@@ -514,25 +534,15 @@ export function TaskList() {
         </div>
       )}
 
-      {/* Edit Task Modal */}
-      {isEditModalOpen && taskToEdit && (
-        <TaskEditForm 
-          task={{
-            id: taskToEdit.id,
-            title: taskToEdit.title,
-            description: taskToEdit.description,
-            status: taskToEdit.status,
-            priority: taskToEdit.priority,
-            category: taskToEdit.category,
-            subcategory: taskToEdit.subcategory,
-            tags: taskToEdit.tags || undefined
-          }}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setTaskToEdit(null);
-          }}
-          onTaskUpdated={handleTaskUpdated}
-        />
+      {/* Edit task modal */}
+      {isEditModalOpen && selectedTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <TaskEditForm
+            taskId={selectedTask.id}
+            onClose={() => setIsEditModalOpen(false)}
+            onTaskUpdated={fetchTasks}
+          />
+        </div>
       )}
     </div>
   );
