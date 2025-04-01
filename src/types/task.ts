@@ -41,6 +41,10 @@ export interface Task {
   updated_at: string | null;
   is_deleted: boolean | null;
   
+  // Activity tracking fields
+  last_active_at?: string | null;  // Last time any activity happened on this task
+  last_timer_stop?: string | null; // Last time a timer was stopped for this task
+  
   // Foreign keys
   list_id: string | null;
   

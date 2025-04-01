@@ -222,6 +222,44 @@ export function sortTasks(tasks: Task[], sortBy: TaskFilter['sortBy'], sortOrder
         comparison = categoryA.localeCompare(categoryB);
         break;
       }
+      case 'lastActive': {
+        // Get the most recent time for each task
+        // In priority order: 
+        // 1. last_active_at timestamp if available
+        // 2. last_timer_stop timestamp if available
+        // 3. updated_at timestamp if available
+        // 4. created_at timestamp as fallback
+        
+        const getLastActiveTime = (task: Task): number => {
+          if (task.last_active_at) {
+            return new Date(task.last_active_at).getTime();
+          }
+          
+          if (task.last_timer_stop) {
+            return new Date(task.last_timer_stop).getTime();
+          }
+          
+          if (task.updated_at) {
+            return new Date(task.updated_at).getTime();
+          }
+          
+          return new Date(task.created_at).getTime();
+        };
+        
+        // Active tasks always come first when sorting by lastActive
+        if (a.status === 'active' && b.status !== 'active') {
+          comparison = -1;
+        } else if (a.status !== 'active' && b.status === 'active') {
+          comparison = 1;
+        } else {
+          // If both tasks have the same status (both active or both not active)
+          // Then sort by the most recent activity
+          const timeA = getLastActiveTime(a);
+          const timeB = getLastActiveTime(b);
+          comparison = timeA - timeB;
+        }
+        break;
+      }
     }
 
     // Apply sort order

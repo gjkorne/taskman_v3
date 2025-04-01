@@ -9,7 +9,7 @@ export type TaskFilter = {
   priority: string[];
   category: string[];
   dueDate: string[]; // Add due date filtering options
-  sortBy: 'priority' | 'dueDate' | 'createdAt' | 'title' | 'status' | 'category';
+  sortBy: 'priority' | 'dueDate' | 'createdAt' | 'title' | 'status' | 'category' | 'lastActive';
   sortOrder: 'asc' | 'desc';
   viewMode: 'list' | 'grid';
   showCompleted: boolean;
@@ -21,7 +21,7 @@ export const defaultFilters: TaskFilter = {
   priority: [],
   category: [],
   dueDate: [],
-  sortBy: 'priority',
+  sortBy: 'lastActive', // Make 'lastActive' the default sort
   sortOrder: 'desc',
   viewMode: 'list',
   showCompleted: false,
@@ -306,7 +306,8 @@ export function FilterPanel({
                 { value: 'createdAt', label: 'Creation Date' },
                 { value: 'title', label: 'Title' },
                 { value: 'status', label: 'Status' },
-                { value: 'category', label: 'Category' }
+                { value: 'category', label: 'Category' },
+                { value: 'lastActive', label: 'Last Active' }
               ].map(({ value, label }) => (
                 <label 
                   key={value} 

@@ -1,6 +1,8 @@
 import { Play, Pause, Square } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useTimer } from '../../contexts/TimerContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { useToast } from '../../components/Toast/ToastContext';
 
 interface TimerControlsProps {
   taskId: string;
@@ -9,7 +11,6 @@ interface TimerControlsProps {
   onTimerStateChange?: () => void;
 }
 
-// Extract control buttons into reusable components
 const TimerButton = ({ 
   onClick, 
   icon, 
@@ -30,7 +31,6 @@ const TimerButton = ({
   </button>
 );
 
-// Control buttons as a standalone component
 const TimerControlButtons = ({
   isRunning,
   onPause,
@@ -70,24 +70,39 @@ const TimerControlButtons = ({
 
 export function TimerControls({ taskId, compact = false, className, onTimerStateChange }: TimerControlsProps) {
   const { timerState, startTimer, pauseTimer, resumeTimer, stopTimer, formatElapsedTime } = useTimer();
+  const { settings } = useSettings();
+  const { addToast } = useToast();
   
-  // Validate taskId to ensure it's a UUID
   const isValidTaskId = typeof taskId === 'string' && 
     taskId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) !== null;
   
-  // Safely start the timer with validation
   const handleStartTimer = async () => {
     if (!isValidTaskId) {
       console.error('Invalid taskId provided to TimerControls:', taskId);
       return;
     }
-    console.log('TimerControls: Starting timer for task:', taskId);
-    await startTimer(taskId);
+    
+    if (timerState.status !== 'idle' && timerState.taskId !== taskId) {
+      const currentTaskId = timerState.taskId;
+      
+      if (settings.allowTaskSwitching) {
+        console.log('TimerControls: Switching from task', currentTaskId, 'to', taskId);
+        await stopTimer(); 
+        await startTimer(taskId); 
+        addToast('Switched to new task timer', 'info');
+      } else {
+        console.log('TimerControls: Cannot start timer for', taskId, 'because another timer is running');
+        addToast('Please stop the current timer before starting a new one', 'warning');
+        return;
+      }
+    } else {
+      console.log('TimerControls: Starting timer for task:', taskId);
+      await startTimer(taskId);
+    }
     
     if (onTimerStateChange) onTimerStateChange();
   };
   
-  // Add handlers for pause, resume and stop with task list refresh
   const handlePauseTimer = async () => {
     await pauseTimer();
     if (onTimerStateChange) onTimerStateChange();
@@ -106,7 +121,6 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
   const isThisTaskActive = isValidTaskId && timerState.taskId === taskId && timerState.status !== 'idle';
   const isRunning = timerState.status === 'running';
   
-  // If taskId is invalid, show an error button
   if (!isValidTaskId) {
     return (
       <button
@@ -123,9 +137,7 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
     );
   }
   
-  // Different layouts based on timer state and compact mode
   if (!isThisTaskActive && compact) {
-    // Compact start button when timer is idle
     return (
       <button
         onClick={handleStartTimer}
@@ -143,7 +155,6 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
   }
   
   if (!isThisTaskActive) {
-    // Full start button when timer is idle
     return (
       <button
         onClick={handleStartTimer}
@@ -161,9 +172,7 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
     );
   }
   
-  // Active timer controls
   if (compact) {
-    // Compact view: Only show essential buttons
     return (
       <div className={cn("flex space-x-1", className)}>
         <TimerControlButtons
@@ -175,10 +184,8 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
       </div>
     );
   } else {
-    // Full view: Show timer display and buttons
     return (
       <div className={cn("flex flex-col space-y-2", className)}>
-        {/* Timer display */}
         <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200">
           <div className="flex items-center space-x-2">
             {isRunning ? (
@@ -191,7 +198,6 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
             </span>
           </div>
           
-          {/* Control buttons */}
           <TimerControlButtons
             isRunning={isRunning}
             onPause={handlePauseTimer}
@@ -200,7 +206,6 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
           />
         </div>
         
-        {/* Total time indicator - only shown in non-compact mode */}
         <div className="flex justify-between text-xs text-gray-500 px-1">
           <span>Task timing active</span>
           <span>{formatElapsedTime()} elapsed</span>

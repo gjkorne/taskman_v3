@@ -89,6 +89,22 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
             <span className="text-sm font-medium text-gray-700">Auto-save task drafts</span>
           </label>
         </div>
+
+        <div className="mb-4">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={settings.allowTaskSwitching}
+              onChange={(e) => updateSetting('allowTaskSwitching', e.target.checked)}
+              className="rounded text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Auto-switch tasks when starting a new timer</span>
+          </label>
+          <p className="text-sm text-gray-500 mt-1 ml-6">
+            When enabled, starting a timer on a different task will automatically stop the current timer.
+            When disabled, you'll need to manually stop the current timer before starting a new one.
+          </p>
+        </div>
       </div>
       
       {/* Category Management */}

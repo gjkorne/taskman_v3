@@ -7,6 +7,7 @@ interface Settings {
   defaultTaskSort: 'due_date' | 'priority' | 'created_at';
   notificationsEnabled: boolean;
   autoSave: boolean;
+  allowTaskSwitching: boolean; // Whether to switch tasks when starting a timer while another one is running
 }
 
 // Default settings
@@ -16,6 +17,7 @@ const defaultSettings: Settings = {
   defaultTaskSort: 'due_date',
   notificationsEnabled: true,
   autoSave: true,
+  allowTaskSwitching: false, // Default to the safe behavior of not auto-switching
 };
 
 // Context type definition
@@ -47,6 +49,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         const storedDefaultTaskSort = localStorage.getItem('defaultTaskSort') as Settings['defaultTaskSort'] | null;
         const storedNotificationsEnabled = localStorage.getItem('notificationsEnabled');
         const storedAutoSave = localStorage.getItem('autoSave');
+        const storedAllowTaskSwitching = localStorage.getItem('allowTaskSwitching');
 
         // Update settings state with stored values or defaults
         setSettings({
@@ -55,6 +58,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
           defaultTaskSort: storedDefaultTaskSort || defaultSettings.defaultTaskSort,
           notificationsEnabled: storedNotificationsEnabled ? storedNotificationsEnabled === 'true' : defaultSettings.notificationsEnabled,
           autoSave: storedAutoSave ? storedAutoSave === 'true' : defaultSettings.autoSave,
+          allowTaskSwitching: storedAllowTaskSwitching ? storedAllowTaskSwitching === 'true' : defaultSettings.allowTaskSwitching,
         });
       } catch (error) {
         console.error('Error loading settings:', error);
