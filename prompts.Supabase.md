@@ -2,7 +2,7 @@ GIT Prompts
 
 git status
 git add .
-git commit -m 
+git commit -m "comment"
 git push origin main
 
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, Clock, Layout as LayoutIcon, List, Menu, Plus } from 'lucide-react';
+import { BarChart3, Clock, Layout as LayoutIcon, List, Menu, Plus, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TaskForm } from './TaskForm/TaskForm';
 
@@ -25,8 +25,8 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => (
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeView: 'tasks' | 'timer' | 'reports';
-  onViewChange: (view: 'tasks' | 'timer' | 'reports') => void;
+  activeView: 'tasks' | 'timer' | 'reports' | 'settings';
+  onViewChange: (view: 'tasks' | 'timer' | 'reports' | 'settings') => void;
   onTaskCreated?: () => void;
 }
 
@@ -82,6 +82,12 @@ export function Layout({ children, activeView, onViewChange, onTaskCreated }: La
             label="Reports"
             active={activeView === 'reports'}
             onClick={() => onViewChange('reports')}
+          />
+          <NavItem
+            icon={<Settings className="w-5 h-5" />}
+            label="Settings"
+            active={activeView === 'settings'}
+            onClick={() => onViewChange('settings')}
           />
         </nav>
       </div>

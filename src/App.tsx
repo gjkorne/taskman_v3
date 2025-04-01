@@ -8,8 +8,10 @@ import { Layout } from './components/Layout';
 import { TaskList, TaskListRefType } from './components/TaskList';
 import { Timer } from './components/Timer';
 import { Reports } from './components/Reports';
+import SettingsPage from './pages/SettingsPage';
 import { useAuth } from './lib/auth';
 import { TimerProvider } from './contexts/TimerContext';
+import { SettingsProvider } from './contexts/SettingsContext';
 
 const queryClient = new QueryClient();
 
@@ -32,7 +34,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports'>('tasks');
+  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'settings'>('tasks');
   const taskListRef = useRef<TaskListRefType>(null);
 
   // Handler for when a task is created through the global button
@@ -50,31 +52,34 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TimerProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<LoginForm />} />
-              <Route path="/register" element={<RegisterForm />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Layout 
-                      activeView={activeView} 
-                      onViewChange={setActiveView}
-                      onTaskCreated={handleTaskCreated}
-                    >
-                      {activeView === 'tasks' && <TaskList ref={taskListRef} />}
-                      {activeView === 'timer' && <Timer />}
-                      {activeView === 'reports' && <Reports />}
-                    </Layout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </BrowserRouter>
-        </TimerProvider>
+        <SettingsProvider>
+          <TimerProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<LoginForm />} />
+                <Route path="/register" element={<RegisterForm />} />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Layout 
+                        activeView={activeView} 
+                        onViewChange={setActiveView}
+                        onTaskCreated={handleTaskCreated}
+                      >
+                        {activeView === 'tasks' && <TaskList ref={taskListRef} />}
+                        {activeView === 'timer' && <Timer />}
+                        {activeView === 'reports' && <Reports />}
+                        {activeView === 'settings' && <SettingsPage />}
+                      </Layout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </BrowserRouter>
+          </TimerProvider>
+        </SettingsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
