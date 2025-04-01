@@ -6,23 +6,7 @@ import { TaskActions } from './TaskActions';
 import { StatusBadge } from './StatusBadge';
 import { getTaskCategory } from '../../lib/categoryUtils';
 import { getPriorityBorderColor, getDueDateStyling } from '../../lib/taskUtils';
-
-// Task interface
-export interface Task {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  due_date: string | null;
-  estimated_time: string | null;
-  tags: string[] | null;
-  created_at: string;
-  created_by: string;
-  category?: string | number;
-  category_name?: string;
-  subcategory?: string;
-};
+import { Task } from '../../types/task';
 
 interface TaskCardProps {
   task: Task;

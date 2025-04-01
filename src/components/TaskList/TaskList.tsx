@@ -3,10 +3,11 @@ import { supabase } from '../../lib/supabase';
 import { RefreshCw } from 'lucide-react';
 import { TaskEditForm } from './TaskEditForm';
 import { FilterPanel, defaultFilters, TaskFilter } from './FilterPanel';
-import { TaskCard, Task } from './TaskCard';
+import { TaskCard } from './TaskCard';
 import { TaskContainer } from './TaskContainer';
 import { SearchBar } from './SearchBar';
 import { filterAndSortTasks } from '../../lib/taskUtils';
+import { Task } from '../../types/task';
 
 export function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);

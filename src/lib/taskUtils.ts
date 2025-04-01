@@ -1,9 +1,69 @@
 /**
  * Utility functions for task filtering and sorting
  */
-import { Task } from '../components/TaskList/TaskCard';
+import { Task } from '../types/task';
 import { TaskFilter } from '../components/TaskList/FilterPanel';
 import { getTaskCategory } from './categoryUtils';
+
+/**
+ * Check if a task due date matches the filter criteria
+ */
+export function taskMatchesDueDate(task: Task, dueDateFilter: string[]): boolean {
+  if (!dueDateFilter.length) return true;
+  if (!task.due_date) return false;
+  
+  const now = new Date();
+  const dueDate = new Date(task.due_date);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  // Start of this week (Sunday)
+  const thisWeekStart = new Date(today);
+  thisWeekStart.setDate(today.getDate() - today.getDay());
+  
+  // End of this week (Saturday)
+  const thisWeekEnd = new Date(thisWeekStart);
+  thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
+  
+  // Start of next week
+  const nextWeekStart = new Date(thisWeekEnd);
+  nextWeekStart.setDate(thisWeekEnd.getDate() + 1);
+  
+  // End of next week
+  const nextWeekEnd = new Date(nextWeekStart);
+  nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
+  
+  // Format dates to YYYY-MM-DD for comparison
+  const formatDateForCompare = (date: Date) => 
+    `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  
+  const dueDateFormatted = formatDateForCompare(dueDate);
+  const todayFormatted = formatDateForCompare(today);
+  const tomorrowFormatted = formatDateForCompare(tomorrow);
+  
+  return dueDateFilter.some(filter => {
+    switch (filter) {
+      case 'today':
+        return dueDateFormatted === todayFormatted;
+      
+      case 'tomorrow':
+        return dueDateFormatted === tomorrowFormatted;
+      
+      case 'this_week':
+        return dueDate >= thisWeekStart && dueDate <= thisWeekEnd;
+      
+      case 'next_week':
+        return dueDate >= nextWeekStart && dueDate <= nextWeekEnd;
+      
+      case 'overdue':
+        return dueDate < today;
+      
+      default:
+        return false;
+    }
+  });
+}
 
 /**
  * Check if a task matches the search query
@@ -83,6 +143,11 @@ export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: str
       if (!taskCategory || !filters.category.includes(taskCategory)) {
         return false;
       }
+    }
+    
+    // Due date filter
+    if (filters.dueDate.length > 0 && !taskMatchesDueDate(task, filters.dueDate)) {
+      return false;
     }
 
     // Show completed filter

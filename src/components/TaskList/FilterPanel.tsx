@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, X, Flag, Filter, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Flag, Filter, CheckCircle, Calendar } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { CATEGORIES } from '../../types/categories';
 
 // Define the filter types
 export type TaskFilter = {
   status: string[];
   priority: string[];
   category: string[];
+  dueDate: string[]; // Add due date filtering options
   sortBy: 'priority' | 'dueDate' | 'createdAt' | 'title' | 'status' | 'category';
   sortOrder: 'asc' | 'desc';
   viewMode: 'list' | 'grid';
@@ -18,6 +20,7 @@ export const defaultFilters: TaskFilter = {
   status: [], // No default status filters
   priority: [],
   category: [],
+  dueDate: [],
   sortBy: 'priority',
   sortOrder: 'desc',
   viewMode: 'list',
@@ -35,7 +38,7 @@ export function FilterPanel({ filters, onFilterChange, onResetFilters }: FilterP
 
   // Helper function to toggle a filter value
   const toggleFilter = (type: keyof TaskFilter, value: string) => {
-    if (type === 'status' || type === 'priority' || type === 'category') {
+    if (type === 'status' || type === 'priority' || type === 'category' || type === 'dueDate') {
       const currentValues = filters[type];
       const newValues = currentValues.includes(value)
         ? currentValues.filter(v => v !== value)
@@ -84,7 +87,7 @@ export function FilterPanel({ filters, onFilterChange, onResetFilters }: FilterP
         <div className="flex items-center space-x-2">
           <Filter className="h-4 w-4 text-indigo-500" />
           <span className="font-medium text-gray-700">Filters & Sort</span>
-          {(filters.status.length > 0 || filters.priority.length > 0 || filters.category.length > 0) && (
+          {(filters.status.length > 0 || filters.priority.length > 0 || filters.category.length > 0 || filters.dueDate.length > 0) && (
             <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">
               Active
             </span>
@@ -92,7 +95,7 @@ export function FilterPanel({ filters, onFilterChange, onResetFilters }: FilterP
         </div>
         <div className="flex items-center space-x-3">
           {/* Reset filters button - only show if filters are active */}
-          {(filters.status.length > 0 || filters.priority.length > 0 || filters.category.length > 0) && (
+          {(filters.status.length > 0 || filters.priority.length > 0 || filters.category.length > 0 || filters.dueDate.length > 0) && (
             <button 
               onClick={(e) => {
                 e.stopPropagation();
@@ -186,7 +189,7 @@ export function FilterPanel({ filters, onFilterChange, onResetFilters }: FilterP
                 <div className="bg-gray-50 p-2 rounded-lg">
                   <h3 className="text-xs font-medium text-gray-700 mb-1">Category</h3>
                   <div className="space-y-1">
-                    {['work', 'personal', 'childcare'].map(category => (
+                    {Object.keys(CATEGORIES).map(category => (
                       <label key={category} className="flex items-center space-x-1 cursor-pointer text-xs">
                         <input
                           type="checkbox"
@@ -196,6 +199,38 @@ export function FilterPanel({ filters, onFilterChange, onResetFilters }: FilterP
                         />
                         <span className="text-gray-600 capitalize">
                           {category}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Due Date Filter */}
+                <div className="bg-gray-50 p-2 rounded-lg">
+                  <h3 className="text-xs font-medium text-gray-700 mb-1 flex items-center">
+                    <Calendar className="h-3 w-3 mr-1 text-indigo-500" />
+                    Due Date
+                  </h3>
+                  <div className="space-y-1">
+                    {[
+                      { id: 'today', label: 'Today' },
+                      { id: 'tomorrow', label: 'Tomorrow' },
+                      { id: 'this_week', label: 'This week' },
+                      { id: 'next_week', label: 'Next week' },
+                      { id: 'overdue', label: 'Overdue' }
+                    ].map(dateOption => (
+                      <label key={dateOption.id} className="flex items-center space-x-1 cursor-pointer text-xs">
+                        <input
+                          type="checkbox"
+                          checked={filters.dueDate.includes(dateOption.id)}
+                          onChange={() => toggleFilter('dueDate', dateOption.id)}
+                          className="rounded text-indigo-600 focus:ring-indigo-500 h-3 w-3"
+                        />
+                        <span className={cn(
+                          "text-gray-600",
+                          dateOption.id === 'overdue' && "text-red-600 font-medium"
+                        )}>
+                          {dateOption.label}
                         </span>
                       </label>
                     ))}
