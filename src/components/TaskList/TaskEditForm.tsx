@@ -46,14 +46,11 @@ interface Task {
   priority: string;
   due_date: string | null;
   estimated_time: string | null;
-  estimated_hours?: string;
-  estimated_minutes?: string;
   tags: string[] | null;
   created_at: string;
   created_by: string;
   category?: string;
   category_name?: string;
-  subcategory?: string;
 }
 
 interface TaskEditFormProps {
@@ -70,10 +67,7 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
     priority: 'medium',
     due_date: null,
     category: 'work', // Default to work category
-    subcategory: '',
     tags: [],
-    estimated_hours: '',
-    estimated_minutes: ''
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -153,6 +147,21 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
     }));
   };
   
+  const handleSelectSubcategory = (subcategory: string) => {
+    const newTag = `subcategory:${subcategory}`;
+    if (!formData.tags?.includes(newTag)) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...(prev.tags || []), newTag]
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        tags: prev.tags?.filter(tag => tag !== newTag) || []
+      }));
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -165,7 +174,7 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
       
       // Map category to category_name for database
       // Only include fields that exist in the database schema
-      const dataToSubmit = {
+      const dataToSubmit: Record<string, any> = {
         title: formData.title,
         description: formData.description || '',
         status: formData.status || 'pending',
@@ -175,6 +184,12 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
         tags: formData.tags || [],
         updated_at: new Date().toISOString()
       };
+      
+      // Convert estimated time to interval format if provided
+      if (formData.estimated_time) {
+        // Convert minutes to PostgreSQL interval format: 'X minutes'
+        dataToSubmit.estimated_time = `${formData.estimated_time} minutes`;
+      }
       
       // Debug log to see data after transformation
       console.log('Data to submit to database:', dataToSubmit);
@@ -334,60 +349,58 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
                 <option value="work">Work</option>
                 <option value="personal">Personal</option>
                 <option value="childcare">Childcare</option>
+                <option value="other">Other</option>
               </select>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Subcategory */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Subcategory
-              </label>
-              <select
-                name="subcategory"
-                value={formData.subcategory || ''}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              >
-                <option value="">-- Select Subcategory --</option>
-                {formData.category === 'work' && CATEGORIES.work.map(subcategory => (
-                  <option key={subcategory} value={subcategory}>{subcategory}</option>
-                ))}
-                {formData.category === 'personal' && CATEGORIES.personal.map(subcategory => (
-                  <option key={subcategory} value={subcategory}>{subcategory}</option>
-                ))}
-                {formData.category === 'childcare' && CATEGORIES.childcare.map(subcategory => (
-                  <option key={subcategory} value={subcategory}>{subcategory}</option>
-                ))}
-              </select>
-            </div>
-            
             {/* Estimated Time */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Estimated Time
+                Estimated Time (minutes)
               </label>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  name="estimated_hours"
-                  value={formData.estimated_hours || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Hours"
-                />
-                <input
-                  type="number"
-                  name="estimated_minutes"
-                  value={formData.estimated_minutes || ''}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  placeholder="Minutes"
-                />
-              </div>
+              <input
+                type="number"
+                min="0"
+                name="estimated_time"
+                value={formData.estimated_time || ''}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="e.g., 60"
+              />
+              <p className="mt-1 text-xs text-gray-500">Enter total minutes (e.g., 300 for 5 hours)</p>
             </div>
           </div>
+          
+          {/* Subcategory selection - only shown when a category is selected */}
+          {formData.category && formData.category in CATEGORIES && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Subcategory
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {CATEGORIES[formData.category as keyof typeof CATEGORIES].map((subcategory) => (
+                  <label 
+                    key={subcategory} 
+                    className="flex items-center space-x-2 p-2 border rounded-md hover:bg-gray-50"
+                  >
+                    <input
+                      type="radio"
+                      value={subcategory}
+                      id={`subcategory-${subcategory.replace(/\s+/g, '-').toLowerCase()}`}
+                      name="subcategory"
+                      checked={formData.tags?.includes(`subcategory:${subcategory}`)}
+                      onChange={() => handleSelectSubcategory(subcategory)}
+                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-900">{subcategory}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">Subcategory will be saved as a tag</p>
+            </div>
+          )}
           
           {/* Tags */}
           <div>
