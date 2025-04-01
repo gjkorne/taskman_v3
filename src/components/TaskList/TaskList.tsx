@@ -4,6 +4,8 @@ import { RefreshCw } from 'lucide-react';
 import { TaskEditForm } from './TaskEditForm';
 import { FilterPanel, defaultFilters, TaskFilter } from './FilterPanel';
 import { TaskCard, Task } from './TaskCard';
+import { TaskContainer } from './TaskContainer';
+import { filterAndSortTasks } from '../../lib/taskUtils';
 
 export function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -117,72 +119,8 @@ export function TaskList() {
     }
   };
 
-  // Filter tasks based on current filters
-  const filteredTasks = tasks.filter(task => {
-    // Status filter
-    if (filters.status.length > 0 && !filters.status.includes(task.status)) {
-      return false;
-    }
-    
-    // Priority filter
-    if (filters.priority.length > 0 && !filters.priority.includes(task.priority)) {
-      return false;
-    }
-    
-    // Category filter (only if task has a category)
-    if (filters.category.length > 0 && task.category && !filters.category.includes(task.category.toString())) {
-      return false;
-    }
-    
-    // Hide completed tasks
-    if (!filters.showCompleted && task.status === 'completed') {
-      return false;
-    }
-    
-    return true;
-  });
-
-  // Sort tasks based on sort options
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    switch (filters.sortBy) {
-      case 'priority': {
-        const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
-        const aValue = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
-        const bValue = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
-        return filters.sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-      case 'dueDate': {
-        const aDate = a.due_date ? new Date(a.due_date).getTime() : 0;
-        const bDate = b.due_date ? new Date(b.due_date).getTime() : 0;
-        return filters.sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
-      }
-      case 'createdAt': {
-        const aDate = new Date(a.created_at).getTime();
-        const bDate = new Date(b.created_at).getTime();
-        return filters.sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
-      }
-      case 'title': {
-        return filters.sortOrder === 'asc'
-          ? a.title.localeCompare(b.title)
-          : b.title.localeCompare(a.title);
-      }
-      case 'status': {
-        const statusOrder = { active: 1, in_progress: 2, completed: 3, pending: 0 };
-        const aValue = statusOrder[a.status as keyof typeof statusOrder] || 0;
-        const bValue = statusOrder[b.status as keyof typeof statusOrder] || 0;
-        return filters.sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-      case 'category': {
-        const aCategory = a.category || '';
-        const bCategory = b.category || '';
-        return filters.sortOrder === 'asc'
-          ? aCategory.toString().localeCompare(bCategory.toString())
-          : bCategory.toString().localeCompare(aCategory.toString());
-      }
-      default:
-        return 0;
-    }
-  });
+  // Generate the filtered and sorted task list
+  const sortedTasks = filterAndSortTasks(tasks, filters);
 
   // Function to reset all filters
   const resetFilters = () => {
@@ -247,8 +185,15 @@ export function TaskList() {
 
   if (isLoading && !isRefreshing) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-6">Tasks</h1>
+        <TaskContainer 
+          isLoading={true}
+          isEmpty={false}
+          viewMode={filters.viewMode}
+        >
+          {[]}
+        </TaskContainer>
       </div>
     );
   }
@@ -289,24 +234,22 @@ export function TaskList() {
         onResetFilters={resetFilters}
       />
 
-      {sortedTasks.length === 0 ? (
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium text-gray-700 mb-2">No tasks found</h3>
-          <p className="text-gray-500">Create your first task to get started!</p>
-        </div>
-      ) : (
-        <div className="flex flex-col space-y-2">
-          {sortedTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onEdit={handleEdit}
-              onDelete={openDeleteModal}
-              updateTaskStatus={updateTaskStatus}
-            />
-          ))}
-        </div>
-      )}
+      {/* Task List */}
+      <TaskContainer 
+        isLoading={isLoading && !isRefreshing}
+        isEmpty={sortedTasks.length === 0}
+        viewMode={filters.viewMode}
+      >
+        {sortedTasks.map((task) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            onEdit={handleEdit}
+            onDelete={openDeleteModal}
+            updateTaskStatus={updateTaskStatus}
+          />
+        ))}
+      </TaskContainer>
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
