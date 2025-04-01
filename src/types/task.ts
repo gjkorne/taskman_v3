@@ -24,6 +24,7 @@ export interface Task {
   
   // Categories
   category_name: string | null;
+  category_id: string | null;
   
   // Optional UI-specific fields that may not be in the database
   category?: string; // Used for form handling
@@ -82,7 +83,8 @@ export const TaskColumns = [
   'embedding_data',
   'confidence_score',
   'processing_metadata',
-  'category_name'
+  'category_name',
+  'category_id'
 ] as const;
 
 /**

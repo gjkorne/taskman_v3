@@ -2,7 +2,7 @@
  * Utility functions for task categories
  */
 
-import { Task } from '../components/TaskList/TaskCard';
+import { Task } from '../types/task';
 
 // Category color styles
 export const CATEGORY_COLORS = {
@@ -20,7 +20,19 @@ export const CATEGORY_COLORS = {
     border: "border-l-cyan-500",
     background: "bg-cyan-100",
     text: "text-cyan-800"
+  },
+  other: {
+    border: "border-l-gray-500",
+    background: "bg-gray-100",
+    text: "text-gray-800"
   }
+};
+
+// Default colors if no category or category not found
+export const DEFAULT_CATEGORY_COLORS = {
+  border: "border-l-gray-500",
+  background: "bg-gray-100",
+  text: "text-gray-800"
 };
 
 /**
@@ -51,61 +63,75 @@ export function getTaskCategory(task: Task): string | null {
 }
 
 /**
- * Get the border color class for a task's category
+ * Get the category info for a task, prioritizing the categoryId if available
  */
-export function getCategoryBorderColor(task: Task): string {
-  const category = getTaskCategory(task);
+export function getTaskCategoryInfo(task: Task, userCategories: any[] = []): { id: string | null, name: string | null } {
+  const categoryName = getTaskCategory(task);
   
-  if (category && CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS]) {
-    return CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS].border;
+  // If we have a category_id, try to find it in user categories
+  if (task.category_id && userCategories.length > 0) {
+    const category = userCategories.find(c => c.id === task.category_id);
+    if (category) {
+      return { id: category.id, name: category.name };
+    }
   }
   
-  // If no category is found, generate one based on task ID
-  const taskIdNum = parseInt(task.id.replace(/-/g, '').substring(0, 8), 16);
-  const categoryIndex = taskIdNum % 3;
+  // Otherwise just return the category name
+  return { id: task.category_id || null, name: categoryName };
+}
+
+/**
+ * Get category color style based on category name or id
+ */
+export function getCategoryColorStyle(categoryName: string | null, categoryId: string | null, userCategories: any[] = []) {
+  // First check if it's a custom category with a color
+  if (categoryId && userCategories.length > 0) {
+    const category = userCategories.find(c => c.id === categoryId);
+    if (category && category.color) {
+      // Return custom color styles based on the category's color
+      return {
+        border: `border-l-[${category.color}]`,
+        background: `bg-opacity-10 bg-[${category.color}]`,
+        text: `text-[${category.color}]`
+      };
+    }
+  }
   
-  const categories = ['work', 'personal', 'childcare'] as const;
-  const fallbackCategory = categories[categoryIndex];
+  // Then check built-in categories
+  if (categoryName && categoryName in CATEGORY_COLORS) {
+    return CATEGORY_COLORS[categoryName as keyof typeof CATEGORY_COLORS];
+  }
   
-  return CATEGORY_COLORS[fallbackCategory].border;
+  // Default if no category or not found
+  return DEFAULT_CATEGORY_COLORS;
+}
+
+/**
+ * Get the border color class for a task's category
+ */
+export function getCategoryBorderColor(task: Task, userCategories: any[] = []): string {
+  const { name, id } = getTaskCategoryInfo(task, userCategories);
+  const categoryColorStyle = getCategoryColorStyle(name, id, userCategories);
+  
+  return categoryColorStyle.border;
 }
 
 /**
  * Get the background color class for a task's category
  */
-export function getCategoryBgColor(task: Task): string {
-  const category = getTaskCategory(task);
+export function getCategoryBgColor(task: Task, userCategories: any[] = []): string {
+  const { name, id } = getTaskCategoryInfo(task, userCategories);
+  const categoryColorStyle = getCategoryColorStyle(name, id, userCategories);
   
-  if (category && CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS]) {
-    return CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS].background;
-  }
-  
-  // If no category is found, generate one based on task ID
-  const taskIdNum = parseInt(task.id.replace(/-/g, '').substring(0, 8), 16);
-  const categoryIndex = taskIdNum % 3;
-  
-  const categories = ['work', 'personal', 'childcare'] as const;
-  const fallbackCategory = categories[categoryIndex];
-  
-  return CATEGORY_COLORS[fallbackCategory].background;
+  return categoryColorStyle.background;
 }
 
 /**
  * Get the text color class for a task's category
  */
-export function getCategoryTextColor(task: Task): string {
-  const category = getTaskCategory(task);
+export function getCategoryTextColor(task: Task, userCategories: any[] = []): string {
+  const { name, id } = getTaskCategoryInfo(task, userCategories);
+  const categoryColorStyle = getCategoryColorStyle(name, id, userCategories);
   
-  if (category && CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS]) {
-    return CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS].text;
-  }
-  
-  // If no category is found, generate one based on task ID
-  const taskIdNum = parseInt(task.id.replace(/-/g, '').substring(0, 8), 16);
-  const categoryIndex = taskIdNum % 3;
-  
-  const categories = ['work', 'personal', 'childcare'] as const;
-  const fallbackCategory = categories[categoryIndex];
-  
-  return CATEGORY_COLORS[fallbackCategory].text;
+  return categoryColorStyle.text;
 }

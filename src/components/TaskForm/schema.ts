@@ -36,6 +36,7 @@ export const taskFormSchema = z.object({
   // Task metadata
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   category: z.string().optional().default(''), // Maps to category_name in DB, actually nullable
+  categoryId: z.string().optional(), // For custom user-defined categories
   subcategory: z.string().optional().default(''), // For UI management, stored in tags
   status: z.enum(VALID_STATUSES).default('pending'),
   

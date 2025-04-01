@@ -6,6 +6,7 @@ import { cn } from '../../lib/utils';
 import { TaskDebug } from './TaskDebug';
 import { CATEGORIES } from '../../types/categories';
 import { useTaskForm } from '../../hooks/useTaskForm';
+import { useCategories } from '../../contexts/CategoryContext';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -24,17 +25,68 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
     onSuccess: onTaskCreated
   });
 
+  // Get categories from context
+  const { categories, getBuiltInCategories } = useCategories();
+  const builtInCategories = getBuiltInCategories();
+  
   // Watch specific form fields for conditional rendering
-  const selectedCategory = watch('category') as keyof typeof CATEGORIES | '';
+  const categoryId = watch('categoryId') as string | undefined;
+  const categoryName = watch('category') as keyof typeof CATEGORIES | '';
   const hasDueDate = watch('hasDueDate');
   const selectedSubcategory = watch('subcategory');
 
   // This state is used to track whether the description is expanded or not
   const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
 
+  // Get the selected category object
+  const selectedCategory = categories.find(cat => cat.id === categoryId);
+  
+  // Get subcategories based on selection
+  const getAvailableSubcategories = () => {
+    // For custom categories
+    if (categoryId && selectedCategory?.subcategories) {
+      return selectedCategory.subcategories;
+    }
+    
+    // For built-in categories
+    if (categoryName && !categoryId && categoryName in builtInCategories) {
+      return builtInCategories[categoryName as keyof typeof builtInCategories];
+    }
+    
+    return [];
+  };
+  
+  const subcategories = getAvailableSubcategories();
+
   // Handle subcategory selection
   const handleSubcategoryChange = (subcategory: string) => {
     setValue('subcategory', subcategory);
+  };
+  
+  // Handle category selection
+  const handleCategoryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value;
+    
+    // Clear subcategory when changing categories
+    setValue('subcategory', '');
+    
+    // Check if it's a custom category (starts with "custom:")
+    if (value.startsWith('custom:')) {
+      const categoryId = value.replace('custom:', '');
+      setValue('categoryId', categoryId);
+      
+      // Find the category name for this ID and set it too
+      const category = categories.find(cat => cat.id === categoryId);
+      if (category) {
+        setValue('category', category.name.toLowerCase());
+      } else {
+        setValue('category', '');
+      }
+    } else {
+      // It's a built-in category
+      setValue('categoryId', undefined);
+      setValue('category', value);
+    }
   };
 
   return (
@@ -120,17 +172,33 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
                 Category
               </label>
               <select
-                {...register('category')}
+                onChange={handleCategoryChange}
+                value={categoryId ? `custom:${categoryId}` : categoryName}
                 className={cn(
                   "w-full px-3 py-2 border rounded-md",
                   errors.category ? "border-red-500" : "border-gray-300"
                 )}
               >
                 <option value="">-- Select Category (Optional) --</option>
-                <option value="work">Work</option>
-                <option value="personal">Personal</option>
-                <option value="childcare">Childcare</option>
-                <option value="other">Other</option>
+                
+                {/* Built-in categories */}
+                <optgroup label="Default Categories">
+                  <option value="work">Work</option>
+                  <option value="personal">Personal</option>
+                  <option value="childcare">Childcare</option>
+                  <option value="other">Other</option>
+                </optgroup>
+                
+                {/* User-defined categories */}
+                {categories.length > 0 && (
+                  <optgroup label="My Categories">
+                    {categories.map(cat => (
+                      <option key={cat.id} value={`custom:${cat.id}`}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
               {errors.category && (
                 <p className="mt-1 text-sm text-red-500">{errors.category.message}</p>
@@ -160,13 +228,13 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
           </div>
           
           {/* Subcategory selection - only shown when a category is selected */}
-          {selectedCategory && (
+          {(categoryId || categoryName) && subcategories.length > 0 && (
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Subcategory
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {CATEGORIES[selectedCategory]?.map((subcategory) => (
+                {subcategories.map((subcategory) => (
                   <label 
                     key={subcategory} 
                     className={cn(

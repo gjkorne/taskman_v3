@@ -5,12 +5,17 @@ import { cn } from '../../lib/utils';
 import { TaskActions } from './TaskActions';
 import { StatusBadge } from './StatusBadge';
 import { TaskCardDetails } from './TaskCardDetails';
-import { getTaskCategory } from '../../lib/categoryUtils';
+import { 
+  getTaskCategory, 
+  getTaskCategoryInfo, 
+  getCategoryColorStyle 
+} from '../../lib/categoryUtils';
 import { getPriorityBorderColor, getDueDateStyling } from '../../lib/taskUtils';
 import { Task } from '../../types/task';
 import { TimerControls } from '../Timer/TimerControls';
 import { useTimer } from '../../contexts/TimerContext';
 import { useTaskActions } from '../../hooks/useTaskActions';
+import { useCategories } from '../../contexts/CategoryContext';
 
 interface TaskCardProps {
   task: Task;
@@ -20,7 +25,7 @@ interface TaskCardProps {
 
 export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const category = getTaskCategory(task);
+  const { categories } = useCategories();
   const { timerState } = useTimer();
   const { updateTaskStatus } = useTaskActions({
     onSuccess: () => {
@@ -32,17 +37,17 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
     }
   });
   
+  // Get category information from the task
+  const categoryName = getTaskCategory(task);
+  const { id: categoryId } = getTaskCategoryInfo(task, categories);
+  
   // Check if this task is being timed
   const isBeingTimed = timerState.taskId === task.id && timerState.status === 'running';
 
   // Get the color for the ellipsis menu based on category
   const getCategoryColor = () => {
-    switch(category) {
-      case 'work': return 'text-green-600'; // Bold green
-      case 'personal': return 'text-blue-600'; // Bold blue
-      case 'childcare': return 'text-cyan-600'; // Bold cyan
-      default: return 'text-gray-600'; // Bold gray
-    }
+    const categoryStyle = getCategoryColorStyle(categoryName, categoryId, categories);
+    return categoryStyle.text;
   };
 
   // Handle status change

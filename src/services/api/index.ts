@@ -43,6 +43,7 @@ export class TaskService implements ITaskService {
       status: taskData.status || 'pending',
       priority: taskData.priority || 'medium',
       category_name: taskData.category || null,
+      category_id: taskData.categoryId || null,
       tags: taskData.tags || [],
       is_deleted: taskData.isDeleted || false
     };
@@ -63,6 +64,14 @@ export class TaskService implements ITaskService {
     // Add any NLP-related data
     if (taskData.rawInput) {
       formattedData.raw_input = taskData.rawInput;
+    }
+
+    // Handle subcategory (saved as a tag)
+    if (taskData.subcategory) {
+      const subcategoryTag = `subcategory:${taskData.subcategory}`;
+      if (!formattedData.tags.includes(subcategoryTag)) {
+        formattedData.tags = [...(formattedData.tags || []), subcategoryTag];
+      }
     }
 
     return formattedData;

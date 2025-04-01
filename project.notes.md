@@ -6,8 +6,12 @@ Notes and Additional Features
  move search bar and add quick task     
  move filter and sort
 
+- *** Issues ***
+ est time is off when saving. went from 30 min to 5 hours to 4166h 40 min
+ invalid status not letting me start task
 
-
+- *** Changes ***
+ Cards more compact
 
 - ***Ideas for additional features:***
  List feature for shopping etc
