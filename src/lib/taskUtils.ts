@@ -156,3 +156,21 @@ export function filterAndSortTasks(tasks: Task[], filters: TaskFilter, searchQue
   const filteredTasks = filterTasks(tasks, filters, searchQuery);
   return sortTasks(filteredTasks, filters.sortBy, filters.sortOrder);
 }
+
+/**
+ * Get the border color class for a task's priority
+ */
+export function getPriorityBorderColor(priority: string): string {
+  switch (priority) {
+    case 'urgent':
+      return 'border-l-red-700'; // Level 10 - strongest visual impact
+    case 'high':
+      return 'border-l-amber-200'; // Even more muted
+    case 'medium':
+      return 'border-l-sky-100'; // Very muted
+    case 'low':
+      return 'border-l-emerald-100'; // Extremely subtle
+    default:
+      return 'border-l-gray-100'; // Nearly invisible
+  }
+}

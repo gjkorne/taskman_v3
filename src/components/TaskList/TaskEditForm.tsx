@@ -3,6 +3,41 @@ import { supabase } from '../../lib/supabase';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
+const CATEGORIES = {
+  childcare: [
+    'Core Care',
+    'Play & Engagement',
+    'Learning & Schoolwork',
+    'Routines',
+    'Outings & Activities',
+    'Admin'
+  ],
+  work: [
+    'Core Execution',
+    'Planning & Strategy',
+    'Communication & Meetings',
+    'Learning & Research',
+    'Maintenance/Admin',
+    'Projects & Deliverables'
+  ],
+  personal: [
+    'Health & Wellness',
+    'Relationships & Social',
+    'Home & Chores',
+    'Finance & Admin',
+    'Growth & Learning',
+    'Fun & Recreation'
+  ],
+  other: [
+    'Core',
+    'Unexpected/Interruptions',
+    'Unsorted',
+    'Overflow',
+    'External Requests',
+    'Reflections & Journaling'
+  ]
+} as const;
+
 interface Task {
   id: string;
   title: string;
@@ -11,10 +46,13 @@ interface Task {
   priority: string;
   due_date: string | null;
   estimated_time: string | null;
+  estimated_hours?: string;
+  estimated_minutes?: string;
   tags: string[] | null;
   created_at: string;
   created_by: string;
   category?: string;
+  category_name?: string;
   subcategory?: string;
 }
 
@@ -32,7 +70,10 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
     priority: 'medium',
     due_date: null,
     category: 'work', // Default to work category
-    tags: []
+    subcategory: '',
+    tags: [],
+    estimated_hours: '',
+    estimated_minutes: ''
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -60,6 +101,13 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
         if (data.due_date) {
           formattedData.due_date = new Date(data.due_date).toISOString().split('T')[0];
         }
+        
+        // Map category_name to category for form compatibility
+        if (data.category_name && !data.category) {
+          formattedData.category = data.category_name;
+        }
+        
+        console.log('Fetched task data:', formattedData);
         
         setFormData(formattedData);
       } catch (error) {
@@ -116,9 +164,15 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
       console.log('Submitting form data:', formData);
       
       // Map category to category_name for database
+      // Only include fields that exist in the database schema
       const dataToSubmit = {
-        ...formData,
-        category_name: formData.category || null, // Use the new field name
+        title: formData.title,
+        description: formData.description || '',
+        status: formData.status || 'pending',
+        priority: formData.priority || 'medium',
+        category_name: formData.category || null, // Use the field name expected by database
+        due_date: formData.due_date,
+        tags: formData.tags || [],
         updated_at: new Date().toISOString()
       };
       
@@ -140,11 +194,15 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
           .insert([{
             ...dataToSubmit,
             created_at: new Date().toISOString(),
-            created_by: (await supabase.auth.getUser()).data.user?.id
+            created_by: (await supabase.auth.getUser()).data.user?.id,
+            is_deleted: false // Explicitly set is_deleted to false
           }]);
       }
       
-      if (result.error) throw result.error;
+      if (result.error) {
+        console.error('Database error:', result.error);
+        throw result.error;
+      }
       
       onTaskUpdated();
       onClose();
@@ -277,6 +335,57 @@ export function TaskEditForm({ taskId, onClose, onTaskUpdated }: TaskEditFormPro
                 <option value="personal">Personal</option>
                 <option value="childcare">Childcare</option>
               </select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Subcategory */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Subcategory
+              </label>
+              <select
+                name="subcategory"
+                value={formData.subcategory || ''}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">-- Select Subcategory --</option>
+                {formData.category === 'work' && CATEGORIES.work.map(subcategory => (
+                  <option key={subcategory} value={subcategory}>{subcategory}</option>
+                ))}
+                {formData.category === 'personal' && CATEGORIES.personal.map(subcategory => (
+                  <option key={subcategory} value={subcategory}>{subcategory}</option>
+                ))}
+                {formData.category === 'childcare' && CATEGORIES.childcare.map(subcategory => (
+                  <option key={subcategory} value={subcategory}>{subcategory}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Estimated Time */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estimated Time
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  name="estimated_hours"
+                  value={formData.estimated_hours || ''}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Hours"
+                />
+                <input
+                  type="number"
+                  name="estimated_minutes"
+                  value={formData.estimated_minutes || ''}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Minutes"
+                />
+              </div>
             </div>
           </div>
           

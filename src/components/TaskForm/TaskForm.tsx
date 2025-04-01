@@ -9,6 +9,8 @@ import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 import { TaskDebug } from './TaskDebug';
 
+// Category data for UI organization
+// These subcategories are displayed in the UI but only 'category' is saved to the database
 const CATEGORIES = {
   childcare: [
     'Core Care',
@@ -45,73 +47,38 @@ const CATEGORIES = {
 } as const;
 
 export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
-  // Comment out NLP-related state and functions since they will be developed later
-  // const [taskInput, setTaskInput] = React.useState('');
-
   // Setup React Hook Form
-  const {
-    register,
+  const { 
+    register, 
+    handleSubmit, 
     control,
-    handleSubmit,
-    watch,
     formState: { errors },
+    watch
   } = useForm<TaskFormData>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
-      context: [],
-      isEvergreen: false,
-      isBlocked: false,
-      isWaiting: false,
-      hasDueDate: false,
-      rawInput: '',
-      energyLevel: 'medium',
+      title: '',
       description: '',
-    },
+      rawInput: '',
+      priority: 'medium',
+      category: '',
+      status: 'pending',
+      hasDueDate: false,
+      dueDate: '',
+      tags: [],
+      isDeleted: false,
+      estimatedTime: ''
+    }
   });
+
+  // Watch the category field to show subcategories
+  const selectedCategory = watch('category') as keyof typeof CATEGORIES | '';
 
   // This state is used to store the form error
   const [formError, setFormError] = React.useState<string | null>(null);
 
   // This state is used to track whether the description is expanded or not
   const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
-
-  // This is the selected category
-  const selectedCategory = watch('category');
-
-  // Comment out NLP-related code that will be developed later
-  /*
-  // This mutation is used to process the user's raw task input
-  const processTaskInput = useMutation({
-    // This is the function that will be called when the mutation is triggered
-    mutationFn: async (input: string) => {
-      // Get the current user from the Supabase client
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // If the user is not logged in, throw an error
-      if (!user) {
-        throw new Error('You must be logged in to process tasks');
-      }
-
-      // Call the NLP processing endpoint with the user's task input
-      const response = await fetch('/api/process-task', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.id}`,
-        },
-        body: JSON.stringify({ input }),
-      });
-
-      // If the response is not OK, throw an error
-      if (!response.ok) {
-        throw new Error('Failed to process task');
-      }
-
-      // Return the response from the NLP processing endpoint
-      return response.json();
-    },
-  });
-  */
 
   // This mutation is used to create a new task in the database
   const createTask = useMutation({
@@ -127,7 +94,7 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
       }
 
       // Compile the task data
-      const taskData = {
+      const taskData: Record<string, any> = {
         title: data.title,
         description: data.description || '',
         priority: data.priority || 'medium',
@@ -157,22 +124,74 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
     },
   });
 
-  // This function is called when the form is submitted
+  // Submit function to create a task
   const onSubmit = async (data: TaskFormData) => {
     try {
-      // Clear the form error
       setFormError(null);
       
-      // Create a new task in the database
-      await createTask.mutateAsync(data);
-      
-      // Call the onTaskCreated callback if it exists
-      if (onTaskCreated) {
-        onTaskCreated();
+      // First check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setFormError('You must be logged in to create tasks');
+        return;
       }
+
+      // Get the selected subcategory if any
+      const subcategoryElement = document.querySelector('input[name="subcategory"]:checked') as HTMLInputElement;
+      const selectedSubcategory = subcategoryElement?.value;
+      
+      // Add subcategory as a tag if selected
+      const tagsWithSubcategory = [...(data.tags || [])];
+      if (selectedSubcategory) {
+        tagsWithSubcategory.push(`subcategory:${selectedSubcategory}`);
+      }
+
+      // Compile the task data
+      const taskData: Record<string, any> = {
+        title: data.title,
+        description: data.description || '',
+        priority: data.priority || 'medium',
+        status: data.status || 'pending',
+        category_name: data.category,
+        tags: tagsWithSubcategory,
+        is_deleted: data.isDeleted || false,
+        created_by: session.user.id
+      };
+      
+      // Convert estimated time to interval format if provided
+      if (data.estimatedTime) {
+        // Convert minutes to PostgreSQL interval format: 'X minutes'
+        taskData.estimated_time = `${data.estimatedTime} minutes`;
+      }
+      
+      // Add due date if selected
+      if (data.hasDueDate && data.dueDate) {
+        taskData.due_date = new Date(data.dueDate).toISOString();
+      }
+      
+      console.log('Creating task with data:', taskData);
+      
+      // Insert into database
+      const { error, data: newTask } = await supabase
+        .from('tasks')
+        .insert([taskData])
+        .select('title');
+      
+      if (error) throw error;
+      
+      console.log('Successfully created task:', newTask);
+      
+      // Call the callback if it exists
+      if (onTaskCreated) onTaskCreated();
     } catch (error) {
-      // Set the form error to the error message
-      setFormError(error instanceof Error ? error.message : 'Failed to create task');
+      console.error('Task creation error:', error);
+      
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        setFormError(`Failed to create task: ${error.message}`);
+      } else {
+        setFormError('An unknown error occurred');
+      }
     }
   };
 
@@ -252,56 +271,75 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
         <div className="space-y-6 form-card p-6">
           <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">Classification</h2>
           
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-800">Category</label>
-              <div className="space-y-2">
-                {Object.entries(CATEGORIES).map(([category]) => (
-                  <label key={category} className="flex items-center space-x-3">
-                    <input
-                      type="radio"
-                      value={category}
-                      id={`category-${category}`}
-                      {...register('category')}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-900">
-                      {category === 'childcare' ? 'Childcare' :
-                       category === 'work' ? 'Work' :
-                       category === 'personal' ? 'Personal' :
-                       'Other'}
-                    </span>
-                  </label>
-                ))}
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Category selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                {...register('category')}
+                className={cn(
+                  "w-full px-3 py-2 border rounded-md",
+                  errors.category ? "border-red-500" : "border-gray-300"
+                )}
+              >
+                <option value="">-- Select Category --</option>
+                <option value="work">Work</option>
+                <option value="personal">Personal</option>
+                <option value="childcare">Childcare</option>
+                <option value="other">Other</option>
+              </select>
               {errors.category && (
-                <p className="text-sm text-red-600">{errors.category.message}</p>
+                <p className="mt-1 text-sm text-red-500">{errors.category.message}</p>
               )}
             </div>
 
-            {selectedCategory && (
-              <div className="space-y-3">
-                <label className="block text-sm font-semibold text-gray-800">Subcategory</label>
-                <div className="space-y-2">
-                  {CATEGORIES[selectedCategory as keyof typeof CATEGORIES].map((sub) => (
-                    <label key={sub} className="flex items-center space-x-3">
-                      <input
-                        type="radio"
-                        value={sub}
-                        id={`subcategory-${sub.replace(/\s+/g, '-').toLowerCase()}`}
-                        {...register('subcategory')}
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-900">{sub}</span>
-                    </label>
-                  ))}
-                </div>
-                {errors.subcategory && (
-                  <p className="text-sm text-red-600">{errors.subcategory.message}</p>
+            {/* Estimated Time */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estimated Time (minutes)
+              </label>
+              <input
+                type="number"
+                min="0"
+                {...register('estimatedTime')}
+                placeholder="e.g., 60"
+                className={cn(
+                  "w-full px-3 py-2 border rounded-md",
+                  errors.estimatedTime ? "border-red-500" : "border-gray-300"
                 )}
-              </div>
-            )}
+              />
+              {errors.estimatedTime && (
+                <p className="mt-1 text-sm text-red-500">{errors.estimatedTime.message}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">Enter total minutes (e.g., 300 for 5 hours)</p>
+            </div>
           </div>
+          
+          {/* Subcategory selection - only shown when a category is selected */}
+          {selectedCategory && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Subcategory
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {CATEGORIES[selectedCategory].map((subcategory) => (
+                  <label key={subcategory} className="flex items-center space-x-2 p-2 border rounded-md hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      value={subcategory}
+                      id={`subcategory-${subcategory.replace(/\s+/g, '-').toLowerCase()}`}
+                      name="subcategory"
+                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-900">{subcategory}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">Subcategory will be saved as a tag</p>
+            </div>
+          )}
         </div>
 
         {/* PRIORITY & TIMING */}
@@ -371,37 +409,17 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-800">Estimated Hours</label>
+              <label className="block text-sm font-semibold text-gray-800">Due Date</label>
               <input
-                type="text"
-                min="0"
-                max="99"
-                placeholder="0"
-                {...register('estimatedHours')}
+                type="date"
+                {...register('dueDate')}
                 className={cn(
                   'mt-1 block w-full rounded-lg glass-input shadow-sm',
-                  errors.estimatedHours && 'border-red-500'
+                  errors.dueDate && 'border-red-500'
                 )}
               />
-              {errors.estimatedHours && (
-                <p className="mt-1 text-sm text-red-600">{errors.estimatedHours.message}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-800">Estimated Minutes</label>
-              <input
-                type="text"
-                min="0"
-                max="59"
-                placeholder="0"
-                {...register('estimatedMinutes')}
-                className={cn(
-                  'mt-1 block w-full rounded-lg glass-input shadow-sm',
-                  errors.estimatedMinutes && 'border-red-500'
-                )}
-              />
-              {errors.estimatedMinutes && (
-                <p className="mt-1 text-sm text-red-600">{errors.estimatedMinutes.message}</p>
+              {errors.dueDate && (
+                <p className="mt-1 text-sm text-red-600">{errors.dueDate.message}</p>
               )}
             </div>
           </div>

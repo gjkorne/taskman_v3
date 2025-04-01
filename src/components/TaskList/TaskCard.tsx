@@ -4,7 +4,8 @@ import { MoreVertical } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TaskActions } from './TaskActions';
 import { StatusBadge } from './StatusBadge';
-import { getCategoryBorderColor } from '../../lib/categoryUtils';
+import { getTaskCategory } from '../../lib/categoryUtils';
+import { getPriorityBorderColor } from '../../lib/taskUtils';
 
 // Task interface
 export interface Task {
@@ -32,6 +33,17 @@ interface TaskCardProps {
 
 export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const category = getTaskCategory(task);
+
+  // Get the color for the ellipsis menu based on category
+  const getCategoryColor = () => {
+    switch(category) {
+      case 'work': return 'text-green-600'; // Bold green
+      case 'personal': return 'text-blue-600'; // Bold blue
+      case 'childcare': return 'text-cyan-600'; // Bold cyan
+      default: return 'text-gray-600'; // Bold gray
+    }
+  };
 
   return (
     <div 
@@ -44,9 +56,9 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
       <div className="absolute right-2 top-2 z-20">
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-1 hover:bg-gray-100 rounded-full"
+          className="p-2 hover:bg-gray-100 rounded-full"
         >
-          <MoreVertical className="h-4 w-4 text-gray-500" />
+          <MoreVertical className={cn("h-6 w-6", getCategoryColor())} />
         </button>
         
         {/* Dropdown Menu */}
@@ -86,7 +98,7 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
       <h3 className={cn(
         "absolute left-3 top-3 text-left z-10 font-bold text-lg max-w-[65%] truncate shadow-sm px-3 py-1 rounded-r-lg bg-white",
         "border-l-4",
-        getCategoryBorderColor(task)
+        getPriorityBorderColor(task.priority)
       )}>
         {task.title}
       </h3>
