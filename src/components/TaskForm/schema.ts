@@ -9,6 +9,9 @@ export const taskInputSchema = z.object({
     .max(1000, 'Task description must be less than 1000 characters'),
 });
 
+// Valid status values
+const VALID_STATUSES = ['pending', 'active', 'in_progress', 'completed', 'archived'] as const;
+
 /**
  * Main task form schema - aligned with the actual Supabase database fields
  * Only includes fields that exist in the database
@@ -32,8 +35,8 @@ export const taskFormSchema = z.object({
   
   // Task metadata
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
-  category: z.string().min(1, 'Category is required'), // Maps to category_name in DB
-  status: z.string().default('pending'),
+  category: z.string().optional().default(''), // Maps to category_name in DB, actually nullable
+  status: z.enum(VALID_STATUSES).default('pending'),
   
   // Time fields - database uses interval type
   estimatedTime: z.string()
@@ -63,7 +66,19 @@ export const taskFormSchema = z.object({
   
   // These fields will be handled automatically in submission
   // created_at, updated_at, created_by
-});
+}).refine(
+  (data) => {
+    // If hasDueDate is true, dueDate must be provided
+    if (data.hasDueDate && !data.dueDate) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "Due date is required when 'Has due date' is selected",
+    path: ["dueDate"]
+  }
+);
 
 export type TaskFormData = z.infer<typeof taskFormSchema>;
 export type TaskInputData = z.infer<typeof taskInputSchema>;

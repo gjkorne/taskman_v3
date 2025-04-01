@@ -35,8 +35,9 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
     }
   });
 
-  // Watch the category field to show subcategories
+  // Watch the category and hasDueDate field to show related sections
   const selectedCategory = watch('category') as keyof typeof CATEGORIES | '';
+  const hasDueDate = watch('hasDueDate');
 
   // This state is used to store the form error
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -63,7 +64,7 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
         description: data.description || '',
         priority: data.priority || 'medium',
         status: 'pending',
-        category_name: data.category,
+        category_name: data.category || null,
         tags: [], // Initialize tags as empty array
         is_deleted: false, // Explicitly set is_deleted to false
         created_by: session.user.id
@@ -113,7 +114,7 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
         description: data.description || '',
         priority: data.priority || 'medium',
         status: data.status || 'pending',
-        category_name: data.category,
+        category_name: data.category || null,
         tags: tagsWithSubcategory,
         is_deleted: data.isDeleted || false,
         created_by: session.user.id,
@@ -260,7 +261,7 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
             {/* Category selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category <span className="text-red-500">*</span>
+                Category
               </label>
               <select
                 {...register('category')}
@@ -269,7 +270,7 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
                   errors.category ? "border-red-500" : "border-gray-300"
                 )}
               >
-                <option value="">-- Select Category --</option>
+                <option value="">-- Select Category (Optional) --</option>
                 <option value="work">Work</option>
                 <option value="personal">Personal</option>
                 <option value="childcare">Childcare</option>
@@ -309,7 +310,7 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
                 Subcategory
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {CATEGORIES[selectedCategory].map((subcategory) => (
+                {CATEGORIES[selectedCategory]?.map((subcategory) => (
                   <label key={subcategory} className="flex items-center space-x-2 p-2 border rounded-md hover:bg-gray-50">
                     <input
                       type="radio"
@@ -402,7 +403,7 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
                 />
                 <span className="text-sm font-medium text-gray-700">Has due date</span>
               </label>
-              {watch('hasDueDate') && (
+              {hasDueDate && (
                 <div className="mt-2">
                   <input
                     type="date"
