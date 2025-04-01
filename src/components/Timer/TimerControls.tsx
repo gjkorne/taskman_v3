@@ -48,6 +48,10 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
   const isThisTaskActive = isValidTaskId && timerState.taskId === taskId && timerState.status !== 'idle';
   const isRunning = timerState.status === 'running';
   
+  // --- DEBUG LOG --- 
+  console.log(`TimerControls (${taskId}): compact=${compact}, timerState=`, timerState, `isThisTaskActive=${isThisTaskActive}, isRunning=${isRunning}`);
+  // --- END DEBUG LOG ---
+  
   // If taskId is invalid, show an error button
   if (!isValidTaskId) {
     return (
@@ -68,11 +72,12 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
   // Different layouts based on timer state and compact mode
   if (!isThisTaskActive && compact) {
     // Compact start button when timer is idle
+    console.log(`TimerControls (${taskId}): Rendering compact IDLE button`); // DEBUG
     return (
       <button
         onClick={handleStartTimer}
         className={cn(
-          "px-2 py-1 text-xs font-normal rounded flex items-center space-x-1",
+          "px-2 py-1 text-xs font-normal rounded flex items-center",
           "bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-200",
           "transition-all duration-200",
           className
@@ -80,13 +85,13 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
         title="Start timing this task"
       >
         <Play size={12} />
-        <span>Time</span>
       </button>
     );
   }
   
   if (!isThisTaskActive) {
     // Full start button when timer is idle
+    console.log(`TimerControls (${taskId}): Rendering full IDLE button`); // DEBUG
     return (
       <button
         onClick={handleStartTimer}
@@ -105,58 +110,92 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
   }
   
   // Active timer controls
-  return (
-    <div className={cn("flex flex-col space-y-2", className)}>
-      {/* Timer display */}
-      <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200">
-        <div className="flex items-center space-x-2">
-          {isRunning ? (
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          ) : (
-            <div className="h-2 w-2 rounded-full bg-amber-500" />
-          )}
-          <span className="font-mono text-sm font-medium">
-            {formatElapsedTime()}
-          </span>
+  if (compact) {
+    // Compact view: Only show essential buttons
+    console.log(`TimerControls (${taskId}): Rendering compact ACTIVE controls`); // DEBUG
+    return (
+      <div className={cn("flex space-x-1", className)}>
+        {isRunning ? (
+          <button
+            onClick={handlePauseTimer}
+            className="p-1 rounded hover:bg-amber-100 text-amber-600"
+            title="Pause timer"
+          >
+            <Pause size={14} />
+          </button>
+        ) : (
+          <button
+            onClick={handleResumeTimer}
+            className="p-1 rounded hover:bg-emerald-100 text-emerald-600"
+            title="Resume timer"
+          >
+            <Play size={14} />
+          </button>
+        )}
+        
+        <button
+          onClick={handleStopTimer}
+          className="p-1 rounded hover:bg-red-100 text-red-600"
+          title="Stop timer"
+        >
+          <Square size={14} />
+        </button>
+      </div>
+    );
+  } else {
+    // Full view: Show timer display and buttons
+    console.log(`TimerControls (${taskId}): Rendering full ACTIVE controls`); // DEBUG
+    return (
+      <div className={cn("flex flex-col space-y-2", className)}>
+        {/* Timer display */}
+        <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200">
+          <div className="flex items-center space-x-2">
+            {isRunning ? (
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            ) : (
+              <div className="h-2 w-2 rounded-full bg-amber-500" />
+            )}
+            <span className="font-mono text-sm font-medium">
+              {formatElapsedTime()}
+            </span>
+          </div>
+          
+          {/* Control buttons */}
+          <div className="flex space-x-1">
+            {isRunning ? (
+              <button
+                onClick={handlePauseTimer}
+                className="p-1 rounded hover:bg-amber-100 text-amber-600"
+                title="Pause timer"
+              >
+                <Pause size={14} />
+              </button>
+            ) : (
+              <button
+                onClick={handleResumeTimer}
+                className="p-1 rounded hover:bg-emerald-100 text-emerald-600"
+                title="Resume timer"
+              >
+                <Play size={14} />
+              </button>
+            )}
+            
+            <button
+              onClick={handleStopTimer}
+              className="p-1 rounded hover:bg-red-100 text-red-600"
+              title="Stop timer"
+            >
+              <Square size={14} />
+            </button>
+          </div>
         </div>
         
-        {/* Control buttons */}
-        <div className="flex space-x-1">
-          {isRunning ? (
-            <button
-              onClick={handlePauseTimer}
-              className="p-1 rounded hover:bg-amber-100 text-amber-600"
-              title="Pause timer"
-            >
-              <Pause size={14} />
-            </button>
-          ) : (
-            <button
-              onClick={handleResumeTimer}
-              className="p-1 rounded hover:bg-emerald-100 text-emerald-600"
-              title="Resume timer"
-            >
-              <Play size={14} />
-            </button>
-          )}
-          
-          <button
-            onClick={handleStopTimer}
-            className="p-1 rounded hover:bg-red-100 text-red-600"
-            title="Stop timer"
-          >
-            <Square size={14} />
-          </button>
-        </div>
-      </div>
-      
-      {/* Total time indicator */}
-      {!compact && (
+        {/* Total time indicator - only shown in non-compact mode */}
         <div className="flex justify-between text-xs text-gray-500 px-1">
           <span>Task timing active</span>
           <span>{formatElapsedTime()} elapsed</span>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    );
+  }
 }

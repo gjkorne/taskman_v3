@@ -1,5 +1,5 @@
 // Import icons and utility function
-import { Play, Pause, CheckCircle, RotateCcw } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { Button } from '../UI/Button';
 import { TaskStatus, TaskStatusType } from '../../types/task';
 
@@ -30,48 +30,15 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
 
   return (
     <div className="flex space-x-2">
-      {status === TaskStatus.PENDING && (
-        <Button 
-          onClick={() => handleStatusUpdate(TaskStatus.ACTIVE)}
-          variant="success"
-          size="xs"
-          icon={<Play size={12} />}
-          title="Start task"
-        >
-          Start
-        </Button>
-      )}
       {status === TaskStatus.ACTIVE && (
-        <>
-          <Button 
-            onClick={() => handleStatusUpdate(TaskStatus.PAUSED)}
-            variant="warning"
-            size="xs"
-            icon={<Pause size={12} />}
-            title="Pause task"
-          >
-            Pause
-          </Button>
-          <Button 
-            onClick={() => handleStatusUpdate(TaskStatus.COMPLETED)}
-            variant="info"
-            size="xs"
-            icon={<CheckCircle size={12} />}
-            title="Complete task"
-          >
-            Complete
-          </Button>
-        </>
-      )}
-      {status === TaskStatus.PAUSED && (
         <Button 
-          onClick={() => handleStatusUpdate(TaskStatus.ACTIVE)}
-          variant="primary"
+          onClick={() => handleStatusUpdate(TaskStatus.COMPLETED)}
+          variant="info"
           size="xs"
-          icon={<RotateCcw size={12} />}
-          title="Resume task"
+          icon={<CheckCircle size={12} />}
+          title="Complete task"
         >
-          Resume
+          Complete
         </Button>
       )}
     </div>
