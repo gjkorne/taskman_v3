@@ -63,7 +63,7 @@ export function TaskContainer({
     console.log(`Task ID: ${task.id}, Status: ${task.status}, Type: ${typeof task.status}`);
     
     // First check if this task is currently being timed
-    const isBeingTimed = timerState.taskId === task.id && timerState.status !== 'idle';
+    const isBeingTimed = timerState.taskId === task.id && timerState.status === 'running';
     
     // Then check if it has the 'active' status
     const hasActiveStatus = typeof task.status === 'string' && 
@@ -73,16 +73,27 @@ export function TaskContainer({
     return isBeingTimed || hasActiveStatus;
   });
   
+  // Get paused tasks (tasks with a paused timer)
+  const pausedTasks = tasks.filter(task => 
+    timerState.taskId === task.id && timerState.status === 'paused'
+  );
+
   const otherTasks = tasks.filter(task => {
     // First check if this task is currently being timed
-    const isBeingTimed = timerState.taskId === task.id && timerState.status !== 'idle';
+    const isBeingTimed = timerState.taskId === task.id && timerState.status === 'running';
     
     // Then check if it has the 'active' status
     const hasActiveStatus = typeof task.status === 'string' && 
                          task.status.toLowerCase() === 'active';
                          
-    // A task should be shown in Other Tasks section only if both conditions are false
-    return !isBeingTimed && !hasActiveStatus;
+    // Check if this task has a paused timer
+    const isPaused = timerState.taskId === task.id && timerState.status === 'paused';
+                         
+    // A task should be shown in Other Tasks section only if:
+    // 1. It's not actively being timed
+    // 2. It doesn't have active status
+    // 3. It doesn't have a paused timer
+    return !isBeingTimed && !hasActiveStatus && !isPaused;
   });
 
   // Log overall counts for debugging
@@ -110,11 +121,31 @@ export function TaskContainer({
         </div>
       )}
       
+      {/* Paused Tasks Section */}
+      {pausedTasks.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-amber-600 mb-3 flex items-center">
+            <span className="inline-block h-3 w-3 rounded-full bg-amber-500 mr-2"></span>
+            Paused Tasks ({pausedTasks.length})
+          </h2>
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
+            {pausedTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
       {/* Other Tasks Section */}
       {otherTasks.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-gray-700 mb-3">
-            {activeTasks.length > 0 ? 'Other Tasks' : 'All Tasks'} ({otherTasks.length})
+            {activeTasks.length > 0 || pausedTasks.length > 0 ? 'Other Tasks' : 'All Tasks'} ({otherTasks.length})
           </h2>
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
             {otherTasks.map((task) => (
