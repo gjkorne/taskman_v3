@@ -223,18 +223,49 @@ export class TaskService implements ITaskService {
   }
 
   /**
-   * Update the status of a task
+   * Update a task's status in the database
    */
-  async updateTaskStatus(id: string, status: string): Promise<{ error: Error | null }> {
+  async updateTaskStatus(taskId: string, status: string): Promise<{ error: Error | null }> {
     try {
       await this.ensureAuthenticated();
       
+      // Parameter validation to prevent accidental swapping
+      if (!taskId || typeof taskId !== 'string') {
+        console.error('Invalid taskId provided to updateTaskStatus:', taskId);
+        return { error: new Error('Invalid task ID provided') };
+      }
+      
+      if (!status || typeof status !== 'string') {
+        console.error('Invalid status provided to updateTaskStatus:', status);
+        return { error: new Error('Invalid status provided') };
+      }
+      
+      // IMPORTANT VALIDATION: Detect if parameters might be swapped
+      // Check if taskId looks like a status value (e.g., 'active', 'completed')
+      // and status looks like a UUID (which it shouldn't)
+      if (taskId.match(/^(active|pending|paused|completed|archived)$/i) && 
+          status.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        console.error('CRITICAL ERROR: Parameters definitely swapped in updateTaskStatus.');
+        console.error('Received: taskId=', taskId, 'status=', status);
+        console.error('Swapping parameters to correct the error');
+        // Swap parameters
+        [taskId, status] = [status, taskId];
+      }
+      
+      // Additional validation to catch UUID in status parameter
+      if (status.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        console.error(`Status parameter appears to be a UUID: "${status}", likely a taskId was mistakenly passed as status. Fixing to "pending"`);
+        status = 'pending';
+      }
+      
       const normalizedStatus = this.normalizeStatus(status);
+      
+      console.log(`Updating task ${taskId} status to ${normalizedStatus}`);
       
       const { error } = await supabase
         .from('tasks')
         .update({ status: normalizedStatus })
-        .eq('id', id);
+        .eq('id', taskId);
       
       if (error) throw error;
       

@@ -2,17 +2,25 @@
  * Core Task interface that represents the database schema
  * This should be used as the primary type definition across the application
  */
-export type TaskStatus = 'pending' | 'active' | 'paused' | 'completed' | 'archived';
+export enum TaskStatus {
+  PENDING = 'pending',
+  ACTIVE = 'active',
+  PAUSED = 'paused',
+  COMPLETED = 'completed',
+  ARCHIVED = 'archived'
+}
+
+export type TaskStatusType = 'pending' | 'active' | 'paused' | 'completed' | 'archived';
 
 /**
  * Task status options as an object for component usage
  */
 export const TaskStatusValues = {
-  PENDING: 'pending' as TaskStatus,
-  ACTIVE: 'active' as TaskStatus,
-  PAUSED: 'paused' as TaskStatus,
-  COMPLETED: 'completed' as TaskStatus,
-  ARCHIVED: 'archived' as TaskStatus,
+  PENDING: TaskStatus.PENDING,
+  ACTIVE: TaskStatus.ACTIVE,
+  PAUSED: TaskStatus.PAUSED,
+  COMPLETED: TaskStatus.COMPLETED,
+  ARCHIVED: TaskStatus.ARCHIVED,
 } as const;
 
 export interface Task {
@@ -22,7 +30,7 @@ export interface Task {
   description: string | null;
   created_by: string;
   created_at: string;
-  status: TaskStatus;
+  status: TaskStatusType;
   priority: string;
   estimated_time: number | null;
   actual_time: number | null;

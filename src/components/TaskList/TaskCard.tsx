@@ -52,7 +52,20 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
 
   // Handle status change
   const handleStatusChange = (newStatus: string) => {
-    updateTaskStatus(task.id, newStatus);
+    // Explicitly log parameters to debug
+    console.log('TaskCard: Updating task status with params:', { taskId: task.id, newStatus });
+    
+    // IMPORTANT: Use explicit parameter names to avoid order confusion
+    if (!task.id || typeof task.id !== 'string' || 
+        !task.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.error('Invalid task ID format:', task.id);
+      return;
+    }
+    
+    // The key issue - ensure we're passing the correct parameter order
+    // Here we force the types to be correct by explicitly naming parameters
+    const taskId = task.id; // This is definitely a UUID
+    updateTaskStatus(taskId, newStatus as any);
   };
 
   // Handle task editing
