@@ -10,18 +10,27 @@ import { getPriorityBorderColor, getDueDateStyling } from '../../lib/taskUtils';
 import { Task } from '../../types/task';
 import { TimerControls } from '../Timer/TimerControls';
 import { useTimer } from '../../contexts/TimerContext';
+import { useTaskActions } from '../../hooks/useTaskActions';
 
 interface TaskCardProps {
   task: Task;
   onEdit?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
-  updateTaskStatus?: (taskId: string, status: string) => void;
 }
 
-export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const category = getTaskCategory(task);
   const { timerState } = useTimer();
+  const { updateTaskStatus } = useTaskActions({
+    onSuccess: () => {
+      // If we wanted to show a success message or trigger side effects
+    },
+    onError: (error) => {
+      console.error('Task action failed:', error);
+      // Could display an error toast here
+    }
+  });
   
   // Check if this task is being timed
   const isBeingTimed = timerState.taskId === task.id && timerState.status === 'running';
@@ -38,9 +47,7 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
 
   // Handle status change
   const handleStatusChange = (newStatus: string) => {
-    if (updateTaskStatus) {
-      updateTaskStatus(task.id, newStatus);
-    }
+    updateTaskStatus(task.id, newStatus);
   };
 
   // Handle task editing

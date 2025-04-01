@@ -19,7 +19,6 @@ export const TaskList = forwardRef<TaskListRefType>((_, ref) => {
     error,
     isRefreshing,
     refreshTasks,
-    updateTaskStatus,
     isEditModalOpen,
     editTaskId,
     closeEditModal,
@@ -89,7 +88,6 @@ export const TaskList = forwardRef<TaskListRefType>((_, ref) => {
             isLoading={isLoading}
             tasks={filteredTasks}
             viewMode={filters.viewMode}
-            onStatusChange={updateTaskStatus}
             onEdit={openEditModal}
             onDelete={openDeleteModal}
           />

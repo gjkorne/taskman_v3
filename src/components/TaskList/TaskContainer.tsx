@@ -6,7 +6,6 @@ interface TaskContainerProps {
   tasks: Task[];
   isLoading: boolean;
   viewMode: TaskFilter['viewMode'];
-  onStatusChange?: (taskId: string, newStatus: string) => void;
   onEdit?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
 }
@@ -15,7 +14,6 @@ export function TaskContainer({
   tasks,
   isLoading,
   viewMode,
-  onStatusChange,
   onEdit,
   onDelete
 }: TaskContainerProps) {
@@ -63,7 +61,6 @@ export function TaskContainer({
           task={task}
           onEdit={onEdit}
           onDelete={onDelete}
-          updateTaskStatus={onStatusChange}
         />
       ))}
     </div>

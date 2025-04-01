@@ -3,6 +3,10 @@ Notes and Additional Features
 - *** Quick Changes ***
  ~~Change in top left~~ 
  remove grid view
+ move search bar and add quick task     
+ move filter and sort
+ ask about calendar integration
+ ask about list option
 
 
 
