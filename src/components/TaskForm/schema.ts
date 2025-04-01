@@ -36,17 +36,30 @@ export const taskFormSchema = z.object({
   status: z.string().default('pending'),
   
   // Time fields - database uses interval type
-  estimatedTime: z.string().optional(),
+  estimatedTime: z.string()
+    .optional()
+    .refine(
+      (val) => !val || !isNaN(parseInt(val, 10)),
+      { message: 'Estimated time must be a valid number of minutes' }
+    ),
   
   // Date fields
   hasDueDate: z.boolean().default(false),
-  dueDate: z.string().optional(),
+  dueDate: z.string()
+    .optional()
+    .refine(
+      (val) => !val || !isNaN(new Date(val).getTime()),
+      { message: 'Due date must be a valid date' }
+    ),
   
   // Tags
   tags: z.array(z.string()).default([]),
   
   // Flags
   isDeleted: z.boolean().default(false),
+  
+  // List integration - for project organization
+  listId: z.string().uuid().optional(),
   
   // These fields will be handled automatically in submission
   // created_at, updated_at, created_by

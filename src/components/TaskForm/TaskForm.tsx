@@ -116,18 +116,42 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
         category_name: data.category,
         tags: tagsWithSubcategory,
         is_deleted: data.isDeleted || false,
-        created_by: session.user.id
+        created_by: session.user.id,
+        // Set current timestamps for created_at and updated_at
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       
       // Convert estimated time to interval format if provided
       if (data.estimatedTime) {
-        // Convert minutes to PostgreSQL interval format: 'X minutes'
-        taskData.estimated_time = `${data.estimatedTime} minutes`;
+        // Parse to ensure it's a number and format as PostgreSQL interval
+        const minutes = parseInt(data.estimatedTime, 10);
+        if (!isNaN(minutes)) {
+          taskData.estimated_time = `${minutes} minutes`;
+        } else {
+          console.warn('Invalid estimated time format, skipping field');
+        }
       }
       
-      // Add due date if selected
+      // Add due date if selected, with validation
       if (data.hasDueDate && data.dueDate) {
-        taskData.due_date = new Date(data.dueDate).toISOString();
+        const dueDate = new Date(data.dueDate);
+        if (!isNaN(dueDate.getTime())) {
+          taskData.due_date = dueDate.toISOString();
+        } else {
+          console.warn('Invalid due date format, skipping field');
+        }
+      }
+      
+      // Create placeholder structure for future NLP features
+      // This sets up the database fields without implementing the full NLP functionality
+      if (data.rawInput) {
+        // Store raw input for future NLP processing
+        taskData.raw_input = data.rawInput;
+        
+        // Initialize placeholder for NLP fields (will be populated in future phases)
+        taskData.confidence_score = null;
+        taskData.extracted_entities = {};
       }
       
       console.log('Creating task with data:', taskData);
@@ -370,17 +394,28 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-800">Due Date</label>
-              <input
-                type="date"
-                {...register('dueDate')}
-                className={cn(
-                  'mt-1 block w-full rounded-lg glass-input shadow-sm',
-                  errors.dueDate && 'border-red-500'
-                )}
-              />
-              {errors.dueDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.dueDate.message}</p>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  {...register('hasDueDate')}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">Has due date</span>
+              </label>
+              {watch('hasDueDate') && (
+                <div className="mt-2">
+                  <input
+                    type="date"
+                    {...register('dueDate')}
+                    className={cn(
+                      'w-full px-3 py-2 border rounded-md',
+                      errors.dueDate ? 'border-red-500' : 'border-gray-300'
+                    )}
+                  />
+                  {errors.dueDate && (
+                    <p className="mt-1 text-sm text-red-600">{errors.dueDate.message}</p>
+                  )}
+                </div>
               )}
             </div>
           </div>
