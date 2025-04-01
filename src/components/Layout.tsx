@@ -2,6 +2,7 @@ import React from 'react';
 import { BarChart3, Clock, Layout as LayoutIcon, List, Menu, Plus, Settings } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TaskForm } from './TaskForm/TaskForm';
+import { ActiveSession } from './Timer/ActiveSession';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -92,9 +93,13 @@ export function Layout({ children, activeView, onViewChange, onTaskCreated }: La
         </nav>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 min-w-0">
-        <main className="p-8">
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
+        {/* Active Session Bar - Will appear when a task is being timed */}
+        <ActiveSession />
+        
+        {/* Main content */}
+        <main className="flex-1 overflow-auto p-8">
           {children}
         </main>
       </div>
