@@ -3,6 +3,7 @@ import { BarChart3, Clock, Layout as LayoutIcon, List, Menu, Plus, Settings, Ale
 import { cn } from '../lib/utils';
 import { TaskForm } from './TaskForm/TaskForm';
 import { ActiveSession } from './Timer/ActiveSession';
+import { ConsoleErrorsButton } from './Debug/ConsoleErrorsButton';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -104,6 +105,9 @@ export function Layout({ children, activeView, onViewChange, onTaskCreated, onTi
                 active={activeView === 'admin'}
                 onClick={() => onViewChange('admin')}
               />
+              <div className="mt-4 px-4">
+                <ConsoleErrorsButton />
+              </div>
             </div>
           )}
         </nav>

@@ -16,6 +16,9 @@ import { SettingsProvider } from './contexts/SettingsContext';
 import { TaskProvider } from './contexts/TaskContext';
 import { ToastProvider } from './components/Toast';
 import { CategoryProvider } from './contexts/CategoryContext';
+import { ErrorProvider } from './contexts/ErrorContext';
+import { LoadingProvider } from './contexts/LoadingContext';
+import { LoadingIndicator } from './components/UI/LoadingIndicator';
 
 // Import debug tools in development mode
 if (process.env.NODE_ENV === 'development') {
@@ -30,7 +33,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <LoadingIndicator size="lg" variant="primary" text="Loading authentication..." />
       </div>
     );
   }
@@ -69,42 +72,46 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SettingsProvider>
-          <TimerProvider>
-            <TaskProvider>
-              <ToastProvider>
-                <CategoryProvider>
-                  <BrowserRouter>
-                    <Routes>
-                      <Route path="/login" element={<LoginForm />} />
-                      <Route path="/register" element={<RegisterForm />} />
-                      <Route
-                        path="/"
-                        element={
-                          <ProtectedRoute>
-                            <Layout 
-                              activeView={activeView} 
-                              onViewChange={setActiveView}
-                              onTaskCreated={handleTaskCreated}
-                              onTimerStateChange={handleTimerStateChange}
-                            >
-                              {activeView === 'tasks' && <TaskList ref={taskListRef} />}
-                              {activeView === 'timer' && <Timer />}
-                              {activeView === 'reports' && <Reports />}
-                              {activeView === 'settings' && <SettingsPage />}
-                              {activeView === 'admin' && <AdminPage />}
-                            </Layout>
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route path="*" element={<Navigate to="/" />} />
-                    </Routes>
-                  </BrowserRouter>
-                </CategoryProvider>
-              </ToastProvider>
-            </TaskProvider>
-          </TimerProvider>
-        </SettingsProvider>
+        <ToastProvider>
+          <LoadingProvider>
+            <ErrorProvider>
+              <SettingsProvider>
+                <TimerProvider>
+                  <TaskProvider>
+                    <CategoryProvider>
+                      <BrowserRouter>
+                        <Routes>
+                          <Route path="/login" element={<LoginForm />} />
+                          <Route path="/register" element={<RegisterForm />} />
+                          <Route
+                            path="/"
+                            element={
+                              <ProtectedRoute>
+                                <Layout 
+                                  activeView={activeView} 
+                                  onViewChange={setActiveView}
+                                  onTaskCreated={handleTaskCreated}
+                                  onTimerStateChange={handleTimerStateChange}
+                                >
+                                  {activeView === 'tasks' && <TaskList ref={taskListRef} />}
+                                  {activeView === 'timer' && <Timer />}
+                                  {activeView === 'reports' && <Reports />}
+                                  {activeView === 'settings' && <SettingsPage />}
+                                  {activeView === 'admin' && <AdminPage />}
+                                </Layout>
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route path="*" element={<Navigate to="/" />} />
+                        </Routes>
+                      </BrowserRouter>
+                    </CategoryProvider>
+                  </TaskProvider>
+                </TimerProvider>
+              </SettingsProvider>
+            </ErrorProvider>
+          </LoadingProvider>
+        </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
