@@ -3,10 +3,11 @@ import { supabase } from '../lib/supabase';
 import { TaskContext } from './TaskContext'; 
 import { Task, TaskStatus, TaskStatusType } from '../types/task';
 import { User } from '@supabase/supabase-js';
-import { useTaskActions } from '../hooks/useTaskActions'; 
+import { useTaskActions } from '../hooks/useTaskActions';
+import { useTimerPersistence, formatTime } from '../hooks/useTimerPersistence';
+import { TimerState } from '../types/timer';
 
 // Helper to convert milliseconds to PostgreSQL interval format (e.g., 'PT1H2M3S')
-// Supabase client might handle Date/ISO strings directly for intervals, but manual is safer
 const msToInterval = (ms: number): string => {
   if (ms <= 0) return 'PT0S';
   const seconds = Math.floor(ms / 1000);
@@ -14,16 +15,6 @@ const msToInterval = (ms: number): string => {
   // Consider using a library or more robust conversion if needed.
   return `${seconds} seconds`; 
 };
-
-interface TimerState {
-  status: 'idle' | 'running' | 'paused';
-  taskId: string | null;
-  sessionId: string | null; // ID of the current record in time_sessions
-  startTime: number | null; // Time in milliseconds
-  elapsedTime: number; // Milliseconds for the *current* session
-  previouslyElapsed: number; // Milliseconds from *previous* sessions for this task
-  displayTime: string; // Formatted HH:MM:SS of total time (previouslyElapsed + elapsedTime)
-}
 
 interface TimerContextType {
   timerState: TimerState;
@@ -34,71 +25,17 @@ interface TimerContextType {
   resetTimer: () => void;
   formatElapsedTime: () => string; 
   getDisplayTime: (task: Task) => string;
-  loadTimerState: () => void;
   clearTimerStorage: () => void;
 }
 
 // Create Context with a default undefined value
 const TimerContext = createContext<TimerContextType | undefined>(undefined);
 
-// Factory function for getting initial timer state
-function getInitialState(): TimerState {
-  return {
-    status: 'idle',
-    taskId: null,
-    sessionId: null,
-    startTime: null,
-    elapsedTime: 0,
-    previouslyElapsed: 0,
-    displayTime: '00:00:00'
-  };
-}
-
-// Load initial state from localStorage if available
-const loadInitialState = (): TimerState => {
-  if (typeof window === 'undefined') {
-    return getInitialState();
-  }
-  
-  try {
-    const savedState = localStorage.getItem('timerState');
-    if (savedState) {
-      const parsed = JSON.parse(savedState);
-      
-      // Convert string date back to Date object
-      if (parsed.startTime) {
-        parsed.startTime = new Date(parsed.startTime).getTime();
-      }
-      
-      // Recalculate displayTime based on loaded elapsed/previous times
-      parsed.displayTime = formatTime(parsed.elapsedTime + parsed.previouslyElapsed);
-      
-      console.log('Loaded timer state from storage:', parsed);
-      return parsed; 
-    }
-  } catch (e) {
-    console.error('Error loading timer state from localStorage:', e);
-  }
-  
-  return getInitialState();
-};
-
-// Utility function for formatting time (remains mostly the same)
-const formatTime = (totalMs: number): string => {
-  const totalSeconds = Math.floor(totalMs / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return [
-    hours.toString().padStart(2, '0'),
-    minutes.toString().padStart(2, '0'),
-    seconds.toString().padStart(2, '0')
-  ].join(':');
-};
-
 // Timer Provider component
 export const TimerProvider = ({ children }: { children: ReactNode }) => {
-  const [timerState, setTimerState] = useState<TimerState>(loadInitialState);
+  // Use our new timer persistence hook
+  const { state: timerState, setState: setTimerState, clearTimerStorage } = useTimerPersistence();
+  
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -136,23 +73,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       }
     };
   }, []);
-
-  // Save timer state to localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const stateToSave = {
-        ...timerState,
-        // Convert Date to ISO string for serialization
-        startTime: timerState.startTime ? new Date(timerState.startTime).toISOString() : null
-      };
-      // No need to save displayTime, it's derived
-      delete (stateToSave as any).displayTime; 
-      localStorage.setItem('timerState', JSON.stringify(stateToSave));
-    } catch (e) {
-      console.error('Error saving timer state to localStorage:', e);
-    }
-  }, [timerState]);
 
   // Update elapsed time when timer is running
   // Use useCallback to prevent recreation on every render
@@ -299,7 +219,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error starting timer:', error);
       // Rollback state? Reset local state if DB operations failed?
-      setTimerState(getInitialState()); // Simple reset on error for now
+      setTimerState({ status: 'idle', taskId: null, sessionId: null, startTime: null, elapsedTime: 0, previouslyElapsed: 0, displayTime: '00:00:00' }); // Simple reset on error for now
       // Consider user notification
     }
   };
@@ -435,14 +355,14 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // 3. Reset local timer state
-      setTimerState(getInitialState());
-      localStorage.removeItem('timerState');
+      setTimerState({ status: 'idle', taskId: null, sessionId: null, startTime: null, elapsedTime: 0, previouslyElapsed: 0, displayTime: '00:00:00' });
+      clearTimerStorage();
 
     } catch (err) {
       console.error("Exception in stopTimer:", err);
       // Should we attempt to reset local state even on error?
-      setTimerState(getInitialState()); // Resetting locally anyway
-      localStorage.removeItem('timerState');
+      setTimerState({ status: 'idle', taskId: null, sessionId: null, startTime: null, elapsedTime: 0, previouslyElapsed: 0, displayTime: '00:00:00' }); // Resetting locally anyway
+      clearTimerStorage();
     }
   };
 
@@ -450,20 +370,10 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   const resetTimer = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = null;
-    setTimerState(getInitialState());
-    localStorage.removeItem('timerState'); // Clear storage
+    setTimerState({ status: 'idle', taskId: null, sessionId: null, startTime: null, elapsedTime: 0, previouslyElapsed: 0, displayTime: '00:00:00' });
+    clearTimerStorage(); // Clear storage
   };
 
-  // Loads state from storage (useful if localStorage wasn't read initially)
-  const loadTimerState = () => {
-      setTimerState(loadInitialState());
-  };
-  
-  // Clears timer state from storage
-  const clearTimerStorage = () => {
-      localStorage.removeItem('timerState');
-  };
-  
   // Format total time for display (previously formatElapsedTime)
   const formatTotalTime = useCallback(() => {
       // This uses the state's displayTime which is updated by the interval
@@ -503,7 +413,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     resetTimer,
     formatElapsedTime: formatTotalTime, 
     getDisplayTime,
-    loadTimerState,
     clearTimerStorage,
   };
 

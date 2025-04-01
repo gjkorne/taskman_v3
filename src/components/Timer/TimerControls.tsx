@@ -9,9 +9,67 @@ interface TimerControlsProps {
   onTimerStateChange?: () => void;
 }
 
+// Extract control buttons into reusable components
+const TimerButton = ({ 
+  onClick, 
+  icon, 
+  title, 
+  className 
+}: { 
+  onClick: () => void, 
+  icon: React.ReactNode, 
+  title: string, 
+  className?: string 
+}) => (
+  <button
+    onClick={onClick}
+    className={cn("p-1 rounded", className)}
+    title={title}
+  >
+    {icon}
+  </button>
+);
+
+// Control buttons as a standalone component
+const TimerControlButtons = ({
+  isRunning,
+  onPause,
+  onResume,
+  onStop
+}: {
+  isRunning: boolean,
+  onPause: () => void,
+  onResume: () => void,
+  onStop: () => void
+}) => (
+  <div className="flex space-x-1">
+    {isRunning ? (
+      <TimerButton
+        onClick={onPause}
+        icon={<Pause size={14} />}
+        title="Pause timer"
+        className="hover:bg-amber-100 text-amber-600"
+      />
+    ) : (
+      <TimerButton
+        onClick={onResume}
+        icon={<Play size={14} />}
+        title="Resume timer"
+        className="hover:bg-emerald-100 text-emerald-600"
+      />
+    )}
+    
+    <TimerButton
+      onClick={onStop}
+      icon={<Square size={14} />}
+      title="Stop timer"
+      className="hover:bg-red-100 text-red-600"
+    />
+  </div>
+);
+
 export function TimerControls({ taskId, compact = false, className, onTimerStateChange }: TimerControlsProps) {
   const { timerState, startTimer, pauseTimer, resumeTimer, stopTimer, formatElapsedTime } = useTimer();
-  // const { refreshTasks } = useTaskContext(); // No longer needed here
   
   // Validate taskId to ensure it's a UUID
   const isValidTaskId = typeof taskId === 'string' && 
@@ -48,10 +106,6 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
   const isThisTaskActive = isValidTaskId && timerState.taskId === taskId && timerState.status !== 'idle';
   const isRunning = timerState.status === 'running';
   
-  // --- DEBUG LOG --- 
-  console.log(`TimerControls (${taskId}): compact=${compact}, timerState=`, timerState, `isThisTaskActive=${isThisTaskActive}, isRunning=${isRunning}`);
-  // --- END DEBUG LOG ---
-  
   // If taskId is invalid, show an error button
   if (!isValidTaskId) {
     return (
@@ -72,7 +126,6 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
   // Different layouts based on timer state and compact mode
   if (!isThisTaskActive && compact) {
     // Compact start button when timer is idle
-    console.log(`TimerControls (${taskId}): Rendering compact IDLE button`); // DEBUG
     return (
       <button
         onClick={handleStartTimer}
@@ -91,7 +144,6 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
   
   if (!isThisTaskActive) {
     // Full start button when timer is idle
-    console.log(`TimerControls (${taskId}): Rendering full IDLE button`); // DEBUG
     return (
       <button
         onClick={handleStartTimer}
@@ -112,39 +164,18 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
   // Active timer controls
   if (compact) {
     // Compact view: Only show essential buttons
-    console.log(`TimerControls (${taskId}): Rendering compact ACTIVE controls`); // DEBUG
     return (
       <div className={cn("flex space-x-1", className)}>
-        {isRunning ? (
-          <button
-            onClick={handlePauseTimer}
-            className="p-1 rounded hover:bg-amber-100 text-amber-600"
-            title="Pause timer"
-          >
-            <Pause size={14} />
-          </button>
-        ) : (
-          <button
-            onClick={handleResumeTimer}
-            className="p-1 rounded hover:bg-emerald-100 text-emerald-600"
-            title="Resume timer"
-          >
-            <Play size={14} />
-          </button>
-        )}
-        
-        <button
-          onClick={handleStopTimer}
-          className="p-1 rounded hover:bg-red-100 text-red-600"
-          title="Stop timer"
-        >
-          <Square size={14} />
-        </button>
+        <TimerControlButtons
+          isRunning={isRunning}
+          onPause={handlePauseTimer}
+          onResume={handleResumeTimer}
+          onStop={handleStopTimer}
+        />
       </div>
     );
   } else {
     // Full view: Show timer display and buttons
-    console.log(`TimerControls (${taskId}): Rendering full ACTIVE controls`); // DEBUG
     return (
       <div className={cn("flex flex-col space-y-2", className)}>
         {/* Timer display */}
@@ -161,33 +192,12 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
           </div>
           
           {/* Control buttons */}
-          <div className="flex space-x-1">
-            {isRunning ? (
-              <button
-                onClick={handlePauseTimer}
-                className="p-1 rounded hover:bg-amber-100 text-amber-600"
-                title="Pause timer"
-              >
-                <Pause size={14} />
-              </button>
-            ) : (
-              <button
-                onClick={handleResumeTimer}
-                className="p-1 rounded hover:bg-emerald-100 text-emerald-600"
-                title="Resume timer"
-              >
-                <Play size={14} />
-              </button>
-            )}
-            
-            <button
-              onClick={handleStopTimer}
-              className="p-1 rounded hover:bg-red-100 text-red-600"
-              title="Stop timer"
-            >
-              <Square size={14} />
-            </button>
-          </div>
+          <TimerControlButtons
+            isRunning={isRunning}
+            onPause={handlePauseTimer}
+            onResume={handleResumeTimer}
+            onStop={handleStopTimer}
+          />
         </div>
         
         {/* Total time indicator - only shown in non-compact mode */}

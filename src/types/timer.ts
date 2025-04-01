@@ -23,9 +23,10 @@ export interface TimerState {
   status: TimerStatus;
   taskId: string | null;
   sessionId: string | null;
-  startTime: Date | null;
+  startTime: number | null; // milliseconds timestamp
   elapsedTime: number; // milliseconds
   previouslyElapsed: number; // milliseconds from previous sessions
+  displayTime: string; // Formatted time string (HH:MM:SS)
 }
 
 // Timer context shape

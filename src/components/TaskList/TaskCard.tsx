@@ -3,7 +3,6 @@ import { format } from 'date-fns';
 import { MoreVertical } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TaskActions } from './TaskActions';
-import { StatusBadge } from './StatusBadge';
 import { TaskCardDetails } from './TaskCardDetails';
 import { 
   getTaskCategory, 
@@ -154,11 +153,6 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
             </button>
           </div>
         )}
-      </div>
-      
-      {/* Status Badge - middle right */}
-      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
-        <StatusBadge status={task.status} />
       </div>
       
       {/* Task Title - Prominent in top left */}

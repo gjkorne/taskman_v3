@@ -1,4 +1,5 @@
 import { Play, Pause, Square, Clock } from 'lucide-react';
+import { useEffect } from 'react';
 import { useTimer } from '../../contexts/TimerContext';
 import { useTaskContext } from '../../contexts/TaskContext';
 
@@ -28,12 +29,17 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   
   console.log('Found active task:', activeTask);
   
+  // Use an effect to refresh tasks when an active timer exists but the task isn't found
+  useEffect(() => {
+    if (timerState.status !== 'idle' && timerState.taskId && !activeTask) {
+      console.log('Active task not found in tasks array - refreshing tasks from useEffect');
+      refreshTasks();
+      if (onTimerStateChange) onTimerStateChange();
+    }
+  }, [timerState.status, timerState.taskId, activeTask, refreshTasks, onTimerStateChange]);
+  
   if (!activeTask) {
     console.log('Active task not found in tasks array - refreshing tasks');
-    // If we know there should be an active task but can't find it,
-    // trigger a refresh and render a loading indicator
-    refreshTasks();
-    if (onTimerStateChange) onTimerStateChange();
     
     return (
       <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md">

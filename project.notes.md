@@ -5,6 +5,8 @@ Notes and Additional Features
  remove grid view
  move search bar and add quick task     
  move filter and sort
+ add mark complete button
+ 
 
 - *** Issues ***
  est time is off when saving. went from 30 min to 5 hours to 4166h 40 min
