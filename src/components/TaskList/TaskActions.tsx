@@ -1,6 +1,6 @@
 // Import icons and utility function
 import { Play, Pause, CheckCircle, RotateCcw } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import { Button } from '../UI/Button';
 
 interface TaskActionsProps {
   taskId: string;
@@ -12,60 +12,48 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
   return (
     <div className="flex space-x-2">
       {status === 'pending' && (
-        <button 
+        <Button 
           onClick={() => updateTaskStatus(taskId, 'active')}
-          className={cn(
-            "px-2 py-1 text-xs font-normal rounded flex items-center space-x-1",
-            "bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-200",
-            "transition-all duration-200"
-          )}
+          variant="success"
+          size="xs"
+          icon={<Play size={12} />}
           title="Start task"
         >
-          <Play size={12} />
-          <span>Start</span>
-        </button>
+          Start
+        </Button>
       )}
       {status === 'active' && (
         <>
-          <button 
+          <Button 
             onClick={() => updateTaskStatus(taskId, 'in_progress')}
-            className={cn(
-              "px-2 py-1 text-xs font-normal rounded flex items-center space-x-1",
-              "bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200",
-              "transition-all duration-200"
-            )}
+            variant="warning"
+            size="xs"
+            icon={<Pause size={12} />}
             title="Pause task"
           >
-            <Pause size={12} />
-            <span>Pause</span>
-          </button>
-          <button 
+            Pause
+          </Button>
+          <Button 
             onClick={() => updateTaskStatus(taskId, 'completed')}
-            className={cn(
-              "px-2 py-1 text-xs font-normal rounded flex items-center space-x-1",
-              "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200",
-              "transition-all duration-200"
-            )}
+            variant="info"
+            size="xs"
+            icon={<CheckCircle size={12} />}
             title="Complete task"
           >
-            <CheckCircle size={12} />
-            <span>Complete</span>
-          </button>
+            Complete
+          </Button>
         </>
       )}
       {status === 'in_progress' && (
-        <button 
+        <Button 
           onClick={() => updateTaskStatus(taskId, 'active')}
-          className={cn(
-            "px-2 py-1 text-xs font-normal rounded flex items-center space-x-1",
-            "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200",
-            "transition-all duration-200"
-          )}
+          variant="primary"
+          size="xs"
+          icon={<RotateCcw size={12} />}
           title="Resume task"
         >
-          <RotateCcw size={12} />
-          <span>Resume</span>
-        </button>
+          Resume
+        </Button>
       )}
     </div>
   );

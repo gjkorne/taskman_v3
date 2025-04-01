@@ -1,13 +1,15 @@
 Notes and Additional Features
 
+*** Quick Changes ***
+- Change in top left
+
+
 ***Ideas for additional features:***
 - List feature for shopping etc
 - quick keys to map tasks
+- calendar integration
+- user defined categories and subcategories
 
-
-x calendar integration
-x user defined categories and subcategories
-x 
 
 - ***2025.04.01 9.30 Phase 1&2 Progress and Next Steps***
 
@@ -25,7 +27,7 @@ You've made excellent progress through Phase 2 (Core Task Management) with most 
 ✅ Settings page implementation (just completed)
 
 What's Next Before Moving On
-- Database Schema Consistency
+x Database Schema Consistency
     Ensure the task creation and editing forms fully align with your Supabase schema
 Double-check that all required fields are properly validated
 
