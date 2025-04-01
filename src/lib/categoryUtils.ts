@@ -27,17 +27,17 @@ export const CATEGORY_COLORS = {
  * Get the category for a task, handling both string and numeric values
  */
 export function getTaskCategory(task: Task): string | null {
-  // First try category_name (string value from migration)
+  // First try category_name (string value)
   if (task.category_name) {
     return task.category_name;
   }
   
-  // Then try string category value
+  // For backward compatibility, check older formats
   if (typeof task.category === 'string') {
     return task.category;
   }
   
-  // Then try numeric category value
+  // Then try numeric category value (legacy)
   if (typeof task.category === 'number') {
     switch (task.category) {
       case 1: return 'work';

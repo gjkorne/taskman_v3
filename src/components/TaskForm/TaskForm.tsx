@@ -129,10 +129,12 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
       // Compile the task data
       const taskData = {
         title: data.title,
-        description: data.description,
+        description: data.description || '',
         priority: data.priority || 'medium',
         status: 'pending',
         category_name: data.category,
+        tags: [], // Initialize tags as empty array
+        is_deleted: false, // Explicitly set is_deleted to false
         created_by: session.user.id
       };
 
