@@ -1,173 +1,47 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { forwardRef, useImperativeHandle } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { TaskEditForm } from './TaskEditForm';
-import { FilterPanel, defaultFilters, TaskFilter } from './FilterPanel';
+import { FilterPanel } from './FilterPanel';
 import { TaskContainer } from './TaskContainer';
 import { SearchBar } from './SearchBar';
-import { filterAndSortTasks } from '../../lib/taskUtils';
-import { Task } from '../../types/task';
+import { useTaskContext } from '../../contexts/TaskContext';
 
-// Helper to check for development environment
-const isDevelopment = process.env.NODE_ENV !== 'production';
+// Define ref type for external access to TaskList methods
+export interface TaskListRefType {
+  refreshTaskList: () => Promise<void>;
+}
 
-export function TaskList() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editTaskId, setEditTaskId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+export const TaskList = forwardRef<TaskListRefType>((_, ref) => {
+  // Get everything we need from the task context
+  const { 
+    filteredTasks,
+    isLoading, 
+    error,
+    isRefreshing,
+    refreshTasks,
+    updateTaskStatus,
+    isEditModalOpen,
+    editTaskId,
+    closeEditModal,
+    isDeleteModalOpen,
+    taskToDelete,
+    closeDeleteModal,
+    deleteTask,
+    openEditModal,
+    openDeleteModal,
+    searchQuery,
+    setSearchQuery,
+    filters,
+    setFilters,
+    resetFilters
+  } = useTaskContext();
 
-  // Filter state
-  const [filters, setFilters] = useState<TaskFilter>({
-    ...defaultFilters,
-    viewMode: 'list'
-  });
+  // Expose methods to parent components via ref
+  useImperativeHandle(ref, () => ({
+    refreshTaskList: refreshTasks
+  }));
 
-  // Reset filters function
-  const resetFilters = () => {
-    setFilters({
-      ...defaultFilters,
-      viewMode: filters.viewMode // Keep current view mode when resetting
-    });
-    setSearchQuery('');
-  };
-
-  // Filter and sort tasks
-  const sortedTasks = filterAndSortTasks(tasks, filters, searchQuery);
-
-  // Fetch tasks from Supabase
-  const fetchTasks = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Check for authenticated session
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        setError("You must be logged in to view tasks");
-        setIsLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('created_by', session.user.id)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        if (isDevelopment) {
-          console.error("Error fetching tasks:", error);
-        }
-        setError("Failed to load tasks. Please try again later.");
-      } else {
-        setTasks(data || []);
-      }
-    } catch (err) {
-      if (isDevelopment) {
-        console.error("Exception fetching tasks:", err);
-      }
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Load tasks on component mount
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  // Handle task status change
-  const updateTaskStatus = async (taskId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ 
-          status: newStatus
-        })
-        .eq('id', taskId);
-
-      if (error) {
-        if (isDevelopment) {
-          console.error("Error updating task status:", error);
-        }
-        throw new Error("Failed to update task status");
-      }
-
-      // Update local state
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? { ...task, status: newStatus } : task
-      ));
-    } catch (err) {
-      if (isDevelopment) {
-        console.error("Exception updating task status:", err);
-      }
-      setError("Failed to update task status. Please try again.");
-    }
-  };
-
-  // Delete task handling
-  const openDeleteModal = (taskId: string) => {
-    setTaskToDelete(taskId);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!taskToDelete) return;
-    
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ is_deleted: true })
-        .eq('id', taskToDelete);
-
-      if (error) {
-        if (isDevelopment) {
-          console.error("Error deleting task:", error);
-        }
-        throw new Error("Failed to delete task");
-      }
-
-      // Update local state
-      setTasks(prev => prev.filter(task => task.id !== taskToDelete));
-      
-      // Close the modal
-      setIsDeleteModalOpen(false);
-      setTaskToDelete(null);
-    } catch (err) {
-      if (isDevelopment) {
-        console.error("Exception deleting task:", err);
-      }
-      setError("Failed to delete task. Please try again.");
-    }
-  };
-
-  // Function to handle editing a task
-  const handleEdit = (taskId: string) => {
-    // Find the task by ID and open edit modal
-    const taskToEdit = tasks.find(task => task.id === taskId);
-    if (taskToEdit) {
-      setEditTaskId(taskToEdit.id);
-      setIsEditModalOpen(true);
-    }
-  };
-
-  // Handle refresh
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    fetchTasks().finally(() => {
-      setIsRefreshing(false);
-    });
-  };
-
+  // Render loading state
   if (isLoading && !isRefreshing) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -187,7 +61,7 @@ export function TaskList() {
         <h1 className="text-2xl font-bold">Tasks</h1>
         <div className="flex items-center mt-2 sm:mt-0">
           <button
-            onClick={handleRefresh}
+            onClick={() => refreshTasks()}
             className="flex items-center text-gray-600 hover:text-indigo-600 mr-2"
             disabled={isRefreshing}
           >
@@ -213,30 +87,28 @@ export function TaskList() {
           {/* Task Container */}
           <TaskContainer
             isLoading={isLoading}
-            tasks={sortedTasks}
+            tasks={filteredTasks}
             viewMode={filters.viewMode}
             onStatusChange={updateTaskStatus}
-            onEdit={handleEdit}
+            onEdit={openEditModal}
             onDelete={openDeleteModal}
           />
 
-          {sortedTasks.length === 0 && !isLoading && (
+          {filteredTasks.length === 0 && !isLoading && (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <h3 className="text-lg font-medium text-gray-900">No tasks found</h3>
               <p className="mt-2 text-gray-500">
-                {tasks.length > 0 
+                {filteredTasks.length === 0 
                   ? 'Try adjusting your filters or search query'
                   : 'Create your first task to get started'
                 }
               </p>
-              {tasks.length > 0 && (
-                <button
-                  onClick={resetFilters}
-                  className="mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
-                >
-                  Reset filters
-                </button>
-              )}
+              <button
+                onClick={resetFilters}
+                className="mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+              >
+                Reset filters
+              </button>
             </div>
           )}
         </div>
@@ -246,8 +118,8 @@ export function TaskList() {
           <FilterPanel 
             filters={filters} 
             onChange={setFilters}
-            taskCount={tasks.length}
-            filteredCount={sortedTasks.length}
+            taskCount={filteredTasks.length}
+            filteredCount={filteredTasks.length}
             onReset={resetFilters}
           />
         </div>
@@ -265,14 +137,10 @@ export function TaskList() {
                 taskId={editTaskId}
                 onSaved={() => {
                   // Refresh tasks after saving
-                  fetchTasks();
-                  setIsEditModalOpen(false);
-                  setEditTaskId(null);
+                  refreshTasks();
+                  closeEditModal();
                 }}
-                onCancel={() => {
-                  setIsEditModalOpen(false);
-                  setEditTaskId(null);
-                }}
+                onCancel={closeEditModal}
               />
             </div>
           </div>
@@ -291,13 +159,13 @@ export function TaskList() {
             </div>
             <div className="flex justify-end p-4 space-x-2 border-t">
               <button
-                onClick={() => setIsDeleteModalOpen(false)}
+                onClick={closeDeleteModal}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
-                onClick={confirmDelete}
+                onClick={() => taskToDelete && deleteTask(taskToDelete)}
                 className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
               >
                 Delete
@@ -308,4 +176,4 @@ export function TaskList() {
       )}
     </div>
   );
-}
+});

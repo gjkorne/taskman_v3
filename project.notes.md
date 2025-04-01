@@ -3,7 +3,7 @@ Notes and Additional Features
 - *** Quick Changes ***
  ~~Change in top left~~ 
  remove grid view
- 
+
 
 
 - ***Ideas for additional features:***
@@ -53,8 +53,8 @@ Review the Timer component you already have to prepare for enhancements
 ~~    X Document the current state of the application~~
 ~~    X Update any design documents or component diagrams~~
 Technical Debt Assessment
-     Address any quick fixes or workarounds that should be properly implemented
-     Look for components that may need refactoring before adding more features
+     ~~Address any quick fixes or workarounds that should be properly implemented~~
+     ook for components that may need refactoring before adding more features
 Design Review
      Ensure UI consistency across all implemented components
     Verify the mobile responsiveness of the new settings page
