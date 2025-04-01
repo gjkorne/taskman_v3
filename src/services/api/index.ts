@@ -40,7 +40,7 @@ export class TaskService implements ITaskService {
     const formattedData: Record<string, any> = {
       title: taskData.title,
       description: taskData.description || '',
-      status: taskData.status || 'pending',
+      status: this.normalizeStatus(taskData.status || 'pending'),
       priority: taskData.priority || 'medium',
       category_name: taskData.category || null,
       category_id: taskData.categoryId || null,
@@ -75,6 +75,27 @@ export class TaskService implements ITaskService {
     }
 
     return formattedData;
+  }
+  
+  // Helper method to ensure status values match what the database expects
+  private normalizeStatus(status: string): string {
+    // Convert to lowercase and replace spaces with underscores if needed
+    let normalizedStatus = status.toLowerCase().trim();
+    
+    // Handle possible variations
+    if (normalizedStatus === 'in progress' || normalizedStatus === 'in-progress') {
+      return 'in_progress';
+    }
+    
+    const validStatuses = ['active', 'completed', 'archived', 'pending', 'in_progress'];
+    
+    if (validStatuses.includes(normalizedStatus)) {
+      return normalizedStatus;
+    }
+    
+    // Default to pending if status is invalid
+    console.warn(`Invalid status value: "${status}", defaulting to "pending"`);
+    return 'pending';
   }
 
   /**
@@ -200,9 +221,11 @@ export class TaskService implements ITaskService {
     try {
       await this.ensureAuthenticated();
       
+      const normalizedStatus = this.normalizeStatus(status);
+      
       const { error } = await supabase
         .from('tasks')
-        .update({ status })
+        .update({ status: normalizedStatus })
         .eq('id', id);
       
       if (error) throw error;

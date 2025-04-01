@@ -26,6 +26,9 @@ export interface Task {
   category_name: string | null;
   category_id: string | null;
   
+  // Activity tracking
+  activity_state: string | null;
+  
   // Optional UI-specific fields that may not be in the database
   category?: string; // Used for form handling
   

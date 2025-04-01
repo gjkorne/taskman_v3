@@ -127,10 +127,13 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       
       if (sessionError) throw sessionError;
       
-      // Update task activity_state to in_progress
+      // Update task activity_state to in_progress and status to active
       const { error: taskError } = await supabase
         .from('tasks')
-        .update({ activity_state: 'in_progress' })
+        .update({ 
+          activity_state: 'in_progress',
+          status: 'active'
+        })
         .eq('id', taskId);
       
       if (taskError) throw taskError;
@@ -185,11 +188,12 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       
       if (sessionError) throw sessionError;
       
-      // Update task activity_state to paused
+      // Update task activity_state to paused and status to in_progress
       const { error: taskError } = await supabase
         .from('tasks')
         .update({ 
           activity_state: 'paused',
+          status: 'in_progress',
           actual_time: duration
         })
         .eq('id', timerState.taskId);
