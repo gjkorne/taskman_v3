@@ -25,7 +25,7 @@ interface TaskCardProps {
 export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { categories } = useCategories();
-  const { timerState } = useTimer();
+  const { timerState, stopTimer } = useTimer();
   const { updateTaskStatus } = useTaskActions({
     onSuccess: () => {
       // If we wanted to show a success message or trigger side effects
@@ -41,7 +41,7 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
   const { id: categoryId } = getTaskCategoryInfo(task, categories);
   
   // Check if this task is being timed
-  const isBeingTimed = timerState.taskId === task.id && timerState.status === 'running';
+  const isBeingTimed = timerState.taskId === task.id && timerState.status !== 'idle';
 
   // Get the color for the ellipsis menu based on category
   const getCategoryColor = () => {
@@ -50,7 +50,7 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
   };
 
   // Handle status change - Corrected signature with proper type conversion
-  const handleStatusChange = (taskId: string, newStatus: TaskStatusType) => {
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatusType) => {
     // Explicitly log parameters to debug
     console.log('TaskCard: handleStatusChange called with:', { taskId, newStatus });
     
@@ -76,9 +76,22 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
         break;
       case 'completed':
         statusEnum = TaskStatus.COMPLETED;
+        // If this task is being timed, stop the timer
+        if (timerState.taskId === taskId && timerState.status !== 'idle') {
+          console.log('Task is being timed and marked as completed. Stopping timer.');
+          // Use the stopTimer from TimerContext with the COMPLETED status
+          await stopTimer(TaskStatus.COMPLETED);
+          return; // stopTimer already updates the task status
+        }
         break;
       case 'archived':
         statusEnum = TaskStatus.ARCHIVED;
+        // If this task is being timed, stop the timer
+        if (timerState.taskId === taskId && timerState.status !== 'idle') {
+          console.log('Task is being timed and marked as archived. Stopping timer.');
+          await stopTimer(TaskStatus.ARCHIVED);
+          return; // stopTimer already updates the task status
+        }
         break;
       default:
         console.error('TaskCard: Invalid status value received:', newStatus);

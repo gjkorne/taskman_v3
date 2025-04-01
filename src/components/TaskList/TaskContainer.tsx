@@ -1,6 +1,7 @@
 import { Task } from '../../types/task';
 import { TaskFilter } from './FilterPanel';
 import { TaskCard } from './TaskCard';
+import { useTimer } from '../../contexts/TimerContext';
 
 interface TaskContainerProps {
   tasks: Task[];
@@ -53,19 +54,35 @@ export function TaskContainer({
     );
   }
 
+  // Get the current timer state to accurately identify the active task
+  const { timerState } = useTimer();
+
   // Improved active task filtering to handle different formats of 'active' status
   const activeTasks = tasks.filter(task => {
     // Log task statuses to help debugging
     console.log(`Task ID: ${task.id}, Status: ${task.status}, Type: ${typeof task.status}`);
     
-    // Check for various forms of 'active' - case insensitive comparison
-    return typeof task.status === 'string' && 
-           task.status.toLowerCase() === 'active';
+    // First check if this task is currently being timed
+    const isBeingTimed = timerState.taskId === task.id && timerState.status !== 'idle';
+    
+    // Then check if it has the 'active' status
+    const hasActiveStatus = typeof task.status === 'string' && 
+                          task.status.toLowerCase() === 'active';
+                          
+    // A task should be shown in Active Tasks section if either condition is true
+    return isBeingTimed || hasActiveStatus;
   });
   
   const otherTasks = tasks.filter(task => {
-    return typeof task.status === 'string' && 
-           task.status.toLowerCase() !== 'active';
+    // First check if this task is currently being timed
+    const isBeingTimed = timerState.taskId === task.id && timerState.status !== 'idle';
+    
+    // Then check if it has the 'active' status
+    const hasActiveStatus = typeof task.status === 'string' && 
+                         task.status.toLowerCase() === 'active';
+                         
+    // A task should be shown in Other Tasks section only if both conditions are false
+    return !isBeingTimed && !hasActiveStatus;
   });
 
   // Log overall counts for debugging
