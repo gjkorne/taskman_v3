@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { taskFormSchema, TaskFormData } from '../components/TaskForm/schema';
-import { supabase } from '../lib/supabase';
 import { getSubcategoryFromTags, updateSubcategoryInTags } from '../types/categories';
 import { useTaskContext } from '../contexts/TaskContext';
+import { taskService } from '../services/api';
+import { TaskStatus, TaskPriority } from '../types/task';
 
 // Helper to check for development environment
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -26,8 +27,8 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
     defaultValues: {
       title: '',
       description: '',
-      status: 'pending',
-      priority: 'medium',
+      status: TaskStatus.PENDING,
+      priority: TaskPriority.MEDIUM,
       category: '',
       subcategory: '',
       dueDate: undefined,
@@ -60,24 +61,22 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
       setError(null);
       
       try {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('id', taskId)
-          .single();
+        const { data, error: apiError } = await taskService.getTaskById(taskId);
           
-        if (error) throw error;
+        if (apiError) throw apiError;
         
         if (data) {
           // Extract subcategory from tags if present
           const subcategory = getSubcategoryFromTags(data.tags || []);
           
-          // Set form values
+          // Set form values with proper type casting
           reset({
             title: data.title || '',
             description: data.description || '',
-            status: data.status || 'pending',
-            priority: data.priority || 'medium',
+            // Use type assertion to handle the status string
+            status: (data.status as TaskFormData['status']) || TaskStatus.PENDING,
+            // Use type assertion to handle the priority string
+            priority: (data.priority as TaskFormData['priority']) || TaskPriority.MEDIUM,
             category: data.category_name || '',
             subcategory: subcategory || '',
             dueDate: data.due_date ? new Date(data.due_date).toISOString().split('T')[0] : undefined,
@@ -85,7 +84,8 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
             tags: Array.isArray(data.tags) ? data.tags : [],
             estimatedTime: data.estimated_time ? String(data.estimated_time).replace(/\D/g, '') : '',
             isDeleted: !!data.is_deleted,
-            rawInput: data.raw_input || ''
+            // Handle any additional data fields that might be present in the database but not in our type
+            rawInput: (data as any).raw_input || ''
           });
         }
       } catch (err) {
@@ -108,59 +108,26 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
     setError(null);
     
     try {
-      // Check for authentication
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('You must be logged in to perform this action');
-      }
-      
       // Update tags with subcategory if needed
       const updatedTags = updateSubcategoryInTags(
         formData.tags || [],
         formData.subcategory || ''
       );
       
-      // Format data for database
-      const dataToSubmit: Record<string, any> = {
-        title: formData.title,
-        description: formData.description || '',
-        status: formData.status || 'pending',
-        priority: formData.priority || 'medium',
-        category_name: formData.category || null,
-        due_date: formData.hasDueDate ? formData.dueDate : null,
-        tags: updatedTags,
-        is_deleted: formData.isDeleted || false
+      // Include tags in the form data
+      const dataToSubmit = {
+        ...formData,
+        tags: updatedTags
       };
       
-      // Convert estimated time to interval format if provided
-      if (formData.estimatedTime) {
-        // Parse to ensure it's a number and format as PostgreSQL interval
-        const minutes = parseInt(formData.estimatedTime, 10);
-        if (!isNaN(minutes)) {
-          dataToSubmit.estimated_time = `${minutes} minutes`;
-        }
-      }
-      
-      // Add rawInput if present (for NLP processing)
-      if (formData.rawInput) {
-        dataToSubmit.raw_input = formData.rawInput;
-      }
-      
+      // Call the appropriate API service method
       let result;
-      
       if (taskId) {
         // Update existing task
-        result = await supabase
-          .from('tasks')
-          .update(dataToSubmit)
-          .eq('id', taskId);
+        result = await taskService.updateTask(taskId, dataToSubmit);
       } else {
         // Create new task
-        dataToSubmit.created_by = session.user.id;
-        
-        result = await supabase
-          .from('tasks')
-          .insert(dataToSubmit);
+        result = await taskService.createTask(dataToSubmit);
       }
       
       if (result.error) {

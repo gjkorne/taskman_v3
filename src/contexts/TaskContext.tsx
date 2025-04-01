@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
 import { Task } from '../types/task';
 import { TaskFilter, defaultFilters } from '../components/TaskList/FilterPanel';
 import { filterAndSortTasks } from '../lib/taskUtils';
+import { taskService } from '../services/api';
 
 // Types for the context
 interface TaskContextType {
@@ -69,36 +69,23 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   // Computed filtered tasks
   const filteredTasks = filterAndSortTasks(tasks, filters, searchQuery);
 
-  // Fetch tasks from Supabase
+  // Fetch tasks using taskService
   const fetchTasks = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Check for authenticated session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error: apiError } = await taskService.getTasks();
       
-      if (!session) {
-        setError("You must be logged in to view tasks");
-        setIsLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('created_by', session.user.id)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: false });
-
-      if (error) {
+      if (apiError) {
         if (isDevelopment) {
-          console.error("Error fetching tasks:", error);
+          console.error("Error fetching tasks:", apiError);
         }
         setError("Failed to load tasks. Please try again later.");
-      } else {
-        setTasks(data || []);
+        return;
       }
+      
+      setTasks(data || []);
     } catch (err) {
       if (isDevelopment) {
         console.error("Exception fetching tasks:", err);
@@ -120,21 +107,16 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Update task status
+  // Update task status using taskService
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ 
-          status: newStatus
-        })
-        .eq('id', taskId);
+      const { error: apiError } = await taskService.updateTaskStatus(taskId, newStatus);
 
-      if (error) {
+      if (apiError) {
         if (isDevelopment) {
-          console.error("Error updating task status:", error);
+          console.error("Error updating task status:", apiError);
         }
-        throw new Error("Failed to update task status");
+        throw apiError;
       }
 
       // Update local state for immediate UI feedback
@@ -149,21 +131,18 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Delete task
+  // Delete task using taskService
   const deleteTask = async (taskId: string) => {
     if (!taskId) return;
     
     try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ is_deleted: true })
-        .eq('id', taskId);
+      const { error: apiError } = await taskService.deleteTask(taskId);
 
-      if (error) {
+      if (apiError) {
         if (isDevelopment) {
-          console.error("Error deleting task:", error);
+          console.error("Error deleting task:", apiError);
         }
-        throw new Error("Failed to delete task");
+        throw apiError;
       }
 
       // Update local state
