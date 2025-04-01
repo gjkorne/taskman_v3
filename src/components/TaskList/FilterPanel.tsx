@@ -15,7 +15,7 @@ export type TaskFilter = {
 
 // Default filter values
 export const defaultFilters: TaskFilter = {
-  status: ['active', 'in_progress', 'pending'],
+  status: [], // No default status filters
   priority: [],
   category: [],
   sortBy: 'priority',
