@@ -1,27 +1,9 @@
-import { useEffect, useState } from 'react';
-import { MoreVertical, Pencil, Trash2, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
-import { TaskEditForm } from './TaskEditForm';
-import { FilterPanel, TaskFilter, defaultFilters } from './FilterPanel';
-import { cn } from '../../lib/utils';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-
-// Define the Task type based on our database schema
-type Task = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  due_date: string | null;
-  estimated_time: string | null;
-  tags: string[] | null;
-  created_at: string;
-  created_by: string;
-  category?: string | number;
-  category_name?: string;
-  subcategory?: string;
-};
+import { RefreshCw } from 'lucide-react';
+import { TaskEditForm } from './TaskEditForm';
+import { FilterPanel, defaultFilters, TaskFilter } from './FilterPanel';
+import { TaskCard, Task } from './TaskCard';
 
 export function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -30,9 +12,8 @@ export function TaskList() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editTaskId, setEditTaskId] = useState<string | null>(null);
 
   // Filter state
   const [filters, setFilters] = useState<TaskFilter>({
@@ -118,21 +99,20 @@ export function TaskList() {
     try {
       const { error } = await supabase
         .from('tasks')
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', taskId);
 
       if (error) throw error;
       
-      // Update the task in the local state
-      setTasks(tasks.map(task => 
-        task.id === taskId 
-          ? { ...task, status: newStatus, updated_at: new Date().toISOString() } 
-          : task
-      ));
-    } catch (error: any) {
+      // Optimistically update the UI
+      setTasks(currentTasks => 
+        currentTasks.map(task => 
+          task.id === taskId 
+            ? { ...task, status: newStatus }
+            : task
+        )
+      );
+    } catch (error) {
       console.error('Error updating task status:', error);
     }
   };
@@ -217,15 +197,6 @@ export function TaskList() {
     });
   };
 
-  // Toggle the dropdown menu for a task
-  const toggleDropdown = (taskId: string) => {
-    if (activeDropdown === taskId) {
-      setActiveDropdown(null);
-    } else {
-      setActiveDropdown(taskId);
-    }
-  };
-
   // Function to handle task deletion
   const handleDeleteTask = async () => {
     if (!taskToDelete) return;
@@ -254,14 +225,16 @@ export function TaskList() {
   const openDeleteModal = (taskId: string) => {
     setTaskToDelete(taskId);
     setIsDeleteModalOpen(true);
-    setActiveDropdown(null); // Close the dropdown
   };
 
-  // Open the edit modal
-  const openEditModal = (task: Task) => {
-    setSelectedTask(task);
-    setIsEditModalOpen(true);
-    setActiveDropdown(null); // Close the dropdown
+  // Function to handle editing a task
+  const handleEdit = (taskId: string) => {
+    // Find the task by ID and open edit modal
+    const taskToEdit = tasks.find(task => task.id === taskId);
+    if (taskToEdit) {
+      setEditTaskId(taskToEdit.id);
+      setIsEditModalOpen(true);
+    }
   };
 
   // Handle refresh
@@ -270,29 +243,6 @@ export function TaskList() {
     fetchTasks().finally(() => {
       setIsRefreshing(false);
     });
-  };
-
-  // Get category color based on task id or assigned category
-  const getCategoryStyle = (task: Task) => {
-    // Use category_name or category if available
-    if (task.category_name === 'work' || task.category === 'work' || task.category === 1) {
-      return "border-l-green-500";
-    } else if (task.category_name === 'personal' || task.category === 'personal' || task.category === 2) {
-      return "border-l-blue-500";
-    } else if (task.category_name === 'childcare' || task.category === 'childcare' || task.category === 3) {
-      return "border-l-cyan-500";
-    }
-    
-    // If no category, assign one based on task ID
-    const taskIdNum = parseInt(task.id.replace(/-/g, '').substring(0, 8), 16);
-    const categoryIndex = taskIdNum % 3;
-    
-    switch(categoryIndex) {
-      case 0: return "border-l-green-500"; // Work
-      case 1: return "border-l-blue-500";  // Personal
-      case 2: return "border-l-cyan-500";  // Childcare
-      default: return "border-l-gray-500";
-    }
   };
 
   if (isLoading && !isRefreshing) {
@@ -347,160 +297,13 @@ export function TaskList() {
       ) : (
         <div className="flex flex-col space-y-2">
           {sortedTasks.map((task) => (
-            <div 
+            <TaskCard
               key={task.id}
-              className={cn(
-                "relative flex flex-col p-4 rounded-lg shadow-sm transition-all",
-                "hover:shadow-md mb-2 border border-gray-200 bg-white"
-              )}
-            >
-              {/* Dropdown Menu Button */}
-              <div className={cn(
-                "absolute right-3 top-3 z-20 flex items-center gap-2"
-              )}>
-                <span className={cn(
-                  "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                  task.status === 'active' && "bg-green-100 text-green-800",
-                  task.status === 'in_progress' && "bg-yellow-100 text-yellow-800",
-                  task.status === 'completed' && "bg-blue-100 text-blue-800",
-                  task.status === 'pending' && "bg-gray-100 text-gray-800"
-                )}>
-                  {task.status.replace('_', ' ')}
-                </span>
-                <button
-                  onClick={() => toggleDropdown(task.id)}
-                  className="p-1 rounded-full hover:bg-gray-100"
-                >
-                  <MoreVertical className="h-5 w-5 text-gray-500" />
-                </button>
-                
-                {/* Dropdown Menu */}
-                {activeDropdown === task.id && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-30">
-                    <div className="py-1">
-                      <button
-                        onClick={() => openEditModal(task)}
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                      >
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => openDeleteModal(task.id)}
-                        className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Task Title - Prominent in top left */}
-              <h3 className={cn(
-                "absolute left-3 top-3 text-left z-10 font-bold text-lg max-w-[65%] truncate shadow-sm px-3 py-1 rounded-r-lg bg-white",
-                "border-l-4",
-                getCategoryStyle(task)
-              )}>
-                {task.title}
-              </h3>
-
-              {/* Task Content */}
-              <div className="pr-6 mt-12">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    {/* Category and tags */}
-                    {task.category && (
-                      <span className={cn(
-                        "text-xs px-2 py-0.5 rounded-full font-medium",
-                        task.category === 'work' && "bg-green-100 text-green-800",
-                        task.category === 'personal' && "bg-blue-100 text-blue-800",
-                        task.category === 'childcare' && "bg-cyan-100 text-cyan-800",
-                      )}>
-                        {task.category}
-                      </span>
-                    )}
-                    {task.tags && task.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {task.tags.slice(0, 2).map(tag => (
-                          <span 
-                            key={tag} 
-                            className="text-xs bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                        {task.tags.length > 2 && (
-                          <span className="text-xs text-gray-500">+{task.tags.length - 2}</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center">
-                    {task.due_date && (
-                      <span className="text-xs text-gray-500 mr-4">
-                        Due: {format(new Date(task.due_date), 'MMM d, yyyy')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                  {task.description}
-                </p>
-                
-                <div className="flex justify-between items-end mt-auto">
-                  {/* Task action buttons - bottom left */}
-                  <div className="flex items-center gap-1.5">
-                    {task.status === 'pending' && (
-                      <button 
-                        onClick={() => updateTaskStatus(task.id, 'active')}
-                        className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-                        title="Start task"
-                      >
-                        Start
-                      </button>
-                    )}
-                    {task.status === 'active' && (
-                      <>
-                        <button 
-                          onClick={() => updateTaskStatus(task.id, 'in_progress')}
-                          className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded mr-1"
-                          title="Pause task"
-                        >
-                          Pause
-                        </button>
-                        <button 
-                          onClick={() => updateTaskStatus(task.id, 'completed')}
-                          className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-                          title="Complete task"
-                        >
-                          Complete
-                        </button>
-                      </>
-                    )}
-                    {task.status === 'in_progress' && (
-                      <button 
-                        onClick={() => updateTaskStatus(task.id, 'active')}
-                        className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded"
-                        title="Resume task"
-                      >
-                        Resume
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Date added - bottom right */}
-                  <div className="flex items-center">
-                    <span className="text-xs text-gray-500">
-                      {format(new Date(task.created_at), 'MMM d, yyyy')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              task={task}
+              onEdit={handleEdit}
+              onDelete={openDeleteModal}
+              updateTaskStatus={updateTaskStatus}
+            />
           ))}
         </div>
       )}
@@ -535,10 +338,10 @@ export function TaskList() {
       )}
 
       {/* Edit task modal */}
-      {isEditModalOpen && selectedTask && (
+      {isEditModalOpen && editTaskId && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <TaskEditForm
-            taskId={selectedTask.id}
+            taskId={editTaskId}
             onClose={() => setIsEditModalOpen(false)}
             onTaskUpdated={fetchTasks}
           />
