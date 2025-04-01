@@ -5,7 +5,7 @@ import { taskFormSchema, TaskFormData } from '../components/TaskForm/schema';
 import { getSubcategoryFromTags, updateSubcategoryInTags } from '../types/categories';
 import { useTaskContext } from '../contexts/TaskContext';
 import { taskService } from '../services/api';
-import { TaskStatus, TaskPriority } from '../types/task';
+import { TaskStatusValues, TaskPriority } from '../types/task';
 
 // Helper to check for development environment
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -27,7 +27,7 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
     defaultValues: {
       title: '',
       description: '',
-      status: TaskStatus.PENDING,
+      status: TaskStatusValues.PENDING,
       priority: TaskPriority.MEDIUM,
       category: '',
       subcategory: '',
@@ -74,7 +74,7 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
             title: data.title || '',
             description: data.description || '',
             // Use type assertion to handle the status string
-            status: (data.status as TaskFormData['status']) || TaskStatus.PENDING,
+            status: (data.status as TaskFormData['status']) || TaskStatusValues.PENDING,
             // Use type assertion to handle the priority string
             priority: (data.priority as TaskFormData['priority']) || TaskPriority.MEDIUM,
             category: data.category_name || '',

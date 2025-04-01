@@ -12,6 +12,7 @@ Notes and Additional Features
 
 - *** Changes ***
  Cards more compact
+ ***Please change the prd to remove timing subtasks.  this might be a bit too granular as if there are significant sub tasks that need to be timed, they should be their own task in a project instead.  we will need to add a project view to handle this during development later on.
 
 - ***Ideas for additional features:***
  List feature for shopping etc

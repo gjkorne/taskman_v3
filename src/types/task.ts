@@ -2,21 +2,35 @@
  * Core Task interface that represents the database schema
  * This should be used as the primary type definition across the application
  */
+export type TaskStatus = 'pending' | 'active' | 'paused' | 'completed' | 'archived';
+
+/**
+ * Task status options as an object for component usage
+ */
+export const TaskStatusValues = {
+  PENDING: 'pending' as TaskStatus,
+  ACTIVE: 'active' as TaskStatus,
+  PAUSED: 'paused' as TaskStatus,
+  COMPLETED: 'completed' as TaskStatus,
+  ARCHIVED: 'archived' as TaskStatus,
+} as const;
+
 export interface Task {
   // Primary fields
   id: string;
   title: string;
   description: string | null;
-  status: string;
+  created_by: string;
+  created_at: string;
+  status: TaskStatus;
   priority: string;
+  estimated_time: number | null;
+  actual_time: number | null;
   due_date: string | null;
-  estimated_time: string | null;
-  tags: string[] | null;
+  completed_date: string | null;
   
   // Metadata fields
-  created_at: string;
   updated_at: string | null;
-  created_by: string;
   is_deleted: boolean | null;
   
   // Foreign keys
@@ -25,6 +39,9 @@ export interface Task {
   // Categories
   category_name: string | null;
   category_id: string | null;
+  
+  // Tags array for subcategories and other metadata
+  tags: string[] | null;
   
   // Optional UI-specific fields that may not be in the database
   category?: string; // Used for form handling
@@ -35,6 +52,9 @@ export interface Task {
   embedding_data?: any;
   confidence_score?: number;
   processing_metadata?: any;
+  
+  // Subtasks placeholder - to be implemented
+  subtasks?: Task[];
 }
 
 /**
@@ -86,16 +106,6 @@ export const TaskColumns = [
   'category_name',
   'category_id'
 ] as const;
-
-/**
- * Task status options
- */
-export const TaskStatus = {
-  PENDING: 'pending',
-  ACTIVE: 'active',
-  IN_PROGRESS: 'in_progress',
-  COMPLETED: 'completed',
-} as const;
 
 /**
  * Task priority options

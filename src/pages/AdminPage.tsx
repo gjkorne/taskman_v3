@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle, RefreshCcw, Clock, Database, XCircle } from 'lucide-react';
-import { resetAllTimerState } from '../utils/resetTimerState';
+import { AlertTriangle, CheckCircle, RefreshCcw, Database, XCircle, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useTimer } from '../contexts/TimerContext';
 
 interface AdminAction {
   id: string;
@@ -9,7 +9,7 @@ interface AdminAction {
   description: string;
   icon: React.ReactNode;
   dangerLevel: 'low' | 'medium' | 'high';
-  action: () => Promise<any>;
+  action: (utils?: any) => Promise<any>;
 }
 
 export default function AdminPage() {
@@ -20,18 +20,35 @@ export default function AdminPage() {
   } | null>(null);
   
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  
+  // Get timer context at component level (correct usage of hooks)
+  const timerContext = useTimer();
 
   // Define admin actions
   const adminActions: AdminAction[] = [
     {
       id: 'reset-timer-state',
       title: 'Reset Timer State',
-      description: 'Reset all timer state, set all task activity states to "idle", and close any open sessions.',
-      icon: <Clock size={24} />,
+      description: 'Reset the timer state to idle. Use this if timer gets stuck.',
+      icon: <RotateCcw size={24} />,
       dangerLevel: 'medium',
-      action: async () => {
-        const result = await resetAllTimerState();
-        return result;
+      action: async (utils) => {
+        try {
+          // Use the timer context passed from the component
+          if (utils?.timerContext) {
+            utils.timerContext.resetTimer();
+            utils.timerContext.clearTimerStorage();
+            return { success: true, message: 'Timer state and storage cleared successfully' };
+          }
+          
+          return { success: false, message: 'Timer context not found' };
+        } catch (error) {
+          console.error('Error resetting timer state:', error);
+          return { 
+            success: false, 
+            message: error instanceof Error ? error.message : 'Unknown error occurred' 
+          };
+        }
       }
     },
     {
@@ -109,7 +126,7 @@ export default function AdminPage() {
     setActionStatus(null);
     
     try {
-      const result = await action.action();
+      const result = await action.action({ timerContext });
       console.log(`Action ${action.title} result:`, result);
       
       setActionStatus({

@@ -10,7 +10,7 @@ export const taskInputSchema = z.object({
 });
 
 // Valid status values
-const VALID_STATUSES = ['pending', 'active', 'in_progress', 'completed', 'archived'] as const;
+const VALID_STATUSES = ['pending', 'active', 'paused', 'completed', 'archived'] as const;
 
 /**
  * Main task form schema - aligned with the actual Supabase database fields

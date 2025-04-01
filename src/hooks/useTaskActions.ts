@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Task, TaskStatus } from '../types/task';
+import { Task, TaskStatusValues } from '../types/task';
 import { taskService } from '../services/api';
 import { useTaskContext } from '../contexts/TaskContext';
 import { useToast } from '../components/Toast';
@@ -83,28 +83,28 @@ export function useTaskActions(options: UseTaskActionsOptions = {}) {
    * Mark a task as completed
    */
   const completeTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, TaskStatus.COMPLETED);
+    await updateTaskStatus(taskId, TaskStatusValues.COMPLETED);
   }, [updateTaskStatus]);
 
   /**
-   * Set a task to in-progress status
+   * Start a task
    */
   const startTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, TaskStatus.IN_PROGRESS);
+    await updateTaskStatus(taskId, TaskStatusValues.ACTIVE);
   }, [updateTaskStatus]);
 
   /**
    * Mark a task as active (ready to start)
    */
   const activateTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, TaskStatus.ACTIVE);
+    await updateTaskStatus(taskId, TaskStatusValues.ACTIVE);
   }, [updateTaskStatus]);
 
   /**
    * Return a task to pending status
    */
   const resetTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, TaskStatus.PENDING);
+    await updateTaskStatus(taskId, TaskStatusValues.PENDING);
   }, [updateTaskStatus]);
 
   /**

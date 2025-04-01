@@ -87,7 +87,7 @@ export class TaskService implements ITaskService {
       return 'in_progress';
     }
     
-    const validStatuses = ['active', 'completed', 'archived', 'pending', 'in_progress'];
+    const validStatuses = ['active', 'paused', 'completed', 'archived', 'pending'];
     
     if (validStatuses.includes(normalizedStatus)) {
       return normalizedStatus;

@@ -25,7 +25,7 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
       {status === 'active' && (
         <>
           <Button 
-            onClick={() => updateTaskStatus(taskId, 'in_progress')}
+            onClick={() => updateTaskStatus(taskId, 'paused')}
             variant="warning"
             size="xs"
             icon={<Pause size={12} />}
@@ -44,7 +44,7 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
           </Button>
         </>
       )}
-      {status === 'in_progress' && (
+      {status === 'paused' && (
         <Button 
           onClick={() => updateTaskStatus(taskId, 'active')}
           variant="primary"

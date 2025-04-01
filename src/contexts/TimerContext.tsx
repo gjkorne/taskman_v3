@@ -1,19 +1,48 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import { TimerContextType, TimerState } from '../types/timer';
 import { TaskContext } from './TaskContext';
+import { Task } from '../types/task';
+
+interface TimerState {
+  status: 'idle' | 'running' | 'paused';
+  taskId: string | null;
+  sessionId: string | null;
+  startTime: Date | null;
+  elapsedTime: number;
+  previouslyElapsed: number;
+}
+
+interface TimerContextType {
+  timerState: TimerState;
+  startTimer: (taskId: string) => Promise<void>;
+  pauseTimer: () => Promise<void>;
+  stopTimer: () => Promise<void>;
+  resetTimer: () => void;
+  formatElapsedTime: () => string;
+  getDisplayTime: (task: Task) => string;
+  loadTimerState: () => void;
+  clearTimerStorage: () => void;
+}
+
+// Create Context with a default undefined value
+const TimerContext = createContext<TimerContextType | undefined>(undefined);
+
+// Factory function for getting initial timer state
+function getInitialState(): TimerState {
+  return {
+    status: 'idle',
+    taskId: null,
+    sessionId: null,
+    startTime: null,
+    elapsedTime: 0,
+    previouslyElapsed: 0
+  };
+}
 
 // Load initial state from localStorage if available
-const getInitialState = (): TimerState => {
+const loadInitialState = (): TimerState => {
   if (typeof window === 'undefined') {
-    return {
-      status: 'idle',
-      taskId: null,
-      sessionId: null,
-      startTime: null,
-      elapsedTime: 0,
-      previouslyElapsed: 0
-    };
+    return getInitialState();
   }
   
   try {
@@ -33,30 +62,13 @@ const getInitialState = (): TimerState => {
     console.error('Error loading timer state from localStorage:', e);
   }
   
-  return {
-    status: 'idle',
-    taskId: null,
-    sessionId: null,
-    startTime: null,
-    elapsedTime: 0,
-    previouslyElapsed: 0
-  };
+  return getInitialState();
 };
-
-// Create context with default values
-export const TimerContext = createContext<TimerContextType>({
-  timerState: getInitialState(),
-  startTimer: async () => {},
-  pauseTimer: async () => {},
-  stopTimer: async () => {},
-  formatElapsedTime: () => '',
-  resetTimer: () => {}
-});
 
 // Timer Provider component
 export const TimerProvider = ({ children }: { children: ReactNode }) => {
   // Initialize state with saved values if available
-  const [timerState, setTimerState] = useState<TimerState>(getInitialState);
+  const [timerState, setTimerState] = useState<TimerState>(loadInitialState);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
   
   // Access the task context to refresh tasks after timer operations
@@ -112,29 +124,62 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [timerState.status, timerState.startTime]);
   
-  // Update elapsed time
+  // Helper utility to save timer state to localStorage
+  const saveTimerState = (state: TimerState) => {
+    try {
+      const stateToSave = {
+        ...state,
+        startTime: state.startTime ? state.startTime.toISOString() : null
+      };
+      localStorage.setItem('timerState', JSON.stringify(stateToSave));
+    } catch (e) {
+      console.error('Error saving timer state to localStorage:', e);
+    }
+  };
+
+  // Start the timer interval for updating elapsed time
+  const startTimerInterval = () => {
+    // Clear any existing interval
+    if (intervalId !== null) {
+      clearInterval(intervalId);
+    }
+    
+    // Set up interval to update elapsed time every second
+    const newIntervalId = setInterval(updateElapsedTime, 1000);
+    setIntervalId(newIntervalId);
+  };
+
+  // Update elapsed time based on current timer state
   const updateElapsedTime = () => {
     if (timerState.status === 'running' && timerState.startTime) {
       const now = new Date();
-      const currentElapsed = now.getTime() - timerState.startTime.getTime();
-      const totalElapsed = timerState.previouslyElapsed + currentElapsed;
+      const elapsed = now.getTime() - timerState.startTime.getTime();
       
-      setTimerState(prev => ({
-        ...prev,
-        elapsedTime: totalElapsed
+      setTimerState(prevState => ({
+        ...prevState,
+        elapsedTime: elapsed
       }));
     }
   };
   
-  // Format elapsed time for display
+  // Utility functions for timer display
   const formatElapsedTime = () => {
-    const totalMs = timerState.elapsedTime;
-    const totalSeconds = Math.floor(totalMs / 1000);
+    // Calculate total elapsed time
+    let totalMs = timerState.previouslyElapsed;
     
+    // Add current session time if timer is running
+    if (timerState.status === 'running' && timerState.startTime) {
+      const now = new Date();
+      totalMs += now.getTime() - timerState.startTime.getTime();
+    }
+    
+    // Convert to hours, minutes, seconds
+    const totalSeconds = Math.floor(totalMs / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
     
+    // Format as HH:MM:SS
     return [
       hours.toString().padStart(2, '0'),
       minutes.toString().padStart(2, '0'),
@@ -142,102 +187,152 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     ].join(':');
   };
   
-  // Start timing a task
+  // Start timer for a task
   const startTimer = async (taskId: string) => {
     try {
-      console.log(`Starting timer for task: ${taskId}`);
+      console.log('Starting timer for task:', taskId);
       
-      // If we're timing a different task, stop that one first
-      if (timerState.status !== 'idle' && timerState.taskId && timerState.taskId !== taskId) {
-        await stopTimer();
+      // Stop any existing timer
+      if (timerState.status === 'running' && timerState.taskId && timerState.taskId !== taskId) {
+        await pauseTimer();
       }
       
-      // If we're already timing this task and just resuming, use the existing session
-      if (timerState.status === 'paused' && timerState.taskId === taskId && timerState.sessionId) {
-        console.log('Resuming existing session:', timerState.sessionId);
+      // Check if we're resuming the same task
+      const resumingSameTask = timerState.taskId === taskId && timerState.status === 'paused';
+      
+      if (!resumingSameTask) {
+        // Create a new session
+        const { data: session, error } = await supabase
+          .from('task_sessions')
+          .insert({
+            task_id: taskId,
+            start_time: new Date().toISOString(),
+            created_by: (await supabase.auth.getUser()).data.user?.id
+          })
+          .select()
+          .single();
         
-        // Just update the status - don't create a new session
-        setTimerState({
-          ...timerState,
-          status: 'running',
-          startTime: new Date()
-        });
-        
-        // Force an immediate update
-        setTimeout(updateElapsedTime, 0);
-        
-        // Refresh task list
-        if (taskContext) {
-          await taskContext.refreshTasks();
+        if (error) {
+          console.error('Session creation error:', error);
+          throw error;
         }
         
-        return;
+        console.log('Created session:', session);
+        
+        // Update task status to active
+        const { error: taskError } = await supabase
+          .from('tasks')
+          .update({ 
+            status: 'active'
+          })
+          .eq('id', taskId);
+        
+        if (taskError) {
+          console.error('Task update error:', taskError);
+          throw taskError;
+        }
+        
+        console.log('Updated task status successfully');
+        
+        // Calculate previous elapsed time if resuming
+        const previousElapsed = 
+          (timerState.status === 'paused' && timerState.taskId === taskId) 
+            ? timerState.previouslyElapsed 
+            : 0;
+        
+        // Start the timer immediately
+        const now = new Date();
+        
+        console.log('Setting timer state to running with sessionId:', session.id);
+        
+        setTimerState({
+          status: 'running',
+          taskId,
+          sessionId: session.id,
+          startTime: now,
+          elapsedTime: 0,
+          previouslyElapsed: previousElapsed
+        });
+        
+        // Start timer interval
+        startTimerInterval();
+        
+        // Save timer state to localStorage
+        saveTimerState({
+          status: 'running',
+          taskId,
+          sessionId: session.id,
+          startTime: now,
+          elapsedTime: 0,
+          previouslyElapsed: previousElapsed
+        });
+      } else {
+        // We're resuming a paused task
+        console.log('Resuming paused task:', taskId);
+        
+        // Create a new session for the resumed task
+        const { data: session, error } = await supabase
+          .from('task_sessions')
+          .insert({
+            task_id: taskId,
+            start_time: new Date().toISOString(),
+            created_by: (await supabase.auth.getUser()).data.user?.id
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('Session creation error on resume:', error);
+          throw error;
+        }
+        
+        // Update task status from paused to active
+        const { error: taskError } = await supabase
+          .from('tasks')
+          .update({ 
+            status: 'active'
+          })
+          .eq('id', taskId);
+        
+        if (taskError) {
+          console.error('Task update error on resume:', taskError);
+          throw taskError;
+        }
+        
+        // Start the timer
+        const now = new Date();
+        
+        setTimerState({
+          status: 'running',
+          taskId,
+          sessionId: session.id,
+          startTime: now,
+          elapsedTime: 0,
+          previouslyElapsed: timerState.previouslyElapsed
+        });
+        
+        // Start timer interval
+        startTimerInterval();
+        
+        // Save timer state to localStorage
+        saveTimerState({
+          status: 'running',
+          taskId,
+          sessionId: session.id,
+          startTime: now,
+          elapsedTime: 0,
+          previouslyElapsed: timerState.previouslyElapsed
+        });
       }
       
-      // Create a new session
-      const { data: session, error: sessionError } = await supabase
-        .from('task_sessions')
-        .insert({
-          task_id: taskId,
-          start_time: new Date().toISOString(),
-          created_by: (await supabase.auth.getSession()).data.session?.user.id
-        })
-        .select()
-        .single();
-      
-      if (sessionError) {
-        console.error('Session creation error:', sessionError);
-        throw sessionError;
-      }
-      
-      console.log('Created session:', session);
-      
-      // Update task status to active
-      const { error: taskError } = await supabase
-        .from('tasks')
-        .update({ 
-          status: 'active'
-        })
-        .eq('id', taskId);
-      
-      if (taskError) {
-        console.error('Task update error:', taskError);
-        throw taskError;
-      }
-      
-      console.log('Updated task status successfully');
-      
-      // Calculate previous elapsed time if resuming
-      const previousElapsed = 
-        (timerState.status === 'paused' && timerState.taskId === taskId) 
-          ? timerState.previouslyElapsed 
-          : 0;
-      
-      // Start the timer immediately
-      const now = new Date();
-      
-      console.log('Setting timer state to running with sessionId:', session.id);
-      
-      setTimerState({
-        status: 'running',
-        taskId,
-        sessionId: session.id,
-        startTime: now,
-        elapsedTime: previousElapsed,
-        previouslyElapsed: previousElapsed
-      });
-      
-      // Force an immediate update
-      setTimeout(updateElapsedTime, 0);
-      
-      // Refresh task list to update UI
+      // Refresh tasks to update UI
       if (taskContext) {
-        console.log('Refreshing task list after starting timer');
+        console.log('Refreshing tasks after starting timer');
         await taskContext.refreshTasks();
       }
     } catch (error) {
       console.error('Error starting timer:', error);
-      // Handle error appropriately (show notification, etc.)
+      // Handle error appropriately
     }
   };
   
@@ -252,7 +347,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       console.log('Pausing timer for session:', timerState.sessionId);
       
       // Calculate elapsed time
-      const elapsed = calculateElapsed();
+      const elapsed = timerState.startTime ? 
+        new Date().getTime() - timerState.startTime.getTime() : 0;
       
       // Add elapsed time to total
       const duration = elapsed + timerState.previouslyElapsed;
@@ -271,11 +367,11 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         throw sessionError;
       }
       
-      // Update task status to in_progress
+      // Update task status to paused
       const { error: taskError } = await supabase
         .from('tasks')
         .update({ 
-          status: 'in_progress',
+          status: 'paused',
           actual_time: duration
         })
         .eq('id', timerState.taskId);
@@ -288,13 +384,18 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       console.log('Task and session paused successfully');
       
       // Update timer state
-      setTimerState({
+      const newState: TimerState = {
         ...timerState,
         status: 'paused',
         elapsedTime: elapsed,
         previouslyElapsed: duration,
         startTime: null
-      });
+      };
+      
+      setTimerState(newState);
+      
+      // Save the updated state to localStorage
+      saveTimerState(newState);
       
       // Clear the interval
       if (intervalId !== null) {
@@ -317,7 +418,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   const stopTimer = async () => {
     try {
       // Only proceed if the timer is active and we have task and session IDs
-      if ((timerState.status === 'idle') || !timerState.taskId || !timerState.sessionId) {
+      if (timerState.status === 'idle' || !timerState.taskId || !timerState.sessionId) {
         return;
       }
       
@@ -366,7 +467,11 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       console.log('Task marked as completed');
       
       // Reset timer state to idle
-      setTimerState(getInitialState());
+      const newState = getInitialState();
+      setTimerState(newState);
+      
+      // Save the reset state to localStorage
+      saveTimerState(newState);
       
       // Clear the interval if it's running
       if (intervalId !== null) {
@@ -385,26 +490,53 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  // Reset the timer state without affecting the database
+  // Reset the timer state (for admin purposes)
   const resetTimer = () => {
-    // Clear interval if running
-    if (intervalId) {
+    // Clear any active interval
+    if (intervalId !== null) {
       clearInterval(intervalId);
       setIntervalId(null);
     }
     
-    // Reset state
-    setTimerState(getInitialState);
+    // Reset to initial state
+    const newState = getInitialState();
+    setTimerState(newState);
+    
+    // Save to localStorage
+    saveTimerState(newState);
+    
+    console.log('Timer reset to initial state');
   };
   
-  // Calculate elapsed time
-  const calculateElapsed = () => {
-    if (timerState.startTime) {
-      const now = new Date();
-      return now.getTime() - timerState.startTime.getTime();
+  // Get display time for a task
+  const getDisplayTime = (task: Task) => {
+    if (task.actual_time) {
+      const totalMs = task.actual_time;
+      const totalSeconds = Math.floor(totalMs / 1000);
+      
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      
+      return [
+        hours.toString().padStart(2, '0'),
+        minutes.toString().padStart(2, '0'),
+        seconds.toString().padStart(2, '0')
+      ].join(':');
     }
     
-    return 0;
+    return '00:00:00';
+  };
+  
+  // Load timer state from storage
+  const loadTimerState = () => {
+    setTimerState(loadInitialState);
+  };
+  
+  // Clear timer storage
+  const clearTimerStorage = () => {
+    localStorage.removeItem('timerState');
+    setTimerState(getInitialState);
   };
   
   return (
@@ -416,6 +548,9 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         stopTimer,
         resetTimer,
         formatElapsedTime,
+        getDisplayTime,
+        loadTimerState,
+        clearTimerStorage,
       }}
     >
       {children}
@@ -423,5 +558,11 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Custom hook to use timer context
-export const useTimer = () => useContext(TimerContext);
+// Export the hook for using the Timer context
+export const useTimer = (): TimerContextType => {
+  const context = useContext(TimerContext);
+  if (context === undefined) {
+    throw new Error('useTimer must be used within a TimerProvider');
+  }
+  return context;
+};
