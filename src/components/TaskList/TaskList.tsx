@@ -9,6 +9,9 @@ import { SearchBar } from './SearchBar';
 import { filterAndSortTasks } from '../../lib/taskUtils';
 import { Task } from '../../types/task';
 
+// Helper to check for development environment
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 export function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,57 +64,23 @@ export function TaskList() {
       }
 
       if (data) {
-        // Debug log to see the actual data from the database
-        console.log('Fetched tasks full data:', data);
-        console.log('Fetched tasks categories:', data.map(task => ({
-          id: task.id,
-          title: task.title,
-          category: task.category, 
-          category_name: task.category_name,
-          category_type: typeof task.category
-        })));
+        // Only log data in development mode
+        if (isDevelopment) {
+          console.log('Fetched tasks:', data.length);
+        }
         
         setTasks(data || []);
       }
     } catch (err: any) {
-      console.error('Error fetching tasks:', err);
+      if (isDevelopment) {
+        console.error('Error fetching tasks:', err);
+      }
       setError(err.message || 'Failed to load tasks');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   }
-
-  useEffect(() => {
-    // Debug: Log task categories
-    console.log('Tasks:', tasks.map(task => ({ 
-      id: task.id, 
-      title: task.title, 
-      category: task.category 
-    })));
-  }, []);
-
-  useEffect(() => {
-    // Debug - log all tasks to see if they have categories
-    if (tasks.length > 0) {
-      console.log('All Tasks with Categories:', 
-        tasks.map(task => ({
-          id: task.id,
-          title: task.title,
-          category: task.category
-        }))
-      );
-    }
-  }, [tasks]);
-
-  useEffect(() => {
-    // Debug the task data with more detailed logging
-    if (tasks.length > 0) {
-      console.log("DEBUG - All tasks:", tasks);
-      console.log("DEBUG - First task category:", tasks[0].category);
-      console.log("DEBUG - First task category_name:", tasks[0].category_name);
-    }
-  }, [tasks]);
 
   // Function to quickly update a task's status
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
@@ -132,7 +101,9 @@ export function TaskList() {
         )
       );
     } catch (error) {
-      console.error('Error updating task status:', error);
+      if (isDevelopment) {
+        console.error('Error updating task status:', error);
+      }
     }
   };
 
@@ -164,7 +135,9 @@ export function TaskList() {
       setIsDeleteModalOpen(false);
       setTaskToDelete(null);
     } catch (err: any) {
-      console.error('Error deleting task:', err);
+      if (isDevelopment) {
+        console.error('Error deleting task:', err);
+      }
       setError(err.message || 'Failed to delete task');
     }
   };

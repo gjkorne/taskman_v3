@@ -10,6 +10,8 @@ import { cn } from '../../lib/utils';
 import { TaskDebug } from './TaskDebug';
 import { CATEGORIES, updateSubcategoryInTags } from '../../types/categories';
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
   // Setup React Hook Form
   const { 
@@ -17,7 +19,8 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
     handleSubmit, 
     control,
     formState: { errors },
-    watch
+    watch,
+    setValue
   } = useForm<TaskFormData>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
@@ -31,13 +34,15 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
       dueDate: '',
       tags: [],
       isDeleted: false,
-      estimatedTime: ''
+      estimatedTime: '',
+      subcategory: ''
     }
   });
 
   // Watch the category and hasDueDate field to show related sections
   const selectedCategory = watch('category') as keyof typeof CATEGORIES | '';
   const hasDueDate = watch('hasDueDate');
+  const selectedSubcategory = watch('subcategory');
 
   // This state is used to store the form error
   const [formError, setFormError] = React.useState<string | null>(null);
@@ -46,67 +51,25 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
 
   // This mutation is used to create a new task in the database
-  const createTask = useMutation({
-    // This is the function that will be called when the mutation is triggered
+  const createTaskMutation = useMutation({
     mutationFn: async (data: TaskFormData) => {
       // Get the current user session to ensure auth context is available
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData, error: authError } = await supabase.auth.getSession();
+      
+      if (authError) {
+        throw new Error(`Authentication error: ${authError.message}`);
+      }
+      
       const { session } = sessionData;
-
       if (!session) {
-        console.error('No active session found. User is not authenticated.');
         throw new Error('You must be logged in to create tasks');
       }
 
-      // Compile the task data
-      const taskData: Record<string, any> = {
-        title: data.title,
-        description: data.description || '',
-        priority: data.priority || 'medium',
-        status: 'pending',
-        category_name: data.category || null,
-        tags: [], // Initialize tags as empty array
-        is_deleted: false, // Explicitly set is_deleted to false
-        created_by: session.user.id
-      };
-
-      console.log('Session authenticated user ID:', session.user.id);
-      console.log('Creating task with data:', JSON.stringify(taskData, null, 2));
-      
-      // Simple insertion with proper authentication
-      const { error } = await supabase
-        .from('tasks')
-        .insert([taskData]);
-
-      if (error) {
-        console.error('Task creation error:', error);
-        console.log('Error code:', error.code);
-        console.log('Error message:', error.message);
-        throw error;
-      }
-      
-      console.log('Task created successfully');
-    },
-  });
-
-  // Submit function to create a task
-  const onSubmit = async (data: TaskFormData) => {
-    try {
-      setFormError(null);
-      
-      // First check if user is authenticated
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setFormError('You must be logged in to create tasks');
-        return;
-      }
-
-      // Get the selected subcategory if any
-      const subcategoryElement = document.querySelector('input[name="subcategory"]:checked') as HTMLInputElement;
-      const selectedSubcategory = subcategoryElement?.value;
-  
       // Add subcategory as a tag if selected
-      const tagsWithSubcategory = updateSubcategoryInTags(data.tags || [], selectedSubcategory);
+      const tagsWithSubcategory = updateSubcategoryInTags(
+        data.tags || [], 
+        data.subcategory || ''
+      );
 
       // Compile the task data
       const taskData: Record<string, any> = {
@@ -117,10 +80,8 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
         category_name: data.category || null,
         tags: tagsWithSubcategory,
         is_deleted: data.isDeleted || false,
-        created_by: session.user.id,
-        // Set current timestamps for created_at and updated_at
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        created_by: session.user.id
+        // Let Supabase handle timestamps automatically
       };
       
       // Convert estimated time to interval format if provided
@@ -129,9 +90,7 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
         const minutes = parseInt(data.estimatedTime, 10);
         if (!isNaN(minutes)) {
           taskData.estimated_time = `${minutes} minutes`;
-        } else {
-          console.warn('Invalid estimated time format, skipping field');
-        }
+        } 
       }
       
       // Add due date if selected, with validation
@@ -139,13 +98,10 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
         const dueDate = new Date(data.dueDate);
         if (!isNaN(dueDate.getTime())) {
           taskData.due_date = dueDate.toISOString();
-        } else {
-          console.warn('Invalid due date format, skipping field');
         }
       }
       
       // Create placeholder structure for future NLP features
-      // This sets up the database fields without implementing the full NLP functionality
       if (data.rawInput) {
         // Store raw input for future NLP processing
         taskData.raw_input = data.rawInput;
@@ -155,7 +111,9 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
         taskData.extracted_entities = {};
       }
       
-      console.log('Creating task with data:', taskData);
+      if (isDevelopment) {
+        console.log('Creating task with data:', taskData);
+      }
       
       // Insert into database
       const { error, data: newTask } = await supabase
@@ -165,25 +123,37 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
       
       if (error) throw error;
       
-      console.log('Successfully created task:', newTask);
-      
-      // Call the callback if it exists
-      if (onTaskCreated) onTaskCreated();
-    } catch (error) {
-      console.error('Task creation error:', error);
-      
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        setFormError(`Failed to create task: ${error.message}`);
-      } else {
-        setFormError('An unknown error occurred');
+      if (isDevelopment) {
+        console.log('Successfully created task:', newTask);
       }
+      
+      return newTask;
+    },
+    onSuccess: () => {
+      if (onTaskCreated) onTaskCreated();
+    },
+    onError: (error: Error) => {
+      if (isDevelopment) {
+        console.error('Task creation error:', error);
+      }
+      setFormError(`Failed to create task: ${error.message}`);
     }
+  });
+
+  // Submit function to create a task
+  const onSubmit = (data: TaskFormData) => {
+    setFormError(null);
+    createTaskMutation.mutate(data);
+  };
+
+  // Handle subcategory selection
+  const handleSubcategoryChange = (subcategory: string) => {
+    setValue('subcategory', subcategory);
   };
 
   return (
     <div className="w-full">
-      {process.env.NODE_ENV !== 'production' && <TaskDebug />}
+      {isDevelopment && <TaskDebug />}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {formError && (
           // Display the form error if there is one
@@ -311,12 +281,20 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {CATEGORIES[selectedCategory]?.map((subcategory) => (
-                  <label key={subcategory} className="flex items-center space-x-2 p-2 border rounded-md hover:bg-gray-50">
+                  <label 
+                    key={subcategory} 
+                    className={cn(
+                      "flex items-center space-x-2 p-2 border rounded-md",
+                      selectedSubcategory === subcategory 
+                        ? "bg-blue-50 border-blue-200" 
+                        : "hover:bg-gray-50"
+                    )}
+                  >
                     <input
                       type="radio"
                       value={subcategory}
-                      id={`subcategory-${subcategory.replace(/\s+/g, '-').toLowerCase()}`}
-                      name="subcategory"
+                      checked={selectedSubcategory === subcategory}
+                      onChange={() => handleSubcategoryChange(subcategory)}
                       className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                     />
                     <span className="text-sm text-gray-900">{subcategory}</span>
@@ -426,9 +404,9 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
           <button
             type="submit"
             className="px-6 py-3 border border-transparent rounded-lg shadow-xl text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
-            disabled={createTask.isPending}
+            disabled={createTaskMutation.isPending}
           >
-            {createTask.isPending ? 'Submitting...' : 'Submit'}
+            {createTaskMutation.isPending ? 'Submitting...' : 'Submit'}
           </button>
         </div>
       </form>

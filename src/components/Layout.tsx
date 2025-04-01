@@ -61,7 +61,7 @@ export function Layout({ children, activeView, onViewChange, onTaskCreated }: La
       >
         <div className="flex items-center gap-2 px-4 mb-8">
           <LayoutIcon className="w-6 h-6 text-indigo-600" />
-          <h1 className="text-xl font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">Bolt</h1>
+          <h1 className="text-xl font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">TaskMan</h1>
         </div>
 
         <nav className="space-y-1">
