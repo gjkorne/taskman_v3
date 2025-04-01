@@ -702,182 +702,143 @@ o	Includes manifest.json and service worker for installability and offline fallb
 - Allow manual time entry for forgotten sessions
 - Support retroactive logging with validation
 ________________________________________
-I. Onboarding and First-Time User Experience
-Interactive Walkthrough (MVP)
-•	First-time users are guided via a Bolt-based walkthrough overlay
-•	Highlights include:
-o	"Add Task" input
-o	Task type metadata (priority, context, energy)
-o	Timer controls and "Start Task"
-o	Next Up zone and drag-to-prioritize behavior
-•	Walkthrough completion sets a flag: onboarding_complete: true
-•	Accessible again from Settings ("Replay Onboarding")
-Seeded Demo Tasks (Optional)
-•	App may auto-create a few sample tasks on first login:
-o	Showcases categories, flags, subtasks, time tracking
-o	Include note: "You can delete these!"
-•	Helps user understand filtering, flag icons, and task states
-Future Enhancements
-•	Role-based onboarding (e.g., admin vs. solo)
-•	Contextual tooltips triggered on hover or first usage
-•	Onboarding analytics (tracked via event_logs)
-
-
-________________________________________
 5. Phased Development Plan
-**5. Phased Development Plan**
 
-| **Phase** | **Focus** | **Description** | **Duration** |
-|-----------|-----------|-----------------|--------------|
-| 1 | Foundation | Supabase setup, RLS policies, auth, basic schema | 1-2 weeks |
-| 2 | Core Task Management | Task CRUD, basic UI, task list with filters | 2-3 weeks |
-| 3 | Timer v1 | Single task time tracking, session logging | 2 weeks |
-| 4 | Projects & Organization | Project implementation, task relationships | 2 weeks |
-| 5 | Timer v2 | Concurrent tracking, time aggregation | 2-3 weeks |
-| 6 | Offline Support | Basic offline capabilities, sync | 2-3 weeks |
-| 7 | Advanced Filtering | Complete filter system, saved views | 2 weeks |
-| 8 | Subtasks & Hierarchy | Parent-child relationships, aggregation | 2 weeks |
-| 9 | Reports & Analytics | Time dashboards, productivity insights | 2-3 weeks |
-| 10 | NLP Enhancement | Natural language input parsing, ML integration | 3-4 weeks |
+This outlines the planned stages for developing TaskStream, focusing on iterative delivery of core features.
 
-**Critical Path Dependencies:**
-- Foundation must be completed before any other phase
-- Core Task Management must precede Timer v1
-- Timer v1 must be stable before Timer v2
-- Projects should be implemented before Subtasks
-- Reports require data from multiple previous phases
-________________________________________
-**5.1 Technical Implementation Guidelines**
+| Phase | Focus                       | Key Deliverables                                                                                                      | Duration |
+|-------|-----------------------------|-----------------------------------------------------------------------------------------------------------------------|----------|
+| 1     | Foundation                  | Supabase setup, RLS policies, authentication, basic schema (tasks, users).                                          | 1 Week   |
+| 2     | Core Task Management        | Task CRUD operations, basic UI (list view), task filtering/sorting MVP, initial state management (Zustand).         | 2 Weeks  |
+| 3     | Timer v1: Single Task       | **See Detailed Plan Below**                                                                                           | 2 Weeks  |
+| 4     | Projects & Organization     | **See Detailed Plan Below**                                                                                           | 2 Weeks  |
+| 5     | Timer v2: Concurrency       | Support for multiple concurrent timers (exclusive/non-exclusive), timeline view of sessions.                       | 2 Weeks  |
+| 6     | Offline Support & Sync      | Robust offline mode using IndexedDB, conflict resolution strategies (CRDTs or OT), background sync.                | 3 Weeks  |
+| 7     | Advanced Filtering & Search | Full-text search (tsvector), saved filter views, advanced sorting options, natural language filtering (NLP v2).      | 2 Weeks  |
+| 8     | Subtasks & Hierarchy        | Enhanced subtask management, visual hierarchy (indentation), dependency tracking (blocked/waiting).                 | 2 Weeks  |
+| 9     | Reports & Analytics         | Dashboard with charts (time by category/project), daily/weekly summaries, data export options.                      | 3 Weeks  |
+| 10    | NLP Enhancement & AI        | Improved NLP parsing accuracy, task prediction/suggestion based on history, smart scheduling recommendations.        | Ongoing  |
 
-**State Management**
-- Implement client-side state using Zustand or similar lightweight store
-- Separate UI state from data state
-- Use optimistic updates for better perceived performance
-- Define clear state transitions and side effects
+### Phase 3: Timer v1 Implementation Plan
 
-**API Layer**
-- Create abstraction layer between UI and Supabase
-- Implement entity models with TypeScript interfaces
-- Use TanStack Query for data fetching, caching, and synchronization
-- Centralize error handling and retry logic
+**Primary Goals:**
+*   Build a single-task timer with start/stop/pause/resume functionality.
+*   Log time sessions to Supabase with accuracy and offline resilience.
+*   Lay groundwork for future concurrency (Phase 5) and conflict resolution (Phase 6).
+*   Address feedback on state management, security, and scalability.
 
-**Performance Optimization**
-- Implement virtualized lists for large task collections
-- Use pagination for historical data
-- Apply debouncing on frequent UI interactions
-- Lazy load components and data
+**Implementation Steps:**
 
-**Testing Strategy**
-- Unit tests: Business logic, state transitions, utilities
-- Integration tests: Database operations, API layer
-- E2E tests: Critical user flows (task creation, time tracking)
-- Performance tests: Large data sets, complex filtering
+1.  **Timer Core Functionality**
+    *   **Objective:** Reliable time tracking with session persistence.
+    *   **Steps:**
+        *   **State Machine Design:** Define timer states (idle, running, paused, completed, abandoned) using Zustand. Track `currentTaskId`, `startTime`, `elapsedTime`, `lastPausedTime`.
+        *   **Web Worker Integration:** Offload timer logic to a Web Worker. Sync state to `localStorage` every 30 seconds for recovery.
+        *   **Supabase Time Logs:** On stop, write to `time_logs` (task_id, start_time, end_time, duration, is_manual: false). Use optimistic updates.
 
-6. User Settings and Admin Controls
-•	Archiving Controls:
-o	archived_after_days: User preference for auto-archiving completed tasks (default: 30, can be disabled or extended)
-o	Archived tasks remain fully visible in reports and logs
-o	Manual archive and restore options available from task actions
-•	Roles:
-o	solo: Default user mode for personal use
-o	admin: Gains access to feature toggles, task type management, and future user assignment settings
-o	(Future) collaborator: Read/write access to shared tasks (not yet implemented)
-•	Settings page to allow personalization of user preferences
-o	Max number of "Next Up" tasks (default: 3, user-configurable)
-o	Default filters or view preferences (e.g., show/hide completed, sort by priority)
-o	Task card size or density
-o	Show/hide persistent active task panel
-o	Toggle features like NLP input, subtasks, or detailed time views
-o	Time display preference: total duration, session breakdown, or both
-o	Enable or disable drag-and-drop sorting
-•	Admin-level configurations (optional for solo use, scalable to team mode)
-o	Feature flag control (e.g., NLP, session tracking)
-o	Task category and subcategory management
-o	User role definitions (for collaborative features in future phases)
+2.  **Offline Resilience**
+    *   **Objective:** Basic offline support for timer continuity.
+    *   **Steps:**
+        *   **Client-Side Command Queue:** Store unsynced logs in IndexedDB (`pending_sync` flag). Use hybrid UUIDs (`client:${deviceId}:${uuid}`).
+        *   **Sync on Reconnect:** Retry failed syncs (exponential backoff). Merge duplicates using `task_id` and `start_time`.
 
-**Enhanced Table Schemas**
+3.  **Security & Data Integrity**
+    *   **Objective:** Secure time logging and RLS compliance.
+    *   **Steps:**
+        *   **RLS Policies for `time_logs`:** Ensure users can only manage logs for tasks they own.
+        *   **Triggers for Denormalization:** Auto-update `tasks.last_session_ended_at` via triggers.
 
-**tasks Table Additions**
-- version: int // For optimistic concurrency control
-- modified_at: timestamptz // Last update timestamp
-- modified_by: uuid // User who last modified the task
-- search_vector: tsvector // For full-text search indexing
+4.  **Testing & Validation**
+    *   **Objective:** Ensure robustness.
+    *   **Steps:**
+        *   **E2E Tests (Cypress):** Test start/pause/resume/stop, offline sync, concurrent edits simulation.
+        *   **Integration Tests (MSW):** Mock Supabase endpoints, validate RLS and error handling.
 
-**time_logs Table Additions**
-- is_manual: boolean // Flag for manually entered logs
-- modified_at: timestamptz // Last edit timestamp
-- original_duration: int // Pre-edit duration for audit
-- device_id: text // Origin device for sync conflicts
+5.  **UI/UX Enhancements**
+    *   **Objective:** Intuitive controls and feedback.
+    *   **Steps:**
+        *   **Active Task Panel:** Persistent UI showing current task, elapsed time, controls. Visual states (color-coded borders).
+        *   **Error Handling:** Toasts for sync failures, "Recover session?" prompt after crash.
 
-**User Settings Table (New)**
-- user_id: uuid // Primary key, references auth.users
-- timezone: text // User's local timezone
-- theme_preference: text // UI theme setting
-- default_view: text // Preferred task view
-- notification_preferences: jsonb // Alert settings
-- feature_flags: jsonb // Enabled experimental features
-- archived_after_days: int // Auto-archive setting
+**Timeline (2 Weeks):**
+*   **Week 1:** Core Timer Logic + State (Zustand store, Web Worker, Supabase writes, RLS).
+*   **Week 2:** Offline Sync + UI/Testing (IndexedDB queue, Cypress tests, active task panel, error toasts).
 
-**6.1 Error Handling & Recovery**
+**Key Risks & Mitigations:**
+*   **Timer Drift:** Sync with server time; use `performance.now()`.
+*   **IndexedDB Quota:** Cap offline logs (e.g., 100); prune after sync.
+*   **RLS Oversights:** Test with multiple users.
 
-**Connectivity Issues**
-- Implement exponential backoff for failed API requests
-- Provide visual indicators for sync status
-- Auto-retry failed operations when connection is restored
-- Log failed operations for debugging
+**Additional Considerations (Cross-Phase):**
+*   **Edge Cases:** Handle browser closures (`beforeunload`), idle detection, short/long sessions.
+*   **Error Handling:** Fallback if Web Worker fails, manual recovery UI for orphaned logs.
+*   **Performance:** Batch `localStorage` writes, debounce Supabase writes, manage Web Worker memory.
+*   **Security:** Validate task ownership before starting timers.
+*   **UX:** Visual feedback (animations), navigation guards for running timers.
+*   **Testing:** Test across time zones, sub-second precision, stress testing (simulate Phase 5).
+*   **Future-Proofing:** Design Zustand for `timers[]` array, use reusable `useTimer(taskId)` hook, ensure `time_logs` schema includes `is_exclusive`.
+*   **Accessibility:** Keyboard shortcuts, ARIA labels.
+*   **Localization:** Format time based on locale.
+*   **Analytics:** Log timer events, monitor sync failures.
 
-**Data Validation Errors**
-- Client-side validation before submission
-- Clear error messages with recovery suggestions
-- Option to save draft with validation errors for later completion
-- Prevent data loss on validation failures
+### Phase 4: Projects & Organization Implementation Plan
 
-**Application Errors**
-- Global error boundary with fallback UI
-- Error reporting to monitoring service
-- Non-destructive error recovery (preserve user data)
-- Session restoration after crashes
+**Primary Goals:**
+*   Introduce projects as a first-class entity with task grouping and aggregation.
+*   Enable project-specific views, filters, and dashboards.
+*   Lay groundwork for future enhancements (shared projects, Gantt charts).
 
-**Data Recovery**
-- Automated backups via Supabase
-- User-initiated exports (JSON, CSV)
-- Import capability with validation
-- Version history for critical data
+**Implementation Steps:**
 
-7. Future Considerations
-•	Export/import functionality
-•	Interruption logging (for context switching insights)
-•	Calendar and Gantt views
-•	External tool integrations (Zapier, calendar sync)
-•	Archived task compression/cleanup workflows
+1.  **Database Schema & Backend**
+    *   **Objective:** Robust project-task relationships with security and performance.
+    *   **Steps:**
+        *   **Schema Design:** Create `projects` table (`id`, `user_id`, `name`, `description`, `created_at`, `due_date`, `archived`). Add `project_id` (nullable UUID, references `projects.id`) to `tasks` table.
+        *   **Indexes:** Add indexes on `projects(user_id)` and `tasks(project_id)`. Use partial index on `projects(user_id)` WHERE `archived = false`.
+        *   **RLS Policies:** Ensure users own their projects (`projects.user_id = auth.uid()`). Update `tasks` RLS to allow access if `tasks.user_id = auth.uid()` OR `tasks.project_id` is in user's projects.
 
-**7.1 Performance Considerations**
+2.  **API & Business Logic**
+    *   **Objective:** Secure CRUD operations for projects and task associations.
+    *   **Steps:**
+        *   **Endpoints:** `POST /projects`, `GET /projects/{id}/tasks`, `PATCH /tasks/{id}/project`.
+        *   **Validation:** Prevent assigning tasks to projects not owned by the user.
+        *   **Aggregation:** Compute project progress (e.g., completed/total tasks) via PostgreSQL triggers or backend logic.
 
-**Database Optimization**
-- Implement appropriate indexes for common queries
-- Use Supabase's prepared statements for repeated queries
-- Consider materialized views for complex aggregations
-- Implement pagination for large result sets
+3.  **Frontend Implementation**
+    *   **Objective:** Intuitive project management and task grouping.
+    *   **Steps:**
+        *   **Project Dashboard:** Grid view of project cards (name, due date, progress, task count). Actions: Edit, Archive, Delete.
+        *   **Task Grouping:** Project filter dropdown. Optional visual hierarchy in sidebar.
+        *   **UI Components:** Project creation/edit modal. Optional drag-and-drop tasks into projects.
 
-**Front-end Performance**
-- Use code splitting for large component trees
-- Implement virtualized lists for large collections
-- Lazy load non-critical components
-- Optimize rendering cycles
+4.  **Security & Permissions**
+    *   **Objective:** Prevent data leaks and unauthorized access.
+    *   **Steps:**
+        *   **Ownership Checks:** Validate `project_id` ownership in all relevant API calls.
+        *   **Audit Logs:** Log project create/update events.
 
-**Network Optimization**
-- Batch API requests where possible
-- Implement progressive loading patterns
-- Use appropriate caching headers
-- Compress payloads
+5.  **Performance Optimization**
+    *   **Objective:** Handle large projects without latency.
+    *   **Steps:**
+        *   **Pagination:** Fetch tasks within projects in pages (e.g., 50 per page).
+        *   **Caching:** Cache project metadata in Zustand.
+        *   **Lazy Loading:** Load project details on demand.
 
-**Monitoring & Metrics**
-- Track key performance indicators:
-  - Page load time
-  - Time to interactive
-  - API response times
-  - Database query performance
-- Set up alerts for performance degradation
-________________________________________
-Status: Draft v1 Author: GPT-4 (for Greg) Date: March 30, 2025
+**Timeline (2 Weeks):**
+*   **Week 1:** Schema, API, Basic UI (Projects table, CRUD endpoints, dashboard UI).
+*   **Week 2:** Security, Testing, Polish (RLS policies, aggregation, pagination, E2E tests).
 
+**Key Risks & Mitigations:**
+*   **Slow Queries:** Optimize with indexes, consider materialized views for aggregates.
+*   **UI Overload:** Use virtualized lists, lazy loading.
+*   **RLS Leaks:** Rigorously test with multiple accounts.
+
+**Additional Considerations (Cross-Phase):**
+*   **Backward Compatibility:** Handle tasks with `project_id = NULL` gracefully ("Uncategorized"). Update timer dashboards to aggregate by project.
+*   **Forward Compatibility:** Add nullable `team_id`, `visibility` columns to `projects` now for Phase 7 (Shared Projects). Design `project_members` table structure preemptively. Ensure project metadata aids Phase 5 (Timeline Views).
+*   **Performance:** Create `project_analytics` materialized view. Add composite indexes (`tasks(project_id, status)`, `projects(user_id, archived)`).
+*   **UX Consistency:** Integrate projects sidebar/filters cohesively. Update onboarding. Provide clear error messages (e.g., deleting projects with tasks).
+*   **Testing:** Include regression tests for Phases 1-3. Stress test large projects. Test RLS with multi-user scenarios.
+*   **Documentation:** Update API specs, user guides for project management.
+
+{{ ... }}

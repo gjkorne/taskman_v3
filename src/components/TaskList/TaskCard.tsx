@@ -11,7 +11,7 @@ import {
   getCategoryColorStyle 
 } from '../../lib/categoryUtils';
 import { getPriorityBorderColor, getDueDateStyling } from '../../lib/taskUtils';
-import { Task } from '../../types/task';
+import { Task, TaskStatus, TaskStatusType } from '../../types/task';
 import { TimerControls } from '../Timer/TimerControls';
 import { useTimer } from '../../contexts/TimerContext';
 import { useTaskActions } from '../../hooks/useTaskActions';
@@ -50,22 +50,44 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
     return categoryStyle.text;
   };
 
-  // Handle status change
-  const handleStatusChange = (newStatus: string) => {
+  // Handle status change - Corrected signature with proper type conversion
+  const handleStatusChange = (taskId: string, newStatus: TaskStatusType) => {
     // Explicitly log parameters to debug
-    console.log('TaskCard: Updating task status with params:', { taskId: task.id, newStatus });
+    console.log('TaskCard: handleStatusChange called with:', { taskId, newStatus });
     
-    // IMPORTANT: Use explicit parameter names to avoid order confusion
-    if (!task.id || typeof task.id !== 'string' || 
-        !task.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      console.error('Invalid task ID format:', task.id);
+    // Validate parameters received
+    if (!taskId || typeof taskId !== 'string' || 
+        !taskId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.error('TaskCard: Invalid task ID format received:', taskId);
       return;
     }
     
-    // The key issue - ensure we're passing the correct parameter order
-    // Here we force the types to be correct by explicitly naming parameters
-    const taskId = task.id; // This is definitely a UUID
-    updateTaskStatus(taskId, newStatus as any);
+    // Convert TaskStatusType (string literal) to TaskStatus (enum)
+    // This addresses the type mismatch when calling updateTaskStatus
+    let statusEnum: TaskStatus;
+    switch(newStatus) {
+      case 'active':
+        statusEnum = TaskStatus.ACTIVE;
+        break;
+      case 'pending':
+        statusEnum = TaskStatus.PENDING;
+        break;
+      case 'paused':
+        statusEnum = TaskStatus.PAUSED;
+        break;
+      case 'completed':
+        statusEnum = TaskStatus.COMPLETED;
+        break;
+      case 'archived':
+        statusEnum = TaskStatus.ARCHIVED;
+        break;
+      default:
+        console.error('TaskCard: Invalid status value received:', newStatus);
+        return;
+    }
+    
+    // Call the hook's updateTaskStatus with the properly converted enum
+    updateTaskStatus(taskId, statusEnum);
   };
 
   // Handle task editing

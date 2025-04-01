@@ -111,28 +111,42 @@ export function useTaskActions({
    * Mark a task as completed
    */
   const completeTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, TaskStatus.COMPLETED);
+    await updateTaskStatus(taskId, 'completed');
   }, [updateTaskStatus]);
 
   /**
    * Start a task
    */
   const startTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, TaskStatus.ACTIVE);
+    await updateTaskStatus(taskId, 'active');
   }, [updateTaskStatus]);
 
   /**
    * Mark a task as active (ready to start)
    */
   const activateTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, TaskStatus.ACTIVE);
+    await updateTaskStatus(taskId, 'active');
+  }, [updateTaskStatus]);
+
+  /**
+   * Pause a task
+   */
+  const pauseTask = useCallback(async (taskId: string) => {
+    await updateTaskStatus(taskId, 'paused');
   }, [updateTaskStatus]);
 
   /**
    * Return a task to pending status
    */
   const resetTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, TaskStatus.PENDING);
+    await updateTaskStatus(taskId, 'pending');
+  }, [updateTaskStatus]);
+
+  /**
+   * Archive a task
+   */
+  const archiveTask = useCallback(async (taskId: string) => {
+    await updateTaskStatus(taskId, 'archived');
   }, [updateTaskStatus]);
 
   /**
@@ -231,7 +245,9 @@ export function useTaskActions({
     completeTask,
     startTask,
     activateTask,
+    pauseTask,
     resetTask,
+    archiveTask,
     deleteTask,
     batchDeleteTasks
   };
