@@ -6,10 +6,50 @@ import { TaskFilter } from '../components/TaskList/FilterPanel';
 import { getTaskCategory } from './categoryUtils';
 
 /**
- * Filter tasks based on filter criteria
+ * Check if a task matches the search query
  */
-export function filterTasks(tasks: Task[], filters: TaskFilter): Task[] {
+function taskMatchesSearch(task: Task, searchQuery: string = ''): boolean {
+  if (!searchQuery) return true;
+  
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  if (!normalizedQuery) return true;
+  
+  // Match against task content
+  const matchesTitle = task.title.toLowerCase().includes(normalizedQuery);
+  const matchesDescription = task.description?.toLowerCase()?.includes(normalizedQuery) || false;
+  const matchesTags = task.tags?.some(tag => tag.toLowerCase().includes(normalizedQuery)) || false;
+  
+  // Match against filter fields
+  const matchesPriority = task.priority.toLowerCase().includes(normalizedQuery);
+  const matchesStatus = task.status.toLowerCase().includes(normalizedQuery);
+  
+  // Get category name if available
+  let categoryName = '';
+  if (task.category_name) {
+    categoryName = task.category_name.toLowerCase();
+  } else if (task.category !== null && task.category !== undefined) {
+    const category = getTaskCategory(task);
+    if (category) {
+      categoryName = category.toLowerCase();
+    }
+  }
+  const matchesCategory = categoryName ? categoryName.includes(normalizedQuery) : false;
+  
+  // Return true if any field matches
+  return matchesTitle || matchesDescription || matchesTags || 
+         matchesPriority || matchesStatus || matchesCategory;
+}
+
+/**
+ * Filter tasks based on filter criteria and search query
+ */
+export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: string = ''): Task[] {
   return tasks.filter(task => {
+    // Search query filter
+    if (!taskMatchesSearch(task, searchQuery)) {
+      return false;
+    }
+    
     // Status filter
     if (filters.status.length > 0 && !filters.status.includes(task.status)) {
       return false;
@@ -95,7 +135,7 @@ export function sortTasks(tasks: Task[], sortBy: TaskFilter['sortBy'], sortOrder
 /**
  * Apply both filtering and sorting to tasks
  */
-export function filterAndSortTasks(tasks: Task[], filters: TaskFilter): Task[] {
-  const filteredTasks = filterTasks(tasks, filters);
+export function filterAndSortTasks(tasks: Task[], filters: TaskFilter, searchQuery: string = ''): Task[] {
+  const filteredTasks = filterTasks(tasks, filters, searchQuery);
   return sortTasks(filteredTasks, filters.sortBy, filters.sortOrder);
 }

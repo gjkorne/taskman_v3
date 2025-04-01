@@ -5,6 +5,7 @@ import { TaskEditForm } from './TaskEditForm';
 import { FilterPanel, defaultFilters, TaskFilter } from './FilterPanel';
 import { TaskCard, Task } from './TaskCard';
 import { TaskContainer } from './TaskContainer';
+import { SearchBar } from './SearchBar';
 import { filterAndSortTasks } from '../../lib/taskUtils';
 
 export function TaskList() {
@@ -16,6 +17,7 @@ export function TaskList() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Filter state
   const [filters, setFilters] = useState<TaskFilter>({
@@ -120,19 +122,12 @@ export function TaskList() {
   };
 
   // Generate the filtered and sorted task list
-  const sortedTasks = filterAndSortTasks(tasks, filters);
+  const sortedTasks = filterAndSortTasks(tasks, filters, searchQuery);
 
   // Function to reset all filters
   const resetFilters = () => {
-    setFilters({
-      status: [],
-      priority: [],
-      category: [],
-      viewMode: 'list', // Preserve the current view mode
-      sortBy: 'createdAt',
-      sortOrder: 'desc',
-      showCompleted: false
-    });
+    setFilters(defaultFilters);
+    setSearchQuery('');
   };
 
   // Function to handle task deletion
@@ -226,6 +221,15 @@ export function TaskList() {
           Refreshing tasks...
         </div>
       )}
+
+      {/* Search Bar */}
+      <div className="mb-4">
+        <SearchBar 
+          onSearch={setSearchQuery} 
+          initialValue={searchQuery}
+          placeholder="Search by title, description, status, priority, or category..."
+        />
+      </div>
 
       {/* Filter Panel */}
       <FilterPanel 
