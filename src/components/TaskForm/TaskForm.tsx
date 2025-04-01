@@ -126,11 +126,12 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
         throw new Error('You must be logged in to create tasks');
       }
 
-      // Create a simpler task payload with correct fields
+      // Compile the task data
       const taskData = {
         title: data.title,
+        description: data.description,
         priority: data.priority || 'medium',
-        status: 'pending', // Try 'pending' instead of 'active' as it might be allowed by the constraint
+        status: 'pending',
         created_by: session.user.id
       };
 

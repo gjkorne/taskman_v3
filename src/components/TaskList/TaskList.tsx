@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
-import { Flag, Clock, Calendar, CheckCircle, RefreshCw, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { MoreVertical, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { TaskEditForm } from './TaskEditForm';
+import { FilterPanel, TaskFilter, defaultFilters } from './FilterPanel';
+import { cn } from '../../lib/utils';
+import { supabase } from '../../lib/supabase';
 
 // Define the Task type based on our database schema
 type Task = {
@@ -31,24 +33,28 @@ export function TaskList() {
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  // Filter state
+  const [filters, setFilters] = useState<TaskFilter>(defaultFilters);
+
   async function fetchTasks() {
     try {
       setIsRefreshing(true);
       setError(null);
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      
-      if (!sessionData.session) {
-        setError('You must be logged in to view tasks');
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setError("Not authenticated. Please log in.");
         return;
       }
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('tasks')
         .select('*')
-        .eq('created_by', sessionData.session.user.id)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: false });
+        .eq('created_by', session.user.id)
+        .eq('is_deleted', false);
+
+      const { data, error } = await query;
 
       if (error) {
         throw error;
@@ -67,6 +73,110 @@ export function TaskList() {
   useEffect(() => {
     fetchTasks();
   }, []);
+
+  // Function to quickly update a task's status
+  const updateTaskStatus = async (taskId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', taskId);
+
+      if (error) throw error;
+      
+      // Update the task in the local state
+      setTasks(tasks.map(task => 
+        task.id === taskId 
+          ? { ...task, status: newStatus, updated_at: new Date().toISOString() } 
+          : task
+      ));
+    } catch (error: any) {
+      console.error('Error updating task status:', error);
+    }
+  };
+
+  // Filter tasks based on current filters
+  const filteredTasks = tasks.filter(task => {
+    // Status filter
+    if (filters.status.length > 0 && !filters.status.includes(task.status)) {
+      return false;
+    }
+    
+    // Priority filter
+    if (filters.priority.length > 0 && !filters.priority.includes(task.priority)) {
+      return false;
+    }
+    
+    // Category filter (only if task has a category)
+    if (filters.category.length > 0 && task.category && !filters.category.includes(task.category)) {
+      return false;
+    }
+    
+    // Hide completed tasks
+    if (!filters.showCompleted && task.status === 'completed') {
+      return false;
+    }
+    
+    return true;
+  });
+
+  // Sort tasks based on sort options
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    switch (filters.sortBy) {
+      case 'priority': {
+        const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
+        const aValue = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+        const bValue = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+        return filters.sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      case 'dueDate': {
+        const aDate = a.due_date ? new Date(a.due_date).getTime() : 0;
+        const bDate = b.due_date ? new Date(b.due_date).getTime() : 0;
+        return filters.sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
+      }
+      case 'createdAt': {
+        const aDate = new Date(a.created_at).getTime();
+        const bDate = new Date(b.created_at).getTime();
+        return filters.sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
+      }
+      case 'title': {
+        return filters.sortOrder === 'asc'
+          ? a.title.localeCompare(b.title)
+          : b.title.localeCompare(a.title);
+      }
+      case 'status': {
+        const statusOrder = { active: 1, in_progress: 2, completed: 3, pending: 0 };
+        const aValue = statusOrder[a.status as keyof typeof statusOrder] || 0;
+        const bValue = statusOrder[b.status as keyof typeof statusOrder] || 0;
+        return filters.sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      case 'category': {
+        const aCategory = a.category || '';
+        const bCategory = b.category || '';
+        return filters.sortOrder === 'asc'
+          ? aCategory.localeCompare(bCategory)
+          : bCategory.localeCompare(aCategory);
+      }
+      default:
+        return 0;
+    }
+  });
+
+  // Function to reset all filters
+  const resetFilters = () => {
+    setFilters({
+      status: [],
+      priority: [],
+      category: [],
+      viewMode: filters.viewMode, // Preserve the current view mode
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+      showCompleted: false
+    });
+  };
 
   // Toggle the dropdown menu for a task
   const toggleDropdown = (taskId: string) => {
@@ -125,32 +235,24 @@ export function TaskList() {
     setTaskToEdit(null);
   };
 
-  // Helper function to get priority color
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'text-red-500';
-      case 'high': return 'text-yellow-500';
-      case 'medium': return 'text-blue-500';
-      case 'low': return 'text-green-500';
-      default: return 'text-gray-500';
-    }
-  };
-
-  // Helper function to format date
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null;
-    return format(new Date(dateString), 'MMM dd, yyyy');
-  };
-
-  // Helper to format estimated_time from interval type
-  const formatEstimatedTime = (interval: string | null) => {
-    if (!interval) return null;
-    // Simple formatting for interval - this can be enhanced
-    return interval.replace(/(\d+):(\d+):(\d+)/, '$1h $2m');
-  };
-
   const handleRefresh = () => {
     fetchTasks();
+  };
+
+  // Helper function to get category color
+  const getCategoryColor = (category?: string) => {
+    if (!category) return 'border-gray-200';
+    
+    // Map categories to colors
+    switch (category.toLowerCase()) {
+      case 'work': return 'border-blue-400';
+      case 'personal': return 'border-purple-400';
+      case 'childcare': return 'border-green-400';
+      case 'health': return 'border-red-400';
+      case 'education': return 'border-yellow-400';
+      case 'finance': return 'border-indigo-400';
+      default: return 'border-gray-300';
+    }
   };
 
   if (isLoading && !isRefreshing) {
@@ -190,104 +292,194 @@ export function TaskList() {
         </div>
       )}
 
-      {tasks.length === 0 ? (
+      {/* Filter Panel */}
+      <FilterPanel 
+        filters={filters}
+        onFilterChange={setFilters}
+        onResetFilters={resetFilters}
+      />
+
+      {sortedTasks.length === 0 ? (
         <div className="text-center py-12">
           <h3 className="text-lg font-medium text-gray-700 mb-2">No tasks found</h3>
           <p className="text-gray-500">Create your first task to get started!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tasks.map((task) => (
+        <div className={filters.viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col space-y-2"}>
+          {sortedTasks.map((task) => (
             <div
               key={task.id}
-              className="bg-white rounded-lg shadow-md p-4 border-l-4 hover:shadow-lg transition-shadow"
+              className={cn(
+                "bg-white rounded-lg shadow-md overflow-hidden relative",
+                filters.viewMode === 'list' ? "flex items-center p-3" : "p-4",
+                "border-l-4 hover:shadow-lg transition-shadow",
+                getCategoryColor(task.category)
+              )}
               style={{ borderLeftColor: task.priority === 'urgent' ? '#EF4444' : 
                                         task.priority === 'high' ? '#F59E0B' : 
                                         task.priority === 'medium' ? '#3B82F6' : '#10B981' }}
             >
-              {/* Task Header */}
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold text-gray-800 line-clamp-2">{task.title}</h3>
-                <div className="flex items-center space-x-1 relative">
-                  <Flag className={`h-4 w-4 ${getPriorityColor(task.priority)}`} />
-                  <button 
-                    onClick={() => toggleDropdown(task.id)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </button>
-                  
-                  {/* Dropdown Menu */}
-                  {activeDropdown === task.id && (
-                    <div className="absolute right-0 top-6 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
-                      <div className="py-1">
-                        <button
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
-                          onClick={() => openEditModal(task)}
+              {/* Dropdown Menu Button */}
+              <div className={cn(
+                "absolute right-3 top-3 z-20 flex items-center gap-2"
+              )}>
+                <span className={cn(
+                  "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                  task.status === 'active' && "bg-green-100 text-green-800",
+                  task.status === 'in_progress' && "bg-yellow-100 text-yellow-800",
+                  task.status === 'completed' && "bg-blue-100 text-blue-800",
+                  task.status === 'pending' && "bg-gray-100 text-gray-800"
+                )}>
+                  {task.status.replace('_', ' ')}
+                </span>
+                <button
+                  onClick={() => toggleDropdown(task.id)}
+                  className="p-1 rounded-full hover:bg-gray-100"
+                >
+                  <MoreVertical className="h-5 w-5 text-gray-500" />
+                </button>
+                
+                {/* Dropdown Menu */}
+                {activeDropdown === task.id && (
+                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                    <div className="py-1">
+                      <button
+                        onClick={() => openEditModal(task)}
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => openDeleteModal(task.id)}
+                        className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Task Content - List View */}
+              {filters.viewMode === 'list' ? (
+                <div className="flex-grow pr-10">
+                  <div className="flex items-center">
+                    <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
+                  </div>
+                  <div className="mt-1 flex items-center gap-3">
+                    
+                    {/* Task action buttons */}
+                    <div className="flex items-center gap-1.5">
+                      {task.status === 'pending' && (
+                        <button 
+                          onClick={() => updateTaskStatus(task.id, 'active')}
+                          className="p-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded"
                         >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit Task
+                          Start
                         </button>
-                        <button
-                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
-                          onClick={() => openDeleteModal(task.id)}
+                      )}
+                      {task.status === 'active' && (
+                        <button 
+                          onClick={() => updateTaskStatus(task.id, 'in_progress')}
+                          className="p-1 text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 rounded"
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Task
+                          Pause
                         </button>
+                      )}
+                      {task.status === 'in_progress' && (
+                        <button 
+                          onClick={() => updateTaskStatus(task.id, 'active')}
+                          className="p-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 rounded"
+                        >
+                          Resume
+                        </button>
+                      )}
+                      {task.status !== 'completed' && (
+                        <button 
+                          onClick={() => updateTaskStatus(task.id, 'completed')}
+                          className="p-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 rounded"
+                        >
+                          Complete
+                        </button>
+                      )}
+                    </div>
+                    
+                    {task.category && (
+                      <span className="text-xs text-gray-600">
+                        {task.category}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* Task Content - Grid View */
+                <div className="pr-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      
+                      {/* Task action buttons */}
+                      <div className="flex items-center gap-1">
+                        {task.status === 'pending' && (
+                          <button 
+                            onClick={() => updateTaskStatus(task.id, 'active')}
+                            className="p-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded"
+                            title="Start task"
+                          >
+                            S
+                          </button>
+                        )}
+                        {task.status === 'active' && (
+                          <button 
+                            onClick={() => updateTaskStatus(task.id, 'in_progress')}
+                            className="p-1 text-xs bg-orange-50 hover:bg-orange-100 text-orange-700 rounded"
+                            title="Pause task"
+                          >
+                            P
+                          </button>
+                        )}
+                        {task.status === 'in_progress' && (
+                          <button 
+                            onClick={() => updateTaskStatus(task.id, 'active')}
+                            className="p-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 rounded"
+                            title="Resume task"
+                          >
+                            R
+                          </button>
+                        )}
+                        {task.status !== 'completed' && (
+                          <button 
+                            onClick={() => updateTaskStatus(task.id, 'completed')}
+                            className="p-1 text-xs bg-green-50 hover:bg-green-100 text-green-700 rounded"
+                            title="Complete task"
+                          >
+                            C
+                          </button>
+                        )}
                       </div>
                     </div>
+                  </div>
+                  
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{task.title}</h3>
+                  
+                  {task.description && (
+                    <div 
+                      className="mb-3 text-sm text-gray-600 line-clamp-2" 
+                      dangerouslySetInnerHTML={{ __html: task.description || '' }}
+                    />
                   )}
-                </div>
-              </div>
-
-              {/* Task Description - if exists */}
-              {task.description && (
-                <p className="text-gray-600 text-sm mb-3 line-clamp-2">{task.description}</p>
-              )}
-
-              {/* Task Metadata */}
-              <div className="flex flex-wrap gap-2 text-xs text-gray-500 mt-2">
-                {task.status && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-100 text-blue-800">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    {task.status}
-                  </span>
-                )}
-                
-                {task.estimated_time && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full bg-purple-100 text-purple-800">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {formatEstimatedTime(task.estimated_time)}
-                  </span>
-                )}
-                
-                {task.due_date && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full bg-amber-100 text-amber-800">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {formatDate(task.due_date)}
-                  </span>
-                )}
-              </div>
-
-              {/* Tags */}
-              {task.tags && task.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-3">
-                  {task.tags.map((tag, index) => (
-                    <span 
-                      key={index}
-                      className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
+                  
+                  <div className="mt-2 flex justify-between items-center">
+                    <div className="text-xs text-gray-500">
+                      {task.category && (
+                        <span className="mr-2">{task.category}</span>
+                      )}
+                      <span>{format(new Date(task.created_at), 'MMM d, yyyy')}</span>
+                    </div>
+                  </div>
                 </div>
               )}
-              
-              {/* Created Date */}
-              <div className="text-xs text-gray-400 mt-3">
-                Created {formatDate(task.created_at)}
-              </div>
             </div>
           ))}
         </div>
