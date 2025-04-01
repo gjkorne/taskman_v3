@@ -77,14 +77,22 @@ export class TaskService implements ITaskService {
     return formattedData;
   }
   
-  // Helper method to ensure status values match what the database expects
+  /**
+   * Normalize status string to ensure consistency
+   */
   private normalizeStatus(status: string): string {
+    // Detect if the input looks like a UUID (likely a taskId mistakenly passed as status)
+    if (status && status.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.warn(`Status parameter appears to be a UUID: "${status}", likely a taskId was mistakenly passed as status. Defaulting to "pending"`);
+      return 'pending';
+    }
+    
     // Convert to lowercase and replace spaces with underscores if needed
     let normalizedStatus = status.toLowerCase().trim();
     
     // Handle possible variations
     if (normalizedStatus === 'in progress' || normalizedStatus === 'in-progress') {
-      return 'in_progress';
+      return 'paused'; // Convert old 'in_progress' to new 'paused' status
     }
     
     const validStatuses = ['active', 'paused', 'completed', 'archived', 'pending'];

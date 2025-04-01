@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 
 /**
- * Reset all task activity states and clear timer storage
+ * Reset all task statuses and clear timer storage
  * Use this utility to fix issues with multiple active tasks
  */
 export const resetAllTimerState = async () => {
@@ -21,13 +21,13 @@ export const resetAllTimerState = async () => {
       return { success: false, message: 'Authentication required' };
     }
     
-    // Step 2: Reset all tasks to idle activity state (one by one to avoid .in() issues)
+    // Step 2: Reset all active or paused tasks to pending status
     try {
-      // Get all active tasks first
+      // Get all active and paused tasks first
       const { data: activeTasks, error: queryError } = await supabase
         .from('tasks')
         .select('id')
-        .or('activity_state.eq.in_progress,activity_state.eq.paused')
+        .in('status', ['active', 'paused'])
         .eq('created_by', userId);
       
       if (queryError) {
@@ -35,7 +35,7 @@ export const resetAllTimerState = async () => {
         throw queryError;
       }
       
-      console.log(`Found ${activeTasks?.length || 0} active tasks`);
+      console.log(`Found ${activeTasks?.length || 0} active or paused tasks`);
       
       // Update each task individually
       let updatedCount = 0;
@@ -43,7 +43,7 @@ export const resetAllTimerState = async () => {
         for (const task of activeTasks) {
           const { error: updateError } = await supabase
             .from('tasks')
-            .update({ activity_state: 'idle' })
+            .update({ status: 'pending' })
             .eq('id', task.id)
             .eq('created_by', userId);
           
@@ -55,13 +55,13 @@ export const resetAllTimerState = async () => {
         }
       }
       
-      console.log(`Successfully reset ${updatedCount} tasks to idle activity state`);
+      console.log(`Successfully reset ${updatedCount} tasks to pending status`);
     } catch (taskError) {
       console.error('Task reset error:', taskError);
       // Continue with session reset even if task reset fails
     }
     
-    // Step 3: Close any open sessions (one by one to avoid .in() issues)
+    // Step 3: Close any open sessions
     try {
       // Get all open sessions
       const { data: openSessions, error: sessionQueryError } = await supabase
@@ -71,7 +71,7 @@ export const resetAllTimerState = async () => {
         .eq('created_by', userId);
       
       if (sessionQueryError) {
-        console.error('Error finding open sessions:', sessionQueryError);
+        console.error('Error querying open sessions:', sessionQueryError);
         throw sessionQueryError;
       }
       
@@ -83,7 +83,10 @@ export const resetAllTimerState = async () => {
         for (const session of openSessions) {
           const { error: updateError } = await supabase
             .from('task_sessions')
-            .update({ end_time: new Date().toISOString() })
+            .update({ 
+              end_time: new Date().toISOString(),
+              duration: 0 // We don't know the actual duration, so set to 0
+            })
             .eq('id', session.id)
             .eq('created_by', userId);
           
@@ -98,12 +101,14 @@ export const resetAllTimerState = async () => {
       console.log(`Successfully closed ${closedCount} open sessions`);
     } catch (sessionError) {
       console.error('Session reset error:', sessionError);
-      // Continue even if session reset fails
     }
     
     return { success: true, message: 'Timer state reset successfully' };
   } catch (error) {
-    console.error('Error in resetAllTimerState:', error);
-    return { success: false, message: 'Failed to reset timer state', error };
+    console.error('Reset error:', error);
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
   }
 };
