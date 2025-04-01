@@ -9,12 +9,18 @@ import { TaskList, TaskListRefType } from './components/TaskList';
 import { Timer } from './components/Timer';
 import { Reports } from './components/Reports';
 import SettingsPage from './pages/SettingsPage';
+import AdminPage from './pages/AdminPage';
 import { useAuth } from './lib/auth';
 import { TimerProvider } from './contexts/TimerContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { TaskProvider } from './contexts/TaskContext';
 import { ToastProvider } from './components/Toast';
 import { CategoryProvider } from './contexts/CategoryContext';
+
+// Import debug tools in development mode
+if (process.env.NODE_ENV === 'development') {
+  import('./utils/debugTools');
+}
 
 const queryClient = new QueryClient();
 
@@ -37,7 +43,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'settings'>('tasks');
+  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'settings' | 'admin'>('tasks');
   const taskListRef = useRef<TaskListRefType>(null);
 
   // Handler for when a task is created through the global button
@@ -77,6 +83,7 @@ function App() {
                               {activeView === 'timer' && <Timer />}
                               {activeView === 'reports' && <Reports />}
                               {activeView === 'settings' && <SettingsPage />}
+                              {activeView === 'admin' && <AdminPage />}
                             </Layout>
                           </ProtectedRoute>
                         }

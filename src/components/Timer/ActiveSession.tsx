@@ -6,18 +6,31 @@ export function ActiveSession() {
   const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime } = useTimer();
   const { tasks } = useTaskContext();
   
+  // Debug logging to see what's happening
+  console.log('ActiveSession component rendering:', {
+    timerState,
+    taskCount: tasks.length,
+    isTimerActive: timerState.status !== 'idle' && timerState.taskId !== null
+  });
+  
   // If no active timer, don't render anything
   if (timerState.status === 'idle' || !timerState.taskId) {
+    console.log('No active timer, returning null');
     return null;
   }
   
   // Find active task details
   const activeTask = tasks.find(task => task.id === timerState.taskId);
-  const isRunning = timerState.status === 'running';
+  
+  console.log('Found active task:', activeTask);
   
   if (!activeTask) {
+    console.log('Active task not found in tasks array, returning null');
     return null;
   }
+  
+  const isRunning = timerState.status === 'running';
+  console.log('Rendering active session with running state:', isRunning);
   
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md">

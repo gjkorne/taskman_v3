@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, Clock, Layout as LayoutIcon, List, Menu, Plus, Settings } from 'lucide-react';
+import { BarChart3, Clock, Layout as LayoutIcon, List, Menu, Plus, Settings, AlertTriangle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TaskForm } from './TaskForm/TaskForm';
 import { ActiveSession } from './Timer/ActiveSession';
@@ -26,8 +26,8 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => (
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeView: 'tasks' | 'timer' | 'reports' | 'settings';
-  onViewChange: (view: 'tasks' | 'timer' | 'reports' | 'settings') => void;
+  activeView: 'tasks' | 'timer' | 'reports' | 'settings' | 'admin';
+  onViewChange: (view: 'tasks' | 'timer' | 'reports' | 'settings' | 'admin') => void;
   onTaskCreated?: () => void;
 }
 
@@ -85,18 +85,35 @@ export function Layout({ children, activeView, onViewChange, onTaskCreated }: La
             onClick={() => onViewChange('reports')}
           />
           <NavItem
-            icon={<Settings className="w-5 h-5" />}
+            icon={<Settings size={20} />}
             label="Settings"
             active={activeView === 'settings'}
             onClick={() => onViewChange('settings')}
           />
+          
+          {/* Admin Section - Only visible in development mode */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 mb-2">
+                Development
+              </h3>
+              <NavItem
+                icon={<AlertTriangle size={20} />}
+                label="Admin"
+                active={activeView === 'admin'}
+                onClick={() => onViewChange('admin')}
+              />
+            </div>
+          )}
         </nav>
       </div>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         {/* Active Session Bar - Will appear when a task is being timed */}
-        <ActiveSession />
+        <div className="relative z-50">
+          <ActiveSession />
+        </div>
         
         {/* Main content */}
         <main className="flex-1 overflow-auto p-8">
