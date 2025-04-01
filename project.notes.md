@@ -5,8 +5,7 @@ Notes and Additional Features
  remove grid view
  move search bar and add quick task     
  move filter and sort
- ask about calendar integration
- ask about list option
+
 
 
 
@@ -15,6 +14,10 @@ Notes and Additional Features
  quick keys to map tasks
  calendar integration
  user defined categories and subcategories
+  ask about calendar integration
+ ask about list option
+ bucket view option
+ persistant day achievements
 
 
 - ***2025.04.01 9.30 Phase 1&2 Progress and Next Steps***

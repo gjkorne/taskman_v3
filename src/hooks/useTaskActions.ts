@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Task, TaskStatus } from '../types/task';
 import { taskService } from '../services/api';
 import { useTaskContext } from '../contexts/TaskContext';
+import { useToast } from '../components/Toast';
 
 // Helper to check for development environment
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -9,10 +10,11 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 export interface UseTaskActionsOptions {
   onSuccess?: (action: string, task?: Task) => void;
   onError?: (error: string, action: string) => void;
+  showToasts?: boolean;
 }
 
 export function useTaskActions(options: UseTaskActionsOptions = {}) {
-  const { onSuccess, onError } = options;
+  const { onSuccess, onError, showToasts = true } = options;
   
   // Local state
   const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +22,9 @@ export function useTaskActions(options: UseTaskActionsOptions = {}) {
   
   // Access the task context for global tasks state
   const { refreshTasks } = useTaskContext();
+  
+  // Access toast notifications
+  const { addToast } = useToast();
 
   /**
    * Update a task's status
@@ -38,6 +43,12 @@ export function useTaskActions(options: UseTaskActionsOptions = {}) {
       // Refresh task data
       await refreshTasks();
       
+      // Show success toast
+      if (showToasts) {
+        const statusText = status.replace('_', ' ');
+        addToast(`Task marked as ${statusText}`, 'success');
+      }
+      
       // Trigger success callback
       onSuccess?.('update-status');
     } catch (err: any) {
@@ -47,12 +58,17 @@ export function useTaskActions(options: UseTaskActionsOptions = {}) {
         console.error('Error updating task status:', err);
       }
       
+      // Show error toast
+      if (showToasts) {
+        addToast(errorMessage, 'error');
+      }
+      
       setError(errorMessage);
       onError?.(errorMessage, 'update-status');
     } finally {
       setIsLoading(false);
     }
-  }, [refreshTasks, onSuccess, onError]);
+  }, [refreshTasks, onSuccess, onError, addToast, showToasts]);
 
   /**
    * Mark a task as completed
@@ -99,6 +115,11 @@ export function useTaskActions(options: UseTaskActionsOptions = {}) {
       // Refresh task data
       await refreshTasks();
       
+      // Show success toast
+      if (showToasts) {
+        addToast('Task deleted successfully', 'success');
+      }
+      
       // Trigger success callback
       onSuccess?.('delete');
     } catch (err: any) {
@@ -108,12 +129,17 @@ export function useTaskActions(options: UseTaskActionsOptions = {}) {
         console.error('Error deleting task:', err);
       }
       
+      // Show error toast
+      if (showToasts) {
+        addToast(errorMessage, 'error');
+      }
+      
       setError(errorMessage);
       onError?.(errorMessage, 'delete');
     } finally {
       setIsLoading(false);
     }
-  }, [refreshTasks, onSuccess, onError]);
+  }, [refreshTasks, onSuccess, onError, addToast, showToasts]);
 
   /**
    * Batch delete multiple tasks
@@ -132,6 +158,11 @@ export function useTaskActions(options: UseTaskActionsOptions = {}) {
       // Refresh task data
       await refreshTasks();
       
+      // Show success toast
+      if (showToasts) {
+        addToast(`${taskIds.length} tasks deleted successfully`, 'success');
+      }
+      
       // Trigger success callback
       onSuccess?.('batch-delete');
     } catch (err: any) {
@@ -141,12 +172,17 @@ export function useTaskActions(options: UseTaskActionsOptions = {}) {
         console.error('Error batch deleting tasks:', err);
       }
       
+      // Show error toast
+      if (showToasts) {
+        addToast(errorMessage, 'error');
+      }
+      
       setError(errorMessage);
       onError?.(errorMessage, 'batch-delete');
     } finally {
       setIsLoading(false);
     }
-  }, [refreshTasks, onSuccess, onError]);
+  }, [refreshTasks, onSuccess, onError, addToast, showToasts]);
 
   return {
     // State

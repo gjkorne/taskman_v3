@@ -5,6 +5,7 @@ import { FilterPanel } from './FilterPanel';
 import { TaskContainer } from './TaskContainer';
 import { SearchBar } from './SearchBar';
 import { useTaskContext } from '../../contexts/TaskContext';
+import { useTaskModal } from '../../hooks/useTaskModal';
 
 // Define ref type for external access to TaskList methods
 export interface TaskListRefType {
@@ -19,21 +20,24 @@ export const TaskList = forwardRef<TaskListRefType>((_, ref) => {
     error,
     isRefreshing,
     refreshTasks,
-    isEditModalOpen,
-    editTaskId,
-    closeEditModal,
-    isDeleteModalOpen,
-    taskToDelete,
-    closeDeleteModal,
-    deleteTask,
-    openEditModal,
-    openDeleteModal,
     searchQuery,
     setSearchQuery,
     filters,
     setFilters,
     resetFilters
   } = useTaskContext();
+  
+  // Use our task modal hook
+  const { 
+    isEditModalOpen,
+    editTaskId,
+    openEditModal,
+    closeEditModal,
+    isDeleteModalOpen,
+    openDeleteModal,
+    closeDeleteModal,
+    confirmDelete
+  } = useTaskModal();
 
   // Expose methods to parent components via ref
   useImperativeHandle(ref, () => ({
@@ -96,7 +100,7 @@ export const TaskList = forwardRef<TaskListRefType>((_, ref) => {
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <h3 className="text-lg font-medium text-gray-900">No tasks found</h3>
               <p className="mt-2 text-gray-500">
-                {filteredTasks.length === 0 
+                {searchQuery || Object.values(filters).some(Boolean) 
                   ? 'Try adjusting your filters or search query'
                   : 'Create your first task to get started'
                 }
@@ -163,7 +167,7 @@ export const TaskList = forwardRef<TaskListRefType>((_, ref) => {
                 Cancel
               </button>
               <button
-                onClick={() => taskToDelete && deleteTask(taskToDelete)}
+                onClick={confirmDelete}
                 className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
               >
                 Delete

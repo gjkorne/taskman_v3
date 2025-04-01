@@ -13,6 +13,7 @@ import { useAuth } from './lib/auth';
 import { TimerProvider } from './contexts/TimerContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { TaskProvider } from './contexts/TaskContext';
+import { ToastProvider } from './components/Toast';
 
 const queryClient = new QueryClient();
 
@@ -56,30 +57,32 @@ function App() {
         <SettingsProvider>
           <TimerProvider>
             <TaskProvider>
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/login" element={<LoginForm />} />
-                  <Route path="/register" element={<RegisterForm />} />
-                  <Route
-                    path="/"
-                    element={
-                      <ProtectedRoute>
-                        <Layout 
-                          activeView={activeView} 
-                          onViewChange={setActiveView}
-                          onTaskCreated={handleTaskCreated}
-                        >
-                          {activeView === 'tasks' && <TaskList ref={taskListRef} />}
-                          {activeView === 'timer' && <Timer />}
-                          {activeView === 'reports' && <Reports />}
-                          {activeView === 'settings' && <SettingsPage />}
-                        </Layout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-              </BrowserRouter>
+              <ToastProvider>
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/login" element={<LoginForm />} />
+                    <Route path="/register" element={<RegisterForm />} />
+                    <Route
+                      path="/"
+                      element={
+                        <ProtectedRoute>
+                          <Layout 
+                            activeView={activeView} 
+                            onViewChange={setActiveView}
+                            onTaskCreated={handleTaskCreated}
+                          >
+                            {activeView === 'tasks' && <TaskList ref={taskListRef} />}
+                            {activeView === 'timer' && <Timer />}
+                            {activeView === 'reports' && <Reports />}
+                            {activeView === 'settings' && <SettingsPage />}
+                          </Layout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="*" element={<Navigate to="/" />} />
+                  </Routes>
+                </BrowserRouter>
+              </ToastProvider>
             </TaskProvider>
           </TimerProvider>
         </SettingsProvider>
