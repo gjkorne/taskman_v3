@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSettings } from '../contexts/SettingsContext';
+import { CategorySettings } from '../components/Settings/CategorySettings';
 
 interface SettingsPageProps {
   // Add props as needed
@@ -88,6 +89,12 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
             <span className="text-sm font-medium text-gray-700">Auto-save task drafts</span>
           </label>
         </div>
+      </div>
+      
+      {/* Category Management */}
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Category Management</h2>
+        <CategorySettings />
       </div>
       
       <div className="bg-white shadow rounded-lg p-6 mb-6">
