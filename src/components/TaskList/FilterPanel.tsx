@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, X, Flag, Filter, CheckCircle, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, Flag, Filter, CheckCircle, Calendar } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { CATEGORIES } from '../../types/categories';
 
@@ -29,285 +29,312 @@ export const defaultFilters: TaskFilter = {
 
 interface FilterPanelProps {
   filters: TaskFilter;
-  onFilterChange: (filters: TaskFilter) => void;
-  onResetFilters: () => void;
+  onChange: (filters: TaskFilter) => void;
+  onReset?: () => void;
+  taskCount?: number;
+  filteredCount?: number;
+  // Keep these for backward compatibility
+  onFilterChange?: (filters: TaskFilter) => void;
+  onResetFilters?: () => void;
 }
 
-export function FilterPanel({ filters, onFilterChange, onResetFilters }: FilterPanelProps) {
+export function FilterPanel({ 
+  filters, 
+  onChange, 
+  onReset,
+  taskCount,
+  filteredCount,
+  onFilterChange, 
+  onResetFilters 
+}: FilterPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Use the right callback based on what's provided
+  const handleFilterChange = onChange || onFilterChange;
+  const handleReset = onReset || onResetFilters;
 
   // Helper function to toggle a filter value
   const toggleFilter = (type: keyof TaskFilter, value: string) => {
     if (type === 'status' || type === 'priority' || type === 'category' || type === 'dueDate') {
-      const currentValues = filters[type];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter(v => v !== value)
-        : [...currentValues, value];
+      const currentValues = [...filters[type]];
+      const index = currentValues.indexOf(value);
       
-      onFilterChange({
+      if (index === -1) {
+        // Add the value if it's not already included
+        currentValues.push(value);
+      } else {
+        // Remove the value if it's already included
+        currentValues.splice(index, 1);
+      }
+      
+      handleFilterChange({
         ...filters,
-        [type]: newValues
+        [type]: currentValues
       });
     }
   };
 
-  // Set sort option
-  const setSortOption = (option: TaskFilter['sortBy']) => {
-    // If clicking the same option, toggle the order
-    if (filters.sortBy === option) {
-      onFilterChange({
-        ...filters,
-        sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc'
-      });
-    } else {
-      // New sort option, use default order (desc for priority, asc for others)
-      onFilterChange({
-        ...filters,
-        sortBy: option,
-        sortOrder: option === 'priority' ? 'desc' : 'asc'
-      });
-    }
-  };
-
-  // Toggle show completed
+  // Toggle the showCompleted filter
   const toggleShowCompleted = () => {
-    onFilterChange({
+    handleFilterChange({
       ...filters,
       showCompleted: !filters.showCompleted
     });
   };
 
+  // Update the sort options
+  const updateSort = (sortBy: TaskFilter['sortBy']) => {
+    if (sortBy === filters.sortBy) {
+      // If the same sort field is selected, toggle the sort order
+      handleFilterChange({
+        ...filters,
+        sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc'
+      });
+    } else {
+      // If a new sort field is selected, set it with default order
+      handleFilterChange({
+        ...filters,
+        sortBy,
+        sortOrder: 'desc' // Default to descending
+      });
+    }
+  };
+
+  // Change the view mode (list or grid)
+  const setViewMode = (viewMode: TaskFilter['viewMode']) => {
+    handleFilterChange({
+      ...filters,
+      viewMode
+    });
+  };
+
+  // Determine if any filters are active
+  const hasActiveFilters = 
+    filters.status.length > 0 || 
+    filters.priority.length > 0 || 
+    filters.category.length > 0 || 
+    filters.dueDate.length > 0 || 
+    filters.showCompleted !== defaultFilters.showCompleted ||
+    filters.sortBy !== defaultFilters.sortBy ||
+    filters.sortOrder !== defaultFilters.sortOrder;
+
   return (
-    <div className="mb-6 bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden transition-all">
-      {/* Filter Header */}
-      <div 
-        className="px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
+    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm space-y-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-indigo-500" />
-          <span className="font-medium text-gray-700">Filters & Sort</span>
-          {(filters.status.length > 0 || filters.priority.length > 0 || filters.category.length > 0 || filters.dueDate.length > 0) && (
-            <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">
-              Active
+          <Filter className="h-5 w-5 text-indigo-500" />
+          <h3 className="font-medium text-gray-900">Filters & Sort</h3>
+        </div>
+        
+        <div className="flex space-x-2">
+          {/* Show count of filtered tasks if provided */}
+          {taskCount !== undefined && filteredCount !== undefined && (
+            <span className="text-sm text-gray-500">
+              {filteredCount} / {taskCount}
             </span>
           )}
-        </div>
-        <div className="flex items-center space-x-3">
-          {/* Reset filters button - only show if filters are active */}
-          {(filters.status.length > 0 || filters.priority.length > 0 || filters.category.length > 0 || filters.dueDate.length > 0) && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onResetFilters();
-              }}
-              className="text-xs text-gray-500 hover:text-gray-700 flex items-center"
+          
+          {/* Reset filters button */}
+          {hasActiveFilters && (
+            <button
+              onClick={handleReset}
+              className="text-xs text-indigo-600 hover:text-indigo-800"
             >
-              <X className="h-3 w-3 mr-1" />
               Reset
             </button>
           )}
           
-          {/* Expand/collapse icon */}
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-gray-500" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-gray-500" />
-          )}
+          {/* Expand/collapse button */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-5 w-5" />
+            ) : (
+              <ChevronDown className="h-5 w-5" />
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Filter Content */}
+      {/* View mode toggle */}
+      <div className="flex border rounded-md overflow-hidden">
+        <button
+          className={cn(
+            "flex-1 px-4 py-2 text-sm font-medium",
+            filters.viewMode === 'list'
+              ? "bg-indigo-50 text-indigo-600"
+              : "bg-white text-gray-500 hover:bg-gray-50"
+          )}
+          onClick={() => setViewMode('list')}
+        >
+          List
+        </button>
+        <button
+          className={cn(
+            "flex-1 px-4 py-2 text-sm font-medium",
+            filters.viewMode === 'grid'
+              ? "bg-indigo-50 text-indigo-600"
+              : "bg-white text-gray-500 hover:bg-gray-50"
+          )}
+          onClick={() => setViewMode('grid')}
+        >
+          Grid
+        </button>
+      </div>
+
+      {/* Filter sections - only shown when expanded */}
       {isExpanded && (
-        <div className="px-3 py-2 border-t border-gray-100">
-          {/* Section Headings */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
-            <div>
-              <h3 className="text-sm font-semibold text-indigo-600 px-2 pb-1 border-b border-indigo-200 inline-block">
-                Filters
-              </h3>
-            </div>
-            <div className="text-right md:text-left">
-              <h3 className="text-sm font-semibold text-indigo-600 px-2 pb-1 border-b border-indigo-200 inline-block">
-                Sort Options
-              </h3>
+        <div className="space-y-4 pt-2">
+          {/* Status filters */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+              Status
+            </h4>
+            <div className="space-y-1">
+              {['pending', 'active', 'in_progress', 'completed', 'archived'].map((status) => (
+                <label key={status} className="flex items-center space-x-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={filters.status.includes(status)}
+                    onChange={() => toggleFilter('status', status)}
+                    className="h-4 w-4 text-indigo-600 rounded"
+                  />
+                  <span className="capitalize">{status.replace('_', ' ')}</span>
+                </label>
+              ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* FILTERS SECTION */}
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {/* Status Filter */}
-                <div className="bg-gray-50 p-2 rounded-lg">
-                  <h3 className="text-xs font-medium text-gray-700 mb-1">Status</h3>
-                  <div className="space-y-1">
-                    {['active', 'in_progress', 'pending'].map(status => (
-                      <label key={status} className="flex items-center space-x-1 cursor-pointer text-xs">
-                        <input
-                          type="checkbox"
-                          checked={filters.status.includes(status)}
-                          onChange={() => toggleFilter('status', status)}
-                          className="rounded text-indigo-600 focus:ring-indigo-500 h-3 w-3"
-                        />
-                        <span className="text-gray-600 capitalize">
-                          {status.replace('_', ' ')}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+          {/* Show completed toggle */}
+          <div>
+            <label className="flex items-center space-x-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={filters.showCompleted}
+                onChange={toggleShowCompleted}
+                className="h-4 w-4 text-indigo-600 rounded"
+              />
+              <span>Include completed tasks</span>
+            </label>
+          </div>
 
-                {/* Priority Filter */}
-                <div className="bg-gray-50 p-2 rounded-lg">
-                  <h3 className="text-xs font-medium text-gray-700 mb-1">Priority</h3>
-                  <div className="space-y-1">
-                    {['urgent', 'high', 'medium', 'low'].map(priority => (
-                      <label key={priority} className="flex items-center space-x-1 cursor-pointer text-xs">
-                        <input
-                          type="checkbox"
-                          checked={filters.priority.includes(priority)}
-                          onChange={() => toggleFilter('priority', priority)}
-                          className="rounded text-indigo-600 focus:ring-indigo-500 h-3 w-3"
-                        />
-                        <span className="text-gray-600 capitalize flex items-center">
-                          <Flag className={cn(
-                            "h-2.5 w-2.5 mr-0.5",
-                            priority === 'urgent' && "text-red-500",
-                            priority === 'high' && "text-yellow-500",
-                            priority === 'medium' && "text-blue-500",
-                            priority === 'low' && "text-green-500",
-                          )} />
-                          {priority}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Category Filter */}
-                <div className="bg-gray-50 p-2 rounded-lg">
-                  <h3 className="text-xs font-medium text-gray-700 mb-1">Category</h3>
-                  <div className="space-y-1">
-                    {Object.keys(CATEGORIES).map(category => (
-                      <label key={category} className="flex items-center space-x-1 cursor-pointer text-xs">
-                        <input
-                          type="checkbox"
-                          checked={filters.category.includes(category)}
-                          onChange={() => toggleFilter('category', category)}
-                          className="rounded text-indigo-600 focus:ring-indigo-500 h-3 w-3"
-                        />
-                        <span className="text-gray-600 capitalize">
-                          {category}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Due Date Filter */}
-                <div className="bg-gray-50 p-2 rounded-lg">
-                  <h3 className="text-xs font-medium text-gray-700 mb-1 flex items-center">
-                    <Calendar className="h-3 w-3 mr-1 text-indigo-500" />
-                    Due Date
-                  </h3>
-                  <div className="space-y-1">
-                    {[
-                      { id: 'today', label: 'Today' },
-                      { id: 'tomorrow', label: 'Tomorrow' },
-                      { id: 'this_week', label: 'This week' },
-                      { id: 'next_week', label: 'Next week' },
-                      { id: 'overdue', label: 'Overdue' }
-                    ].map(dateOption => (
-                      <label key={dateOption.id} className="flex items-center space-x-1 cursor-pointer text-xs">
-                        <input
-                          type="checkbox"
-                          checked={filters.dueDate.includes(dateOption.id)}
-                          onChange={() => toggleFilter('dueDate', dateOption.id)}
-                          className="rounded text-indigo-600 focus:ring-indigo-500 h-3 w-3"
-                        />
-                        <span className={cn(
-                          "text-gray-600",
-                          dateOption.id === 'overdue' && "text-red-600 font-medium"
-                        )}>
-                          {dateOption.label}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Show Completed - as a subsection with highlight */}
-              <div className="bg-indigo-50 p-2 rounded-lg border border-indigo-100 mt-2">
-                <div className="flex items-center space-x-2 cursor-pointer">
+          {/* Priority filters */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <Flag className="h-4 w-4 text-red-500 mr-1" />
+              Priority
+            </h4>
+            <div className="space-y-1">
+              {[
+                { value: 'urgent', label: 'Urgent (P1)', color: 'text-red-500' },
+                { value: 'high', label: 'High (P2)', color: 'text-orange-500' },
+                { value: 'medium', label: 'Medium (P3)', color: 'text-blue-500' },
+                { value: 'low', label: 'Low (P4)', color: 'text-green-500' }
+              ].map(({ value, label, color }) => (
+                <label key={value} className="flex items-center space-x-2 text-sm text-gray-600">
                   <input
                     type="checkbox"
-                    checked={filters.showCompleted}
-                    onChange={toggleShowCompleted}
-                    className="rounded text-indigo-600 focus:ring-indigo-500 h-3 w-3"
-                    id="show-completed"
+                    checked={filters.priority.includes(value)}
+                    onChange={() => toggleFilter('priority', value)}
+                    className="h-4 w-4 text-indigo-600 rounded"
                   />
-                  <label htmlFor="show-completed" className="text-xs font-medium text-indigo-700 cursor-pointer flex items-center">
-                    <CheckCircle className="h-3 w-3 mr-1 text-indigo-600" />
-                    Show completed tasks
-                  </label>
-                </div>
-              </div>
+                  <span className="flex items-center">
+                    <Flag className={`h-3 w-3 ${color} mr-1`} />
+                    {label}
+                  </span>
+                </label>
+              ))}
             </div>
+          </div>
 
-            {/* SORT SECTION */}
-            <div>
-              {/* Sort Options */}
-              <div className="bg-gray-50 p-2 rounded-lg">
-                <div className="grid grid-cols-2 gap-1">
-                  {[
-                    { id: 'priority', label: 'Priority' },
-                    { id: 'dueDate', label: 'Due Date' },
-                    { id: 'createdAt', label: 'Created' },
-                    { id: 'title', label: 'Title' },
-                    { id: 'status', label: 'Status' },
-                    { id: 'category', label: 'Category' },
-                  ].map(sort => (
-                    <label 
-                      key={sort.id} 
-                      className={cn(
-                        "flex items-center space-x-1 cursor-pointer px-2 py-1 rounded text-xs",
-                        filters.sortBy === sort.id 
-                          ? "bg-indigo-100 text-indigo-800" 
-                          : "hover:bg-gray-100"
+          {/* Category filters */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Category</h4>
+            <div className="space-y-1">
+              {Object.keys(CATEGORIES).map((category) => (
+                <label key={category} className="flex items-center space-x-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={filters.category.includes(category)}
+                    onChange={() => toggleFilter('category', category)}
+                    className="h-4 w-4 text-indigo-600 rounded"
+                  />
+                  <span className="capitalize">{category}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Due date filters */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <Calendar className="h-4 w-4 text-purple-500 mr-1" />
+              Due Date
+            </h4>
+            <div className="space-y-1">
+              {[
+                { value: 'overdue', label: 'Overdue' },
+                { value: 'today', label: 'Due Today' },
+                { value: 'tomorrow', label: 'Due Tomorrow' },
+                { value: 'this_week', label: 'Due This Week' },
+                { value: 'next_week', label: 'Due Next Week' },
+                { value: 'no_date', label: 'No Due Date' }
+              ].map(({ value, label }) => (
+                <label key={value} className="flex items-center space-x-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={filters.dueDate.includes(value)}
+                    onChange={() => toggleFilter('dueDate', value)}
+                    className="h-4 w-4 text-indigo-600 rounded"
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Sort options */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Sort By</h4>
+            <div className="space-y-1">
+              {[
+                { value: 'priority', label: 'Priority' },
+                { value: 'dueDate', label: 'Due Date' },
+                { value: 'createdAt', label: 'Creation Date' },
+                { value: 'title', label: 'Title' },
+                { value: 'status', label: 'Status' },
+                { value: 'category', label: 'Category' }
+              ].map(({ value, label }) => (
+                <label 
+                  key={value} 
+                  className={cn(
+                    "flex items-center space-x-2 text-sm cursor-pointer",
+                    filters.sortBy === value ? "text-indigo-600 font-medium" : "text-gray-600"
+                  )}
+                  onClick={() => updateSort(value as TaskFilter['sortBy'])}
+                >
+                  <input
+                    type="radio"
+                    checked={filters.sortBy === value}
+                    onChange={() => {}} // Handled by the label click
+                    className="h-4 w-4 text-indigo-600"
+                  />
+                  <span>{label}</span>
+                  
+                  {filters.sortBy === value && (
+                    <span className="ml-auto text-indigo-600">
+                      {filters.sortOrder === 'asc' ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
                       )}
-                    >
-                      <input
-                        type="radio"
-                        checked={filters.sortBy === sort.id}
-                        onChange={() => setSortOption(sort.id as TaskFilter['sortBy'])}
-                        className="text-indigo-600 focus:ring-indigo-500 h-3 w-3"
-                      />
-                      <div className="flex items-center justify-between w-full">
-                        <span className="font-medium">
-                          {sort.label}
-                        </span>
-                        {filters.sortBy === sort.id && (
-                          <button 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setSortOption(sort.id as TaskFilter['sortBy']);
-                            }}
-                            className="p-0.5 rounded-full hover:bg-indigo-200"
-                          >
-                            {filters.sortOrder === 'asc' 
-                              ? <ChevronUp className="h-3 w-3 text-indigo-700" />
-                              : <ChevronDown className="h-3 w-3 text-indigo-700" />
-                            }
-                          </button>
-                        )}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
+                    </span>
+                  )}
+                </label>
+              ))}
             </div>
           </div>
         </div>

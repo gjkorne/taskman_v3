@@ -2,40 +2,86 @@ import { Search, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
 interface SearchBarProps {
-  initialValue?: string;
-  onSearch: (value: string) => void;
+  value?: string;
+  onChange: (value: string) => void;
   placeholder?: string;
+  initialValue?: string; // Keep for backward compatibility
+  onSearch?: (value: string) => void; // Keep for backward compatibility
 }
 
-export function SearchBar({ initialValue = '', onSearch, placeholder = 'Search tasks...' }: SearchBarProps) {
-  const [searchValue, setSearchValue] = useState(initialValue);
+export function SearchBar({ 
+  value, 
+  onChange, 
+  placeholder = 'Search tasks...', 
+  initialValue = '', 
+  onSearch 
+}: SearchBarProps) {
+  // Use controlled input if value/onChange are provided, otherwise use local state
+  const isControlled = value !== undefined && onChange !== undefined;
+  const [localSearchValue, setLocalSearchValue] = useState(initialValue || '');
   const [isFocused, setIsFocused] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Compute the actual value to display
+  const searchValue = isControlled ? value : localSearchValue;
 
-  // Update search value when initialValue changes (e.g., on reset)
+  // Handle direct prop changes (for controlled component)
   useEffect(() => {
-    if (initialValue !== searchValue) {
-      setSearchValue(initialValue);
+    if (isControlled && value !== localSearchValue) {
+      setLocalSearchValue(value || '');
     }
-  }, [initialValue]);
+  }, [value, isControlled]);
+
+  // Handle initialValue changes (for uncontrolled component)
+  useEffect(() => {
+    if (!isControlled && initialValue !== localSearchValue) {
+      setLocalSearchValue(initialValue);
+    }
+  }, [initialValue, isControlled]);
 
   // Handle input change with debouncing
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchValue(value);
+    const newValue = e.target.value;
+    
+    // Always update local state for immediate UI feedback
+    setLocalSearchValue(newValue);
+    
+    // For controlled components, call onChange immediately
+    if (isControlled) {
+      onChange(newValue);
+      return;
+    }
+    
+    // For uncontrolled components, use debouncing with onSearch
+    if (onSearch) {
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      // Set a new timeout for debounced search
+      timeoutRef.current = setTimeout(() => {
+        onSearch(newValue);
+      }, 300);
+    }
+  };
+
+  // Clear search
+  const handleClear = () => {
+    setLocalSearchValue('');
+    if (isControlled) {
+      onChange('');
+    } else if (onSearch) {
+      onSearch('');
+    }
     
     // Clear any existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    
-    // Apply debounce to avoid excessive filtering
-    timeoutRef.current = setTimeout(() => {
-      onSearch(value);
-    }, 300);
   };
 
-  // Clear timeout on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -44,41 +90,34 @@ export function SearchBar({ initialValue = '', onSearch, placeholder = 'Search t
     };
   }, []);
 
-  // Clear search
-  const handleClear = () => {
-    setSearchValue('');
-    onSearch('');
-  };
-
   return (
-    <div 
-      className={`flex items-center w-full px-3 py-2 bg-white border rounded-md transition-all ${
-        isFocused ? 'border-indigo-500 shadow-sm' : 'border-gray-300'
-      }`}
-    >
-      <Search className="w-4 h-4 text-gray-400 mr-2" />
-      
-      <input
-        type="text"
-        value={searchValue}
-        onChange={handleChange}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        placeholder={placeholder}
-        className="flex-grow outline-none text-gray-700 text-sm"
-        aria-label="Search tasks by title, description, status, priority, or category"
-      />
-      
-      {searchValue && (
-        <button 
-          onClick={handleClear}
-          className="p-1 rounded-full hover:bg-gray-100"
-          type="button"
-          aria-label="Clear search"
-        >
-          <X className="w-4 h-4 text-gray-400" />
-        </button>
-      )}
+    <div className="relative">
+      <div className={`
+        flex items-center px-3 py-2 bg-white border rounded-lg transition-all
+        ${isFocused ? 'border-blue-500 shadow-sm ring-1 ring-blue-500' : 'border-gray-300'}
+      `}>
+        <Search className="w-5 h-5 text-gray-400 mr-2" />
+        
+        <input
+          type="text"
+          value={searchValue}
+          onChange={handleChange}
+          placeholder={placeholder}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className="flex-1 outline-none bg-transparent text-gray-700 placeholder-gray-400"
+        />
+        
+        {searchValue && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

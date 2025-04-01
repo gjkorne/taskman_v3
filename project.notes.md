@@ -2,6 +2,8 @@ Notes and Additional Features
 
 - *** Quick Changes ***
  ~~Change in top left~~ 
+ remove grid view
+ 
 
 
 - ***Ideas for additional features:***
@@ -47,9 +49,9 @@ Session logging
 Review the Timer component you already have to prepare for enhancements
 
 - Recommendations Before Moving On
-X Documentation Update
-    X Document the current state of the application
-    X Update any design documents or component diagrams
+~~  X Documentation Update~~    
+~~    X Document the current state of the application~~
+~~    X Update any design documents or component diagrams~~
 Technical Debt Assessment
      Address any quick fixes or workarounds that should be properly implemented
      Look for components that may need refactoring before adding more features

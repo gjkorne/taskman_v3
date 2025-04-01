@@ -13,9 +13,9 @@ import { useTimer } from '../../contexts/TimerContext';
 
 interface TaskCardProps {
   task: Task;
-  onEdit: (taskId: string) => void;
-  onDelete: (taskId: string) => void;
-  updateTaskStatus: (taskId: string, status: string) => void;
+  onEdit?: (taskId: string) => void;
+  onDelete?: (taskId: string) => void;
+  updateTaskStatus?: (taskId: string, status: string) => void;
 }
 
 export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardProps) {
@@ -33,6 +33,29 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
       case 'personal': return 'text-blue-600'; // Bold blue
       case 'childcare': return 'text-cyan-600'; // Bold cyan
       default: return 'text-gray-600'; // Bold gray
+    }
+  };
+
+  // Handle status change
+  const handleStatusChange = (newStatus: string) => {
+    if (updateTaskStatus) {
+      updateTaskStatus(task.id, newStatus);
+    }
+  };
+
+  // Handle task editing
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(task.id);
+      setIsMenuOpen(false);
+    }
+  };
+
+  // Handle task deletion
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(task.id);
+      setIsMenuOpen(false);
     }
   };
 
@@ -71,19 +94,13 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
             onMouseLeave={() => setIsMenuOpen(false)}
           >
             <button
-              onClick={() => {
-                onEdit(task.id);
-                setIsMenuOpen(false);
-              }}
+              onClick={handleEdit}
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
             >
               Edit
             </button>
             <button
-              onClick={() => {
-                onDelete(task.id);
-                setIsMenuOpen(false);
-              }}
+              onClick={handleDelete}
               className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
             >
               Delete
@@ -121,7 +138,7 @@ export function TaskCard({ task, onEdit, onDelete, updateTaskStatus }: TaskCardP
           <TaskActions 
             taskId={task.id}
             status={task.status}
-            updateTaskStatus={updateTaskStatus}
+            updateTaskStatus={handleStatusChange}
           />
           
           {/* Timer controls - next to action buttons */}

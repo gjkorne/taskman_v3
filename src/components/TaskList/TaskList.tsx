@@ -3,7 +3,6 @@ import { supabase } from '../../lib/supabase';
 import { RefreshCw } from 'lucide-react';
 import { TaskEditForm } from './TaskEditForm';
 import { FilterPanel, defaultFilters, TaskFilter } from './FilterPanel';
-import { TaskCard } from './TaskCard';
 import { TaskContainer } from './TaskContainer';
 import { SearchBar } from './SearchBar';
 import { filterAndSortTasks } from '../../lib/taskUtils';
@@ -29,123 +28,126 @@ export function TaskList() {
     viewMode: 'list'
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      await fetchTasks();
-      setIsLoading(false);
-    };
-    
-    fetchData();
-  }, []);
+  // Reset filters function
+  const resetFilters = () => {
+    setFilters({
+      ...defaultFilters,
+      viewMode: filters.viewMode // Keep current view mode when resetting
+    });
+    setSearchQuery('');
+  };
 
-  async function fetchTasks() {
+  // Filter and sort tasks
+  const sortedTasks = filterAndSortTasks(tasks, filters, searchQuery);
+
+  // Fetch tasks from Supabase
+  const fetchTasks = async () => {
+    setIsLoading(true);
+    setError(null);
+
     try {
-      setIsRefreshing(true);
-      setError(null);
-
+      // Check for authenticated session
       const { data: { session } } = await supabase.auth.getSession();
-
+      
       if (!session) {
-        setError("Not authenticated. Please log in.");
+        setError("You must be logged in to view tasks");
+        setIsLoading(false);
         return;
       }
 
-      let query = supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .eq('created_by', session.user.id)
-        .eq('is_deleted', false);
-
-      const { data, error } = await query;
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false });
 
       if (error) {
-        throw error;
-      }
-
-      if (data) {
-        // Only log data in development mode
         if (isDevelopment) {
-          console.log('Fetched tasks:', data.length);
+          console.error("Error fetching tasks:", error);
         }
-        
+        setError("Failed to load tasks. Please try again later.");
+      } else {
         setTasks(data || []);
       }
-    } catch (err: any) {
+    } catch (err) {
       if (isDevelopment) {
-        console.error('Error fetching tasks:', err);
+        console.error("Exception fetching tasks:", err);
       }
-      setError(err.message || 'Failed to load tasks');
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
-      setIsRefreshing(false);
     }
-  }
+  };
 
-  // Function to quickly update a task's status
+  // Load tasks on component mount
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  // Handle task status change
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
     try {
       const { error } = await supabase
         .from('tasks')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .update({ 
+          status: newStatus
+        })
         .eq('id', taskId);
 
-      if (error) throw error;
-      
-      // Optimistically update the UI
-      setTasks(currentTasks => 
-        currentTasks.map(task => 
-          task.id === taskId 
-            ? { ...task, status: newStatus }
-            : task
-        )
-      );
-    } catch (error) {
-      if (isDevelopment) {
-        console.error('Error updating task status:', error);
+      if (error) {
+        if (isDevelopment) {
+          console.error("Error updating task status:", error);
+        }
+        throw new Error("Failed to update task status");
       }
+
+      // Update local state
+      setTasks(prev => prev.map(task => 
+        task.id === taskId ? { ...task, status: newStatus } : task
+      ));
+    } catch (err) {
+      if (isDevelopment) {
+        console.error("Exception updating task status:", err);
+      }
+      setError("Failed to update task status. Please try again.");
     }
   };
 
-  // Generate the filtered and sorted task list
-  const sortedTasks = filterAndSortTasks(tasks, filters, searchQuery);
-
-  // Function to reset all filters
-  const resetFilters = () => {
-    setFilters(defaultFilters);
-    setSearchQuery('');
+  // Delete task handling
+  const openDeleteModal = (taskId: string) => {
+    setTaskToDelete(taskId);
+    setIsDeleteModalOpen(true);
   };
 
-  // Function to handle task deletion
-  const handleDeleteTask = async () => {
+  const confirmDelete = async () => {
     if (!taskToDelete) return;
-
+    
     try {
       const { error } = await supabase
         .from('tasks')
         .update({ is_deleted: true })
         .eq('id', taskToDelete);
 
-      if (error) throw error;
+      if (error) {
+        if (isDevelopment) {
+          console.error("Error deleting task:", error);
+        }
+        throw new Error("Failed to delete task");
+      }
 
-      // Remove the task from the UI
-      setTasks(tasks.filter(task => task.id !== taskToDelete));
+      // Update local state
+      setTasks(prev => prev.filter(task => task.id !== taskToDelete));
       
       // Close the modal
       setIsDeleteModalOpen(false);
       setTaskToDelete(null);
-    } catch (err: any) {
+    } catch (err) {
       if (isDevelopment) {
-        console.error('Error deleting task:', err);
+        console.error("Exception deleting task:", err);
       }
-      setError(err.message || 'Failed to delete task');
+      setError("Failed to delete task. Please try again.");
     }
-  };
-
-  // Open the delete confirmation modal
-  const openDeleteModal = (taskId: string) => {
-    setTaskToDelete(taskId);
-    setIsDeleteModalOpen(true);
   };
 
   // Function to handle editing a task
@@ -172,114 +174,136 @@ export function TaskList() {
         <h1 className="text-2xl font-bold mb-6">Tasks</h1>
         <TaskContainer 
           isLoading={true}
-          isEmpty={false}
+          tasks={[]}
           viewMode={filters.viewMode}
-        >
-          {[]}
-        </TaskContainer>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-        <p className="font-medium">Error loading tasks</p>
-        <p className="text-sm">{error}</p>
+        />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold text-gray-800">Your Tasks</h2>
-        <button 
-          onClick={handleRefresh}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          disabled={isRefreshing}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
-
-      {isRefreshing && (
-        <div className="text-center py-2 text-sm text-gray-500">
-          Refreshing tasks...
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+        <h1 className="text-2xl font-bold">Tasks</h1>
+        <div className="flex items-center mt-2 sm:mt-0">
+          <button
+            onClick={handleRefresh}
+            className="flex items-center text-gray-600 hover:text-indigo-600 mr-2"
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
         </div>
-      )}
-
-      {/* Search Bar */}
-      <div className="mb-4">
-        <SearchBar 
-          onSearch={setSearchQuery} 
-          initialValue={searchQuery}
-          placeholder="Search by title, description, status, priority, or category..."
-        />
       </div>
 
-      {/* Filter Panel */}
-      <FilterPanel 
-        filters={filters}
-        onFilterChange={setFilters}
-        onResetFilters={resetFilters}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-6">
+        <div className="space-y-4">
+          <SearchBar 
+            value={searchQuery} 
+            onChange={setSearchQuery} 
+          />
 
-      {/* Task List */}
-      <TaskContainer 
-        isLoading={isLoading && !isRefreshing}
-        isEmpty={sortedTasks.length === 0}
-        viewMode={filters.viewMode}
-      >
-        {sortedTasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
+          {error && (
+            <div className="bg-red-50 border border-red-200 p-4 rounded-lg mb-6">
+              <p className="text-red-700">{error}</p>
+            </div>
+          )}
+
+          {/* Task Container */}
+          <TaskContainer
+            isLoading={isLoading}
+            tasks={sortedTasks}
+            viewMode={filters.viewMode}
+            onStatusChange={updateTaskStatus}
             onEdit={handleEdit}
             onDelete={openDeleteModal}
-            updateTaskStatus={updateTaskStatus}
           />
-        ))}
-      </TaskContainer>
 
-      {/* Delete Confirmation Modal */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Confirm Deletion</h3>
-            <p className="text-gray-500 mb-6">
-              Are you sure you want to delete this task? This action cannot be undone.
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  setTaskToDelete(null);
+          {sortedTasks.length === 0 && !isLoading && (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <h3 className="text-lg font-medium text-gray-900">No tasks found</h3>
+              <p className="mt-2 text-gray-500">
+                {tasks.length > 0 
+                  ? 'Try adjusting your filters or search query'
+                  : 'Create your first task to get started'
+                }
+              </p>
+              {tasks.length > 0 && (
+                <button
+                  onClick={resetFilters}
+                  className="mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                >
+                  Reset filters
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Filter Panel */}
+        <div className="order-first md:order-last">
+          <FilterPanel 
+            filters={filters} 
+            onChange={setFilters}
+            taskCount={tasks.length}
+            filteredCount={sortedTasks.length}
+            onReset={resetFilters}
+          />
+        </div>
+      </div>
+
+      {/* Task Edit Modal */}
+      {isEditModalOpen && editTaskId && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-auto">
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-medium">Edit Task</h2>
+            </div>
+            <div className="p-4">
+              <TaskEditForm
+                taskId={editTaskId}
+                onSaved={() => {
+                  // Refresh tasks after saving
+                  fetchTasks();
+                  setIsEditModalOpen(false);
+                  setEditTaskId(null);
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteTask}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Delete
-              </button>
+                onCancel={() => {
+                  setIsEditModalOpen(false);
+                  setEditTaskId(null);
+                }}
+              />
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit task modal */}
-      {isEditModalOpen && editTaskId && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <TaskEditForm
-            taskId={editTaskId}
-            onClose={() => setIsEditModalOpen(false)}
-            onTaskUpdated={fetchTasks}
-          />
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-4 border-b">
+              <h2 className="text-lg font-medium">Confirm Delete</h2>
+            </div>
+            <div className="p-4">
+              <p>Are you sure you want to delete this task? This action cannot be undone.</p>
+            </div>
+            <div className="flex justify-end p-4 space-x-2 border-t">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-white bg-red-600 rounded-md hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
