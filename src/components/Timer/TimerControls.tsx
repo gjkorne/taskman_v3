@@ -1,7 +1,6 @@
 import { Play, Pause, Square } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useTimer } from '../../contexts/TimerContext';
-import { useTaskContext } from '../../contexts/TaskContext';
 
 interface TimerControlsProps {
   taskId: string;
@@ -12,7 +11,7 @@ interface TimerControlsProps {
 
 export function TimerControls({ taskId, compact = false, className, onTimerStateChange }: TimerControlsProps) {
   const { timerState, startTimer, pauseTimer, resumeTimer, stopTimer, formatElapsedTime } = useTimer();
-  const { refreshTasks } = useTaskContext();
+  // const { refreshTasks } = useTaskContext(); // No longer needed here
   
   // Validate taskId to ensure it's a UUID
   const isValidTaskId = typeof taskId === 'string' && 
@@ -27,28 +26,22 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
     console.log('TimerControls: Starting timer for task:', taskId);
     await startTimer(taskId);
     
-    // Refresh task list to immediately update UI
-    refreshTasks();
-    
     if (onTimerStateChange) onTimerStateChange();
   };
   
   // Add handlers for pause, resume and stop with task list refresh
   const handlePauseTimer = async () => {
     await pauseTimer();
-    refreshTasks();
     if (onTimerStateChange) onTimerStateChange();
   };
   
   const handleResumeTimer = async () => {
     await resumeTimer();
-    refreshTasks();
     if (onTimerStateChange) onTimerStateChange();
   };
   
   const handleStopTimer = async () => {
     await stopTimer();
-    refreshTasks();
     if (onTimerStateChange) onTimerStateChange();
   };
   

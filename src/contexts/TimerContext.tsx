@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { TaskContext } from './TaskContext'; // Assuming TaskContext provides refreshTasks
+import { TaskContext } from './TaskContext'; 
 import { Task, TaskStatus, TaskStatusType } from '../types/task';
 import { User } from '@supabase/supabase-js';
+import { useTaskActions } from '../hooks/useTaskActions'; 
 
 // Helper to convert milliseconds to PostgreSQL interval format (e.g., 'PT1H2M3S')
 // Supabase client might handle Date/ISO strings directly for intervals, but manual is safer
@@ -28,10 +29,10 @@ interface TimerContextType {
   timerState: TimerState;
   startTimer: (taskId: string) => Promise<void>;
   pauseTimer: () => Promise<void>;
-  resumeTimer: () => Promise<void>; // Added resume function
-  stopTimer: (finalStatus?: TaskStatusType) => Promise<void>; // Can set final status (e.g., completed)
+  resumeTimer: () => Promise<void>; 
+  stopTimer: (finalStatus?: TaskStatusType) => Promise<void>; 
   resetTimer: () => void;
-  formatElapsedTime: () => string; // Consider renaming? Maybe formatTotalTime?
+  formatElapsedTime: () => string; 
   getDisplayTime: (task: Task) => string;
   loadTimerState: () => void;
   clearTimerStorage: () => void;
@@ -104,18 +105,12 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   // Get task context to update UI after timer actions
   const taskContext = useContext(TaskContext);
 
-  // Function to ensure task list updates after timer actions
-  const refreshTasksAfterAction = async () => {
-    // Wait a small delay to ensure DB operations complete
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Force a task list refresh
-    if (taskContext) {
-      console.log('Refreshing tasks after timer action');
-      await taskContext.refreshTasks();
-    }
-  };
-  
+  // Use the task actions hook, passing the refreshTasks function from context
+  const taskActions = useTaskActions({
+    refreshTasks: taskContext?.refreshTasks,
+    showToasts: false // Optionally disable toasts if they are redundant here
+  });
+ 
   // Get current user
   useEffect(() => {
     const fetchUser = async () => {
@@ -284,13 +279,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       
       newSessionId = newSession.id;
 
-      // 2. Update task status to 'active'
-      const { error: statusError } = await supabase
-        .from('tasks')
-        .update({ status: TaskStatus.ACTIVE })
-        .eq('id', taskId);
-
-      if (statusError) throw statusError;
+      // 2. Update task status to ACTIVE using the hook
+      await taskActions.startTask(taskId);
 
       // 3. Update local state
       setTimerState({
@@ -305,9 +295,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       });
 
       // No need to explicitly call startTimerInterval, useEffect handles it
-      
-      // Refresh task list in UI
-      await refreshTasksAfterAction();
 
     } catch (error) {
       console.error('Error starting timer:', error);
@@ -341,15 +328,10 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
       if (updateSessionError) throw updateSessionError;
 
-      // 2. Update task status to 'paused'
-      const { error: statusError } = await supabase
-        .from('tasks')
-        .update({ status: TaskStatus.PAUSED })
-        .eq('id', timerState.taskId);
-        
-      if (statusError) throw statusError;
+      // 2. Update task status to PAUSED using the hook
+      await taskActions.pauseTask(timerState.taskId);
       
-      // 3. Update task's total actual_time (using helper for robustness)
+      // 3. Update task's total actual_time in DB (still needed after session ends)
       await updateTaskActualTime(timerState.taskId);
 
       // 4. Update local state
@@ -365,9 +347,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       }));
       
       // Interval stopping is handled by useEffect
-
-      // Refresh task list in UI
-      await refreshTasksAfterAction();
 
     } catch (error) {
       console.error('Error pausing timer:', error);
@@ -404,15 +383,10 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
         newSessionId = newSession.id;
 
-        // 2. Update task status back to 'active'
-        const { error: statusError } = await supabase
-            .from('tasks')
-            .update({ status: TaskStatus.ACTIVE })
-            .eq('id', timerState.taskId);
+        // 2. Update task status to ACTIVE using the hook
+        await taskActions.startTask(timerState.taskId); // startTask sets status to ACTIVE
 
-        if (statusError) throw statusError;
-
-        // 3. Update local state
+        // 3. Update local timer state
         setTimerState(prevState => ({
             ...prevState, // Keep taskId and previouslyElapsed
             status: 'running',
@@ -424,9 +398,6 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         
         // Interval starting is handled by useEffect
 
-        // Refresh task list in UI
-        await refreshTasksAfterAction();
-
     } catch (error) {
         console.error('Error resuming timer:', error);
         // Consider resetting state or notifying user
@@ -435,51 +406,43 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
   // Stop timer completely (e.g., when task is completed)
   const stopTimer = async (finalStatus: TaskStatusType = TaskStatus.COMPLETED) => {
-    // If timer was running, first pause it to log the final session
-    if (timerState.status === 'running') {
-        try {
-            await pauseTimer(); // Reuse pause logic to end the session
-            // Note: pauseTimer already updates actual_time
-        } catch (error) {
-            console.error('Error during pause step in stopTimer:', error);
-            // Decide if we should proceed or abort stopping
-            // return; // Option: abort if pausing failed
-        }
-    }
-    // Even if paused, we might want to set a final status
-    if (timerState.taskId) {
-        try {
-             // Update task status to the final desired status
-            const { error: statusError } = await supabase
-                .from('tasks')
-                .update({ status: finalStatus })
-                .eq('id', timerState.taskId);
+    if (timerState.status === 'idle' || !timerState.taskId) return;
+    const currentTaskId = timerState.taskId; // Store taskId before potential state changes
 
-            if (statusError) throw statusError;
-            
-             // If final status requires it, ensure actual_time is up-to-date
-             // (pauseTimer should have done this if timer was running)
-             if (timerState.status === 'paused') {
-                 await updateTaskActualTime(timerState.taskId);
-             }
+    try {
+      // If timer is still running, pause it first to record the session
+      if (timerState.status === 'running') {
+        // We need to update the session end_time and task actual_time
+        const endTime = new Date().toISOString();
+        const { error: updateSessionError } = await supabase
+          .from('time_sessions')
+          .update({ end_time: endTime })
+          .eq('id', timerState.sessionId);
+        if (updateSessionError) throw updateSessionError;
 
-            // Reset local state completely
-            setTimerState(getInitialState());
-            localStorage.removeItem('timerState'); // Clear storage too
+        await updateTaskActualTime(currentTaskId);
+      }
 
-            // Refresh task list in UI
-            await refreshTasksAfterAction();
+      // 2. Update task status to the final desired status using the hook
+      // Use specific actions if available, otherwise use updateTaskStatus directly
+      if (finalStatus === TaskStatus.COMPLETED) {
+        await taskActions.completeTask(currentTaskId);
+      } else if (finalStatus === TaskStatus.ARCHIVED) {
+        await taskActions.archiveTask(currentTaskId);
+      } else {
+        // Fallback for other statuses if needed
+        await taskActions.updateTaskStatus(currentTaskId, finalStatus);
+      }
 
-        } catch (error) {
-            console.error(`Error setting final status (${finalStatus}) or resetting timer:`, error);
-            // Maybe just reset local state anyway?
-             setTimerState(getInitialState());
-             localStorage.removeItem('timerState');
-        }
-    } else {
-         // If no task ID, just reset local state
-         setTimerState(getInitialState());
-         localStorage.removeItem('timerState');
+      // 3. Reset local timer state
+      setTimerState(getInitialState());
+      localStorage.removeItem('timerState');
+
+    } catch (err) {
+      console.error("Exception in stopTimer:", err);
+      // Should we attempt to reset local state even on error?
+      setTimerState(getInitialState()); // Resetting locally anyway
+      localStorage.removeItem('timerState');
     }
   };
 
@@ -535,10 +498,10 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     timerState,
     startTimer,
     pauseTimer,
-    resumeTimer, // Expose resumeTimer
+    resumeTimer, 
     stopTimer,
     resetTimer,
-    formatElapsedTime: formatTotalTime, // Use the renamed function
+    formatElapsedTime: formatTotalTime, 
     getDisplayTime,
     loadTimerState,
     clearTimerStorage,

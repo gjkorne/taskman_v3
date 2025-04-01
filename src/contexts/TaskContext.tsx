@@ -16,7 +16,7 @@ interface TaskContextType {
   // Task operations
   fetchTasks: () => Promise<void>;
   refreshTasks: () => Promise<void>;
-  updateTaskStatus: (taskId: string, newStatus: string) => Promise<void>;
+  updateTaskStatus: (taskId: string, newStatus: TaskStatusType) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   
   // UI state management
@@ -115,7 +115,8 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Update task status using taskService
-  const updateTaskStatus = async (taskId: string, newStatus: string) => {
+  const updateTaskStatus = async (taskId: string, newStatus: TaskStatusType) => {
+    console.log(`[TaskContext] updateTaskStatus called for task ${taskId} to ${newStatus}`);
     try {
       const { error: apiError } = await taskService.updateTaskStatus(taskId, newStatus);
 
@@ -127,6 +128,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Update local state for immediate UI feedback
+      console.log(`[TaskContext] Attempting to set tasks with status ${newStatus} for ${taskId}`);
       setTasks(prev => prev.map(task => 
         task.id === taskId ? { ...task, status: newStatus } : task
       ));
@@ -134,6 +136,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
       if (isDevelopment) {
         console.error("Exception updating task status:", err);
       }
+      console.log(`[TaskContext] Rolling back optimistic update for task ${taskId}`);
       setError("Failed to update task status. Please try again.");
     }
   };
