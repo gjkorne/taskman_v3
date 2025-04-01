@@ -53,16 +53,64 @@ export function TaskContainer({
     );
   }
 
+  // Improved active task filtering to handle different formats of 'active' status
+  const activeTasks = tasks.filter(task => {
+    // Log task statuses to help debugging
+    console.log(`Task ID: ${task.id}, Status: ${task.status}, Type: ${typeof task.status}`);
+    
+    // Check for various forms of 'active' - case insensitive comparison
+    return typeof task.status === 'string' && 
+           task.status.toLowerCase() === 'active';
+  });
+  
+  const otherTasks = tasks.filter(task => {
+    return typeof task.status === 'string' && 
+           task.status.toLowerCase() !== 'active';
+  });
+
+  // Log overall counts for debugging
+  console.log(`Total tasks: ${tasks.length}, Active: ${activeTasks.length}, Other: ${otherTasks.length}`);
+
   return (
-    <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
-      {tasks.map((task) => (
-        <TaskCard
-          key={task.id}
-          task={task}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      ))}
+    <div className="space-y-6">
+      {/* Active Tasks Section */}
+      {activeTasks.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-indigo-700 mb-3 flex items-center">
+            <span className="inline-block h-3 w-3 rounded-full bg-green-500 mr-2 animate-pulse"></span>
+            Active Tasks ({activeTasks.length})
+          </h2>
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
+            {activeTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Other Tasks Section */}
+      {otherTasks.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-700 mb-3">
+            {activeTasks.length > 0 ? 'Other Tasks' : 'All Tasks'} ({otherTasks.length})
+          </h2>
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
+            {otherTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

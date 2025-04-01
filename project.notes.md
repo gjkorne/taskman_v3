@@ -71,3 +71,4 @@ Design Review
      ~~Ensure UI consistency across all implemented components~~
     ~~Verify the mobile responsiveness of the new settings page~~
 
+- 

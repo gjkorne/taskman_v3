@@ -1,6 +1,7 @@
 import { Play, Pause, Square } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useTimer } from '../../contexts/TimerContext';
+import { useTaskContext } from '../../contexts/TaskContext';
 
 interface TimerControlsProps {
   taskId: string;
@@ -10,20 +11,44 @@ interface TimerControlsProps {
 }
 
 export function TimerControls({ taskId, compact = false, className, onTimerStateChange }: TimerControlsProps) {
-  const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime } = useTimer();
+  const { timerState, startTimer, pauseTimer, resumeTimer, stopTimer, formatElapsedTime } = useTimer();
+  const { refreshTasks } = useTaskContext();
   
   // Validate taskId to ensure it's a UUID
   const isValidTaskId = typeof taskId === 'string' && 
     taskId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) !== null;
   
   // Safely start the timer with validation
-  const handleStartTimer = () => {
+  const handleStartTimer = async () => {
     if (!isValidTaskId) {
       console.error('Invalid taskId provided to TimerControls:', taskId);
       return;
     }
     console.log('TimerControls: Starting timer for task:', taskId);
-    startTimer(taskId);
+    await startTimer(taskId);
+    
+    // Refresh task list to immediately update UI
+    refreshTasks();
+    
+    if (onTimerStateChange) onTimerStateChange();
+  };
+  
+  // Add handlers for pause, resume and stop with task list refresh
+  const handlePauseTimer = async () => {
+    await pauseTimer();
+    refreshTasks();
+    if (onTimerStateChange) onTimerStateChange();
+  };
+  
+  const handleResumeTimer = async () => {
+    await resumeTimer();
+    refreshTasks();
+    if (onTimerStateChange) onTimerStateChange();
+  };
+  
+  const handleStopTimer = async () => {
+    await stopTimer();
+    refreshTasks();
     if (onTimerStateChange) onTimerStateChange();
   };
   
@@ -106,28 +131,28 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
         <div className="flex space-x-1">
           {isRunning ? (
             <button
-              onClick={pauseTimer}
-              className="p-1 rounded-full hover:bg-slate-200 text-amber-600"
+              onClick={handlePauseTimer}
+              className="p-1 rounded hover:bg-amber-100 text-amber-600"
               title="Pause timer"
             >
-              <Pause size={16} />
+              <Pause size={14} />
             </button>
           ) : (
             <button
-              onClick={handleStartTimer}
-              className="p-1 rounded-full hover:bg-slate-200 text-emerald-600"
+              onClick={handleResumeTimer}
+              className="p-1 rounded hover:bg-emerald-100 text-emerald-600"
               title="Resume timer"
             >
-              <Play size={16} />
+              <Play size={14} />
             </button>
           )}
           
           <button
-            onClick={stopTimer}
-            className="p-1 rounded-full hover:bg-slate-200 text-blue-600"
-            title="Complete and stop timer"
+            onClick={handleStopTimer}
+            className="p-1 rounded hover:bg-red-100 text-red-600"
+            title="Stop timer"
           >
-            <Square size={16} />
+            <Square size={14} />
           </button>
         </div>
       </div>

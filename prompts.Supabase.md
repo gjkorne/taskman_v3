@@ -9,7 +9,7 @@ supabase login
 supabase link J3w!Ynj<6x,+,q2O
 supabase db push
 
-Supabase
+***RUN npm run dev*
 
 Absolutely, Greg! Here's a **clean, step-by-step guide to setting up and using the Supabase CLI using only `cmd` (Command Prompt)** — no PowerShell or fancy terminal needed.
 
