@@ -10,6 +10,8 @@ import { Timer } from './components/Timer';
 import { Reports } from './components/Reports';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
+import { TaskDetailsPage } from './pages/TaskDetailsPage';
+import { TimeSessionsPage } from './pages/TimeSessionsPage';
 import { useAuth } from './lib/auth';
 import { TimerProvider } from './contexts/TimerContext';
 import { SettingsProvider } from './contexts/SettingsContext';
@@ -46,7 +48,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'settings' | 'admin'>('tasks');
+  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions'>('tasks');
   const taskListRef = useRef<TaskListRefType>(null);
 
   // Handler for when a task is created through the global button
@@ -93,16 +95,55 @@ function App() {
                                   onTaskCreated={handleTaskCreated}
                                   onTimerStateChange={handleTimerStateChange}
                                 >
-                                  {activeView === 'tasks' && <TaskList ref={taskListRef} />}
+                                  {activeView === 'tasks' && (
+                                    <TaskList 
+                                      ref={taskListRef} 
+                                      onTimerStateChange={handleTimerStateChange} 
+                                    />
+                                  )}
                                   {activeView === 'timer' && <Timer />}
                                   {activeView === 'reports' && <Reports />}
                                   {activeView === 'settings' && <SettingsPage />}
                                   {activeView === 'admin' && <AdminPage />}
+                                  {activeView === 'time-sessions' && <TimeSessionsPage />}
                                 </Layout>
                               </ProtectedRoute>
                             }
                           />
-                          <Route path="*" element={<Navigate to="/" />} />
+                          {/* Task detail page */}
+                          <Route 
+                            path="/tasks/:taskId" 
+                            element={
+                              <ProtectedRoute>
+                                <Layout 
+                                  activeView="tasks"
+                                  onViewChange={setActiveView}
+                                  onTaskCreated={handleTaskCreated}
+                                  onTimerStateChange={handleTimerStateChange}
+                                >
+                                  <TaskDetailsPage />
+                                </Layout>
+                              </ProtectedRoute>
+                            } 
+                          />
+                          {/* Time sessions page (separate from main view) */}
+                          <Route 
+                            path="/time-sessions" 
+                            element={
+                              <ProtectedRoute>
+                                <Layout 
+                                  activeView="time-sessions"
+                                  onViewChange={setActiveView}
+                                  onTaskCreated={handleTaskCreated}
+                                  onTimerStateChange={handleTimerStateChange}
+                                >
+                                  <TimeSessionsPage />
+                                </Layout>
+                              </ProtectedRoute>
+                            } 
+                          />
+                          {/* Catch-all redirect */}
+                          <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>
                       </BrowserRouter>
                     </CategoryProvider>
@@ -117,4 +158,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

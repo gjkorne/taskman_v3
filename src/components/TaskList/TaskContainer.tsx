@@ -1,4 +1,4 @@
-import { Task } from '../../types/task';
+import { Task, TaskStatus } from '../../types/task';
 import { TaskFilter } from './FilterPanel';
 import { TaskCard } from './TaskCard';
 import { useTimer } from '../../contexts/TimerContext';
@@ -9,6 +9,7 @@ interface TaskContainerProps {
   viewMode: TaskFilter['viewMode'];
   onEdit?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
+  onTimerStateChange?: () => void;
 }
 
 export function TaskContainer({
@@ -16,7 +17,8 @@ export function TaskContainer({
   isLoading,
   viewMode,
   onEdit,
-  onDelete
+  onDelete,
+  onTimerStateChange
 }: TaskContainerProps) {
   if (isLoading) {
     return (
@@ -57,54 +59,55 @@ export function TaskContainer({
   // Get the current timer state to accurately identify the active task
   const { timerState } = useTimer();
 
-  // Improved active task filtering to handle different formats of 'active' status
+  // FIXED: Improved active task filtering to ensure categories are mutually exclusive
+  // ACTIVE TASKS: Tasks that are currently being TIMED (timer running)
   const activeTasks = tasks.filter(task => {
-    // Log task statuses to help debugging
-    console.log(`Task ID: ${task.id}, Status: ${task.status}, Type: ${typeof task.status}`);
-    
-    // First check if this task is currently being timed
-    const isBeingTimed = timerState.taskId === task.id && timerState.status === 'running';
-    
-    // Then check if it has the 'active' status
-    const hasActiveStatus = typeof task.status === 'string' && 
-                          task.status.toLowerCase() === 'active';
-                          
-    // A task should be shown in Active Tasks section if either condition is true
-    return isBeingTimed || hasActiveStatus;
+    return timerState.taskId === task.id && timerState.status === 'running';
   });
   
-  // Get paused tasks (tasks with a paused timer)
-  const pausedTasks = tasks.filter(task => 
-    timerState.taskId === task.id && timerState.status === 'paused'
-  );
-
-  const otherTasks = tasks.filter(task => {
-    // First check if this task is currently being timed
-    const isBeingTimed = timerState.taskId === task.id && timerState.status === 'running';
-    
-    // Then check if it has the 'active' status
-    const hasActiveStatus = typeof task.status === 'string' && 
-                         task.status.toLowerCase() === 'active';
-                         
-    // Check if this task has a paused timer
+  // PAUSED TASKS: Tasks with paused timers BUT NOT in completed/archived status
+  const pausedTasks = tasks.filter(task => {
     const isPaused = timerState.taskId === task.id && timerState.status === 'paused';
-                         
-    // A task should be shown in Other Tasks section only if:
-    // 1. It's not actively being timed
-    // 2. It doesn't have active status
-    // 3. It doesn't have a paused timer
-    return !isBeingTimed && !hasActiveStatus && !isPaused;
+    const isCompletedOrArchived = 
+      task.status === TaskStatus.COMPLETED || 
+      task.status === TaskStatus.ARCHIVED;
+    
+    // Only show in paused section if timer is paused AND task isn't completed/archived
+    return isPaused && !isCompletedOrArchived;
+  });
+
+  // PROGRESS TASKS: Tasks with in_progress status but NOT currently being timed or paused
+  const inProgressTasks = tasks.filter(task => {
+    const isBeingTimed = timerState.taskId === task.id && 
+                        (timerState.status === 'running' || timerState.status === 'paused');
+    const hasInProgressStatus = task.status === TaskStatus.IN_PROGRESS;
+    
+    // Only show in this section if it has in_progress status but no active timer
+    return hasInProgressStatus && !isBeingTimed;
+  });
+
+  // OTHER TASKS: Everything else (not being timed, not paused, not in progress)
+  const otherTasks = tasks.filter(task => {
+    // Not being timed
+    const isBeingTimed = timerState.taskId === task.id && 
+                        (timerState.status === 'running' || timerState.status === 'paused');
+    
+    // Not in progress
+    const hasInProgressStatus = task.status === TaskStatus.IN_PROGRESS;
+    
+    // A task should be in Other Tasks only if it's not in any other section
+    return !isBeingTimed && !hasInProgressStatus;
   });
 
   // Log overall counts for debugging
-  console.log(`Total tasks: ${tasks.length}, Active: ${activeTasks.length}, Other: ${otherTasks.length}`);
+  console.log(`Total tasks: ${tasks.length}, Active: ${activeTasks.length}, Paused: ${pausedTasks.length}, In Progress: ${inProgressTasks.length}, Other: ${otherTasks.length}`);
 
   return (
     <div className="space-y-6">
-      {/* Active Tasks Section */}
+      {/* Active Tasks Section - Tasks currently being timed */}
       {activeTasks.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-indigo-700 mb-3 flex items-center">
+          <h2 className="text-lg font-semibold text-green-600 mb-3 flex items-center">
             <span className="inline-block h-3 w-3 rounded-full bg-green-500 mr-2 animate-pulse"></span>
             Active Tasks ({activeTasks.length})
           </h2>
@@ -115,13 +118,14 @@ export function TaskContainer({
                 task={task}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onTimerStateChange={onTimerStateChange}
               />
             ))}
           </div>
         </div>
       )}
       
-      {/* Paused Tasks Section */}
+      {/* Paused Tasks Section - Tasks with paused timers */}
       {pausedTasks.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-amber-600 mb-3 flex items-center">
@@ -135,6 +139,28 @@ export function TaskContainer({
                 task={task}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onTimerStateChange={onTimerStateChange}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* In Progress Tasks Section - Tasks marked as in_progress but not being timed */}
+      {inProgressTasks.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-indigo-600 mb-3 flex items-center">
+            <span className="inline-block h-3 w-3 rounded-full bg-indigo-500 mr-2"></span>
+            In Progress Tasks ({inProgressTasks.length})
+          </h2>
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
+            {inProgressTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onTimerStateChange={onTimerStateChange}
               />
             ))}
           </div>
@@ -145,7 +171,7 @@ export function TaskContainer({
       {otherTasks.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-gray-700 mb-3">
-            {activeTasks.length > 0 || pausedTasks.length > 0 ? 'Other Tasks' : 'All Tasks'} ({otherTasks.length})
+            {activeTasks.length > 0 || pausedTasks.length > 0 || inProgressTasks.length > 0 ? 'Other Tasks' : 'All Tasks'} ({otherTasks.length})
           </h2>
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
             {otherTasks.map((task) => (
@@ -154,6 +180,7 @@ export function TaskContainer({
                 task={task}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onTimerStateChange={onTimerStateChange}
               />
             ))}
           </div>

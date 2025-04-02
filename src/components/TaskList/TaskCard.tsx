@@ -20,9 +20,10 @@ interface TaskCardProps {
   task: Task;
   onEdit?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
+  onTimerStateChange?: () => void;
 }
 
-export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { categories } = useCategories();
   const { timerState, stopTimer } = useTimer();
@@ -40,9 +41,6 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
   const categoryName = getTaskCategory(task);
   const { id: categoryId } = getTaskCategoryInfo(task, categories);
   
-  // Check if this task is being timed
-  const isBeingTimed = timerState.taskId === task.id && timerState.status !== 'idle';
-
   // Get the color for the ellipsis menu based on category
   const getCategoryColor = () => {
     const categoryStyle = getCategoryColorStyle(categoryName, categoryId, categories);
@@ -196,11 +194,11 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
           />
           
           {/* Timer controls - next to action buttons */}
-          {task.status !== 'completed' && (
+          {task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.ARCHIVED && (
             <TimerControls 
               taskId={task.id} 
               compact={true}
-              className={isBeingTimed ? "animate-pulse" : ""}
+              onTimerStateChange={onTimerStateChange}
             />
           )}
         </div>

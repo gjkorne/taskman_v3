@@ -27,8 +27,8 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, onClick }) => (
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeView: 'tasks' | 'timer' | 'reports' | 'settings' | 'admin';
-  onViewChange: (view: 'tasks' | 'timer' | 'reports' | 'settings' | 'admin') => void;
+  activeView: 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions';
+  onViewChange: (view: 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions') => void;
   onTaskCreated?: () => void;
   onTimerStateChange?: () => void;
 }
@@ -85,6 +85,12 @@ export function Layout({ children, activeView, onViewChange, onTaskCreated, onTi
             label="Reports"
             active={activeView === 'reports'}
             onClick={() => onViewChange('reports')}
+          />
+          <NavItem
+            icon={<Clock className="w-5 h-5 text-indigo-500" />}
+            label="Time Sessions"
+            active={activeView === 'time-sessions'}
+            onClick={() => onViewChange('time-sessions')}
           />
           <NavItem
             icon={<Settings size={20} />}
