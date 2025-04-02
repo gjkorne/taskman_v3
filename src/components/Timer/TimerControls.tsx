@@ -1,8 +1,9 @@
-import { Play, Pause, Square } from 'lucide-react';
+import { Play, Pause, Square, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useTimer } from '../../contexts/TimerContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useToast } from '../../components/Toast/ToastContext';
+import { TaskStatus } from '../../types/task';
 
 // Debug flag - set to false in production
 const DEBUG_TIMER = false;
@@ -41,7 +42,7 @@ const TimerButton = ({
 }) => (
   <button
     onClick={onClick}
-    className={cn("p-1 rounded", className)}
+    className={cn("p-1.5 rounded", className)}
     title={title}
   >
     {icon}
@@ -66,14 +67,14 @@ const TimerControlButtons = ({
     {isRunning ? (
       <TimerButton
         onClick={onPause}
-        icon={<Pause size={14} />}
+        icon={<Pause size={16} />}
         title="Pause timer"
         className="hover:bg-amber-100 text-amber-600"
       />
     ) : (
       <TimerButton
         onClick={onResume}
-        icon={<Play size={14} />}
+        icon={<Play size={16} />}
         title="Resume timer"
         className="hover:bg-emerald-100 text-emerald-600"
       />
@@ -81,7 +82,7 @@ const TimerControlButtons = ({
     
     <TimerButton
       onClick={onStop}
-      icon={<Square size={14} />}
+      icon={<Square size={16} />}
       title="Stop timer"
       className="hover:bg-red-100 text-red-600"
     />
@@ -146,7 +147,8 @@ export function TimerControls({
    * Timer action handlers with consistent notification
    */
   const handlePauseTimer = async () => {
-    await pauseTimer();
+    // Update task status to in_progress when pausing (replaces 'paused')
+    await pauseTimer(TaskStatus.IN_PROGRESS);
     notifyStateChange();
   };
   
@@ -214,10 +216,20 @@ export function TimerControls({
     );
   }
   
-  // Compact active timer
+  // Compact active timer - ENHANCED VISIBILITY per project notes
   if (compact) {
     return (
-      <div className={cn("flex space-x-1", className)}>
+      <div className={cn(
+        "flex space-x-1 p-1 rounded-md", 
+        isRunning ? "bg-green-100 border border-green-300 shadow-md animate-pulse" : "bg-amber-100 border border-amber-300",
+        className
+      )}>
+        <div className="flex items-center mr-1">
+          <Clock size={14} className={isRunning ? "text-green-600" : "text-amber-600"} />
+          <span className="ml-1 font-mono text-xs font-medium">
+            {formatElapsedTime(true)}
+          </span>
+        </div>
         <TimerControlButtons
           isRunning={isRunning}
           onPause={handlePauseTimer}
@@ -228,17 +240,24 @@ export function TimerControls({
     );
   }
   
-  // Full-size active timer
+  // Full-size active timer - ENHANCED VISIBILITY per project notes
   return (
-    <div className={cn("flex flex-col space-y-2", className)}>
-      <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200">
+    <div className={cn(
+      "flex flex-col space-y-2 p-1 rounded-md", 
+      isRunning ? "bg-green-50 shadow-md border border-green-300" : "bg-amber-50 border border-amber-200",
+      className
+    )}>
+      <div className={cn(
+        "flex items-center justify-between px-3 py-2 rounded-md border", 
+        isRunning ? "border-green-300 bg-green-100 animate-pulse" : "border-amber-300 bg-amber-100"
+      )}>
         <div className="flex items-center space-x-2">
           {isRunning ? (
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse" />
           ) : (
-            <div className="h-2 w-2 rounded-full bg-amber-500" />
+            <div className="h-3 w-3 rounded-full bg-amber-500" />
           )}
-          <span className="font-mono text-sm font-medium">
+          <span className="font-mono text-lg font-medium">
             {formatElapsedTime()}
           </span>
         </div>
@@ -251,9 +270,13 @@ export function TimerControls({
         />
       </div>
       
-      <div className="flex justify-between text-xs text-gray-500 px-1">
-        <span>Task timing active</span>
-        <span>{formatElapsedTime()} elapsed</span>
+      <div className="flex justify-between text-xs px-1 font-medium">
+        <span className={isRunning ? "text-green-700" : "text-amber-700"}>
+          {isRunning ? "Task timing active" : "Timer paused"}
+        </span>
+        <span className="font-mono">
+          {formatElapsedTime()} elapsed
+        </span>
       </div>
     </div>
   );

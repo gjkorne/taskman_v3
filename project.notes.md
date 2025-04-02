@@ -1,4 +1,6 @@
 Notes and Additional Features
+***Tasskman.com domain is available! dont buy until divorced***
+
 
 - *** UI Changes ***
  ~~Change in top left~~ 

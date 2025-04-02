@@ -19,11 +19,11 @@ const msToInterval = (ms: number): string => {
 interface TimerContextType {
   timerState: TimerState;
   startTimer: (taskId: string) => Promise<void>;
-  pauseTimer: () => Promise<void>;
+  pauseTimer: (taskStatus?: TaskStatusType) => Promise<void>;
   resumeTimer: () => Promise<void>; 
   stopTimer: (finalStatus?: TaskStatusType) => Promise<void>; 
   resetTimer: () => void;
-  formatElapsedTime: () => string; 
+  formatElapsedTime: (compact?: boolean) => string; 
   getDisplayTime: (task: Task) => string;
   clearTimerStorage: () => void;
 }
@@ -88,7 +88,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         displayTime: formatTime(prevState.previouslyElapsed + currentSessionElapsed)
       }));
     }
-  }, [timerState.status, timerState.startTime]); // Dependencies
+  }, [timerState.status, timerState.startTime, setTimerState]); // Dependencies
 
   // Start/Stop the interval timer based on the status
   useEffect(() => {
@@ -225,7 +225,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Pause the currently running timer
-  const pauseTimer = async () => {
+  const pauseTimer = async (taskStatus: TaskStatusType = TaskStatus.IN_PROGRESS) => {
     if (timerState.status !== 'running' || !timerState.sessionId || !timerState.startTime || !timerState.taskId) {
       console.warn('Cannot pause: Timer not running or state is invalid.');
       return;
@@ -248,8 +248,8 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
       if (updateSessionError) throw updateSessionError;
 
-      // 2. Update task status to PAUSED using the hook
-      await taskActions.pauseTask(timerState.taskId);
+      // 2. Update task status using the provided status parameter
+      await taskActions.updateTaskStatus(timerState.taskId, taskStatus);
       
       // 3. Update task's total actual_time in DB (still needed after session ends)
       await updateTaskActualTime(timerState.taskId);
@@ -374,9 +374,21 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     clearTimerStorage(); // Clear storage
   };
 
-  // Format total time for display (previously formatElapsedTime)
-  const formatTotalTime = useCallback(() => {
+  // Format total time for display with compact option
+  const formatTotalTime = useCallback((compact: boolean = false) => {
       // This uses the state's displayTime which is updated by the interval
+      if (compact) {
+        // For compact displays, show mini time format (e.g., "1h 23m")
+        const time = timerState.displayTime.split(':');
+        const hours = parseInt(time[0], 10);
+        const minutes = parseInt(time[1], 10);
+        
+        if (hours > 0) {
+          return `${hours}h ${minutes}m`;
+        } else {
+          return `${minutes}m`;
+        }
+      }
       return timerState.displayTime;
   }, [timerState.displayTime]);
 

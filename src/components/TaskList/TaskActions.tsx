@@ -1,5 +1,5 @@
 // Import icons and utility function
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, PlayCircle, PauseCircle, ArchiveIcon } from 'lucide-react';
 import { Button } from '../UI/Button';
 import { TaskStatus, TaskStatusType } from '../../types/task';
 
@@ -30,15 +30,68 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
 
   return (
     <div className="flex space-x-2">
-      {status === TaskStatus.ACTIVE && (
+      {/* Mark Complete button - per project notes */}
+      {(status === TaskStatus.ACTIVE || status === TaskStatus.PENDING || status === TaskStatus.IN_PROGRESS) && (
         <Button 
           onClick={() => handleStatusUpdate(TaskStatus.COMPLETED)}
-          variant="info"
+          variant="success"
           size="xs"
-          icon={<CheckCircle size={12} />}
-          title="Complete task"
+          icon={<CheckCircle size={14} />}
+          title="Mark task as complete"
         >
           Complete
+        </Button>
+      )}
+
+      {/* Start button - for pending tasks */}
+      {status === TaskStatus.PENDING && (
+        <Button 
+          onClick={() => handleStatusUpdate(TaskStatus.ACTIVE)}
+          variant="primary"
+          size="xs"
+          icon={<PlayCircle size={14} />}
+          title="Start task"
+        >
+          Start
+        </Button>
+      )}
+
+      {/* Pause button - for active tasks */}
+      {status === TaskStatus.ACTIVE && (
+        <Button 
+          onClick={() => handleStatusUpdate(TaskStatus.IN_PROGRESS)}
+          variant="warning"
+          size="xs"
+          icon={<PauseCircle size={14} />}
+          title="Pause task"
+        >
+          Pause
+        </Button>
+      )}
+
+      {/* Resume button - for paused tasks */}
+      {status === TaskStatus.IN_PROGRESS && (
+        <Button 
+          onClick={() => handleStatusUpdate(TaskStatus.ACTIVE)}
+          variant="primary"
+          size="xs"
+          icon={<PlayCircle size={14} />}
+          title="Resume task"
+        >
+          Resume
+        </Button>
+      )}
+
+      {/* Archive button - for completed tasks */}
+      {status === TaskStatus.COMPLETED && (
+        <Button 
+          onClick={() => handleStatusUpdate(TaskStatus.ARCHIVED)}
+          variant="secondary"
+          size="xs"
+          icon={<ArchiveIcon size={14} />}
+          title="Archive task"
+        >
+          Archive
         </Button>
       )}
     </div>

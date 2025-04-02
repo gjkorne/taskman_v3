@@ -71,8 +71,8 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
       case 'pending':
         statusEnum = TaskStatus.PENDING;
         break;
-      case 'paused':
-        statusEnum = TaskStatus.PAUSED;
+      case 'in_progress':
+        statusEnum = TaskStatus.IN_PROGRESS;
         break;
       case 'completed':
         statusEnum = TaskStatus.COMPLETED;
