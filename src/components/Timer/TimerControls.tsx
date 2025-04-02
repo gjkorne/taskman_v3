@@ -4,6 +4,20 @@ import { useTimer } from '../../contexts/TimerContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useToast } from '../../components/Toast/ToastContext';
 
+// Debug flag - set to false in production
+const DEBUG_TIMER = false;
+
+// Constants
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Helper to validate taskId is a proper UUID
+ */
+function isValidUUID(id: string): boolean {
+  return typeof id === 'string' && UUID_REGEX.test(id);
+}
+
+// Define component props
 interface TimerControlsProps {
   taskId: string;
   compact?: boolean;
@@ -11,6 +25,9 @@ interface TimerControlsProps {
   onTimerStateChange?: () => void;
 }
 
+/**
+ * Button component used across different timer states
+ */
 const TimerButton = ({ 
   onClick, 
   icon, 
@@ -31,6 +48,9 @@ const TimerButton = ({
   </button>
 );
 
+/**
+ * Group of control buttons for running timers (pause/resume/stop)
+ */
 const TimerControlButtons = ({
   isRunning,
   onPause,
@@ -68,17 +88,36 @@ const TimerControlButtons = ({
   </div>
 );
 
-export function TimerControls({ taskId, compact = false, className, onTimerStateChange }: TimerControlsProps) {
+/**
+ * TimerControls component - provides UI for timer interaction for a specific task
+ */
+export function TimerControls({ 
+  taskId, 
+  compact = false, 
+  className, 
+  onTimerStateChange 
+}: TimerControlsProps) {
   const { timerState, startTimer, pauseTimer, resumeTimer, stopTimer, formatElapsedTime } = useTimer();
   const { settings } = useSettings();
   const { addToast } = useToast();
   
-  const isValidTaskId = typeof taskId === 'string' && 
-    taskId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) !== null;
+  const isValid = isValidUUID(taskId);
+  const isThisTaskActive = isValid && timerState.taskId === taskId && timerState.status !== 'idle';
+  const isRunning = timerState.status === 'running';
   
+  /**
+   * Notify parent component about timer state changes
+   */
+  const notifyStateChange = () => {
+    if (onTimerStateChange) onTimerStateChange();
+  };
+  
+  /**
+   * Handle timer start with task switching logic
+   */
   const handleStartTimer = async () => {
-    if (!isValidTaskId) {
-      console.error('Invalid taskId provided to TimerControls:', taskId);
+    if (!isValid) {
+      if (DEBUG_TIMER) console.error('Invalid taskId provided to TimerControls:', taskId);
       return;
     }
     
@@ -86,42 +125,43 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
       const currentTaskId = timerState.taskId;
       
       if (settings.allowTaskSwitching) {
-        console.log('TimerControls: Switching from task', currentTaskId, 'to', taskId);
+        if (DEBUG_TIMER) console.log('TimerControls: Switching from task', currentTaskId, 'to', taskId);
         await stopTimer(); 
         await startTimer(taskId); 
         addToast('Switched to new task timer', 'info');
       } else {
-        console.log('TimerControls: Cannot start timer for', taskId, 'because another timer is running');
+        if (DEBUG_TIMER) console.log('TimerControls: Cannot start timer for', taskId, 'because another timer is running');
         addToast('Please stop the current timer before starting a new one', 'warning');
         return;
       }
     } else {
-      console.log('TimerControls: Starting timer for task:', taskId);
+      if (DEBUG_TIMER) console.log('TimerControls: Starting timer for task:', taskId);
       await startTimer(taskId);
     }
     
-    if (onTimerStateChange) onTimerStateChange();
+    notifyStateChange();
   };
   
+  /**
+   * Timer action handlers with consistent notification
+   */
   const handlePauseTimer = async () => {
     await pauseTimer();
-    if (onTimerStateChange) onTimerStateChange();
+    notifyStateChange();
   };
   
   const handleResumeTimer = async () => {
     await resumeTimer();
-    if (onTimerStateChange) onTimerStateChange();
+    notifyStateChange();
   };
   
   const handleStopTimer = async () => {
     await stopTimer();
-    if (onTimerStateChange) onTimerStateChange();
+    notifyStateChange();
   };
   
-  const isThisTaskActive = isValidTaskId && timerState.taskId === taskId && timerState.status !== 'idle';
-  const isRunning = timerState.status === 'running';
-  
-  if (!isValidTaskId) {
+  // Error state - invalid task ID
+  if (!isValid) {
     return (
       <button
         disabled
@@ -137,6 +177,7 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
     );
   }
   
+  // Compact start button
   if (!isThisTaskActive && compact) {
     return (
       <button
@@ -154,6 +195,7 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
     );
   }
   
+  // Full-size start button
   if (!isThisTaskActive) {
     return (
       <button
@@ -172,6 +214,7 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
     );
   }
   
+  // Compact active timer
   if (compact) {
     return (
       <div className={cn("flex space-x-1", className)}>
@@ -183,34 +226,35 @@ export function TimerControls({ taskId, compact = false, className, onTimerState
         />
       </div>
     );
-  } else {
-    return (
-      <div className={cn("flex flex-col space-y-2", className)}>
-        <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200">
-          <div className="flex items-center space-x-2">
-            {isRunning ? (
-              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            ) : (
-              <div className="h-2 w-2 rounded-full bg-amber-500" />
-            )}
-            <span className="font-mono text-sm font-medium">
-              {formatElapsedTime()}
-            </span>
-          </div>
-          
-          <TimerControlButtons
-            isRunning={isRunning}
-            onPause={handlePauseTimer}
-            onResume={handleResumeTimer}
-            onStop={handleStopTimer}
-          />
+  }
+  
+  // Full-size active timer
+  return (
+    <div className={cn("flex flex-col space-y-2", className)}>
+      <div className="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200">
+        <div className="flex items-center space-x-2">
+          {isRunning ? (
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          ) : (
+            <div className="h-2 w-2 rounded-full bg-amber-500" />
+          )}
+          <span className="font-mono text-sm font-medium">
+            {formatElapsedTime()}
+          </span>
         </div>
         
-        <div className="flex justify-between text-xs text-gray-500 px-1">
-          <span>Task timing active</span>
-          <span>{formatElapsedTime()} elapsed</span>
-        </div>
+        <TimerControlButtons
+          isRunning={isRunning}
+          onPause={handlePauseTimer}
+          onResume={handleResumeTimer}
+          onStop={handleStopTimer}
+        />
       </div>
-    );
-  }
+      
+      <div className="flex justify-between text-xs text-gray-500 px-1">
+        <span>Task timing active</span>
+        <span>{formatElapsedTime()} elapsed</span>
+      </div>
+    </div>
+  );
 }

@@ -5,15 +5,24 @@ import { Task } from '../types/task';
 import { TaskFilter } from '../components/TaskList/FilterPanel';
 import { getTaskCategory } from './categoryUtils';
 
+// Debug flag - set to false in production
+const DEBUG_FILTERING = false;
+
 /**
- * Check if a task due date matches the filter criteria
+ * DATE UTILITY FUNCTIONS
  */
-export function taskMatchesDueDate(task: Task, dueDateFilter: string[]): boolean {
-  if (!dueDateFilter.length) return true;
-  if (!task.due_date) return false;
-  
+
+/**
+ * Format a Date object to YYYY-MM-DD for comparison
+ */
+const formatDateForCompare = (date: Date): string => 
+  `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+
+/**
+ * Get date ranges for filtering (today, tomorrow, this week, next week)
+ */
+function getDateRanges() {
   const now = new Date();
-  const dueDate = new Date(task.due_date);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -33,14 +42,33 @@ export function taskMatchesDueDate(task: Task, dueDateFilter: string[]): boolean
   // End of next week
   const nextWeekEnd = new Date(nextWeekStart);
   nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
+
+  return {
+    today,
+    tomorrow,
+    thisWeekStart,
+    thisWeekEnd,
+    nextWeekStart,
+    nextWeekEnd,
+    todayFormatted: formatDateForCompare(today),
+    tomorrowFormatted: formatDateForCompare(tomorrow)
+  };
+}
+
+/**
+ * Check if a task due date matches the filter criteria
+ */
+export function taskMatchesDueDate(task: Task, dueDateFilter: string[]): boolean {
+  if (!dueDateFilter.length) return true;
+  if (!task.due_date) return dueDateFilter.includes('no_date');
   
-  // Format dates to YYYY-MM-DD for comparison
-  const formatDateForCompare = (date: Date) => 
-    `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  const dueDate = new Date(task.due_date);
+  const { 
+    today, thisWeekStart, thisWeekEnd, nextWeekStart, nextWeekEnd,
+    todayFormatted, tomorrowFormatted 
+  } = getDateRanges();
   
   const dueDateFormatted = formatDateForCompare(dueDate);
-  const todayFormatted = formatDateForCompare(today);
-  const tomorrowFormatted = formatDateForCompare(tomorrow);
   
   return dueDateFilter.some(filter => {
     switch (filter) {
@@ -59,11 +87,18 @@ export function taskMatchesDueDate(task: Task, dueDateFilter: string[]): boolean
       case 'overdue':
         return dueDate < today;
       
+      case 'no_date':
+        return !task.due_date;
+        
       default:
         return false;
     }
   });
 }
+
+/**
+ * TASK FILTERING FUNCTIONS
+ */
 
 /**
  * Check if a task matches the search query
@@ -74,18 +109,17 @@ function taskMatchesSearch(task: Task, searchQuery: string = ''): boolean {
   const normalizedQuery = searchQuery.trim().toLowerCase();
   if (!normalizedQuery) return true;
   
-  // Detailed logging for troubleshooting 
-  console.log(`Searching task "${task.title}" with query "${normalizedQuery}"`, {
-    task_details: {
-      id: task.id,
-      title: task.title,
-      category: task.category,
-      category_name: task.category_name,
-      category_type: typeof task.category,
-      full_task: task
-    },
-    search_query: normalizedQuery
-  });
+  // Log task details if debug is enabled
+  if (DEBUG_FILTERING) {
+    console.log(`Searching task "${task.title}" with query "${normalizedQuery}"`, {
+      task_details: {
+        id: task.id,
+        title: task.title,
+        category: task.category,
+        category_name: task.category_name
+      }
+    });
+  }
   
   // Match against task content
   const matchesTitle = task.title.toLowerCase().includes(normalizedQuery);
@@ -129,19 +163,19 @@ export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: str
   const filteredOtherTasks = otherTasks.filter(task => {
     // Search query filter
     if (!taskMatchesSearch(task, searchQuery)) {
-      console.log('Filtering out task:', task.id, 'due to search query mismatch');
+      if (DEBUG_FILTERING) console.log('Filtering out task:', task.id, 'due to search query mismatch');
       return false;
     }
     
     // Status filter
     if (filters.status.length > 0 && !filters.status.includes(task.status)) {
-      console.log('Filtering out task:', task.id, 'with status:', task.status);
+      if (DEBUG_FILTERING) console.log('Filtering out task:', task.id, 'with status:', task.status);
       return false;
     }
 
     // Priority filter
     if (filters.priority.length > 0 && !filters.priority.includes(task.priority)) {
-      console.log('Filtering out task:', task.id, 'with priority:', task.priority);
+      if (DEBUG_FILTERING) console.log('Filtering out task:', task.id, 'with priority:', task.priority);
       return false;
     }
 
@@ -149,20 +183,20 @@ export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: str
     if (filters.category.length > 0) {
       const taskCategory = getTaskCategory(task);
       if (!taskCategory || !filters.category.includes(taskCategory)) {
-        console.log('Filtering out task:', task.id, 'with category:', taskCategory);
+        if (DEBUG_FILTERING) console.log('Filtering out task:', task.id, 'with category:', taskCategory);
         return false;
       }
     }
     
     // Due date filter
     if (filters.dueDate.length > 0 && !taskMatchesDueDate(task, filters.dueDate)) {
-      console.log('Filtering out task:', task.id, 'with due date:', task.due_date);
+      if (DEBUG_FILTERING) console.log('Filtering out task:', task.id, 'with due date:', task.due_date);
       return false;
     }
 
     // Show completed filter
     if (!filters.showCompleted && task.status === 'completed') {
-      console.log('Filtering out task:', task.id, 'with status:', task.status);
+      if (DEBUG_FILTERING) console.log('Filtering out task:', task.id, 'with status:', task.status);
       return false;
     }
 
@@ -171,9 +205,40 @@ export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: str
 
   // Combine active tasks with filtered other tasks
   const combinedTasks = [...activeTasks, ...filteredOtherTasks];
-  console.log('Active tasks:', activeTasks.length, 'Filtered other tasks:', filteredOtherTasks.length);
+  if (DEBUG_FILTERING) {
+    console.log('Active tasks:', activeTasks.length, 'Filtered other tasks:', filteredOtherTasks.length);
+  }
   
   return combinedTasks;
+}
+
+/**
+ * TASK SORTING FUNCTIONS
+ */
+
+/**
+ * Get the last active time from a task in milliseconds
+ */
+function getLastActiveTime(task: Task): number {
+  // In priority order: 
+  // 1. last_active_at timestamp if available
+  // 2. last_timer_stop timestamp if available
+  // 3. updated_at timestamp if available
+  // 4. created_at timestamp as fallback
+  
+  if (task.last_active_at) {
+    return new Date(task.last_active_at).getTime();
+  }
+  
+  if (task.last_timer_stop) {
+    return new Date(task.last_timer_stop).getTime();
+  }
+  
+  if (task.updated_at) {
+    return new Date(task.updated_at).getTime();
+  }
+  
+  return new Date(task.created_at).getTime();
 }
 
 /**
@@ -182,12 +247,14 @@ export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: str
 export function sortTasks(tasks: Task[], sortBy: TaskFilter['sortBy'], sortOrder: 'asc' | 'desc'): Task[] {
   const sortedTasks = [...tasks];
 
+  const priorityRank = { 'urgent': 4, 'high': 3, 'medium': 2, 'low': 1 };
+  const statusRank = { 'active': 4, 'in_progress': 3, 'pending': 2, 'completed': 1 };
+
   sortedTasks.sort((a, b) => {
     let comparison = 0;
 
     switch (sortBy) {
       case 'priority': {
-        const priorityRank = { 'urgent': 4, 'high': 3, 'medium': 2, 'low': 1 };
         const rankA = priorityRank[a.priority as keyof typeof priorityRank] || 0;
         const rankB = priorityRank[b.priority as keyof typeof priorityRank] || 0;
         comparison = rankA - rankB;
@@ -210,7 +277,6 @@ export function sortTasks(tasks: Task[], sortBy: TaskFilter['sortBy'], sortOrder
         break;
       }
       case 'status': {
-        const statusRank = { 'active': 4, 'in_progress': 3, 'pending': 2, 'completed': 1 };
         const rankA = statusRank[a.status as keyof typeof statusRank] || 0;
         const rankB = statusRank[b.status as keyof typeof statusRank] || 0;
         comparison = rankA - rankB;
@@ -223,29 +289,6 @@ export function sortTasks(tasks: Task[], sortBy: TaskFilter['sortBy'], sortOrder
         break;
       }
       case 'lastActive': {
-        // Get the most recent time for each task
-        // In priority order: 
-        // 1. last_active_at timestamp if available
-        // 2. last_timer_stop timestamp if available
-        // 3. updated_at timestamp if available
-        // 4. created_at timestamp as fallback
-        
-        const getLastActiveTime = (task: Task): number => {
-          if (task.last_active_at) {
-            return new Date(task.last_active_at).getTime();
-          }
-          
-          if (task.last_timer_stop) {
-            return new Date(task.last_timer_stop).getTime();
-          }
-          
-          if (task.updated_at) {
-            return new Date(task.updated_at).getTime();
-          }
-          
-          return new Date(task.created_at).getTime();
-        };
-        
         // Active tasks always come first when sorting by lastActive
         if (a.status === 'active' && b.status !== 'active') {
           comparison = -1;
@@ -278,6 +321,10 @@ export function filterAndSortTasks(tasks: Task[], filters: TaskFilter, searchQue
 }
 
 /**
+ * STYLING HELPER FUNCTIONS
+ */
+
+/**
  * Get the border color class for a task's priority
  */
 export function getPriorityBorderColor(priority: string): string {
@@ -296,52 +343,82 @@ export function getPriorityBorderColor(priority: string): string {
 }
 
 /**
- * Parse and format estimated time from PostgreSQL interval format
- * Formats like: '2 hours 30 minutes', '45 minutes', etc.
+ * TIME FORMATTING FUNCTIONS
  */
-export function formatEstimatedTime(estimatedTime: string | null): string | null {
-  if (!estimatedTime) return null;
 
-  // Handle the format stored in database (PostgreSQL interval)
-  // Example formats: '02:30:00', '45 minutes', '2 hours 30 minutes'
-  
+/**
+ * Parse a time string to total minutes
+ */
+function parseTimeToMinutes(timeString: string): number {
   // Check if it's in HH:MM:SS format
   const timeRegex = /^(\d+):(\d+):(\d+)$/;
-  const timeMatch = estimatedTime.match(timeRegex);
+  const timeMatch = timeString.match(timeRegex);
   
   if (timeMatch) {
     const hours = parseInt(timeMatch[1]);
     const minutes = parseInt(timeMatch[2]);
-    
+    return hours * 60 + minutes;
+  }
+  
+  // Check for 'X minutes' format
+  const minutesOnly = /^(\d+)\s+minutes?$/i;
+  const minutesMatch = timeString.match(minutesOnly);
+  
+  if (minutesMatch) {
+    return parseInt(minutesMatch[1]);
+  }
+  
+  // Try to handle 'X hours Y minutes' format
+  const hoursAndMinutes = /(\d+)\s+hours?(?:\s+(\d+)\s+minutes?)?/i;
+  const complexMatch = timeString.match(hoursAndMinutes);
+  
+  if (complexMatch) {
+    const hours = parseInt(complexMatch[1] || '0');
+    const minutes = parseInt(complexMatch[2] || '0');
+    return hours * 60 + minutes;
+  }
+  
+  return 0; // Default if unparseable
+}
+
+/**
+ * Format time string to a consistent format
+ */
+export function formatTimeString(timeString: string | null, shortFormat: boolean = false): string | null {
+  if (!timeString) return null;
+  
+  const totalMinutes = parseTimeToMinutes(timeString);
+  
+  if (totalMinutes === 0) return shortFormat ? '0m' : 'Quick';
+  
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  
+  if (shortFormat) {
     if (hours > 0 && minutes > 0) {
       return `${hours}h ${minutes}m`;
     } else if (hours > 0) {
       return `${hours}h`;
-    } else if (minutes > 0) {
-      return `${minutes}m`;
     } else {
-      return 'Quick';
+      return `${minutes}m`;
+    }
+  } else {
+    if (hours > 0 && minutes > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''} ${minutes} minute${minutes > 1 ? 's' : ''}`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''}`;
+    } else {
+      return `${minutes} minute${minutes > 1 ? 's' : ''}`;
     }
   }
-  
-  // Check if it's in '45 minutes' or '2 hours 30 minutes' format
-  const minutesOnly = /^(\d+)\s+minutes?$/i;
-  const minutesMatch = estimatedTime.match(minutesOnly);
-  if (minutesMatch) {
-    const minutes = parseInt(minutesMatch[1]);
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      const remainingMinutes = minutes % 60;
-      if (remainingMinutes > 0) {
-        return `${hours}h ${remainingMinutes}m`;
-      }
-      return `${hours}h`;
-    }
-    return `${minutes}m`;
-  }
-  
-  // If it's already formatted in "X hours Y minutes"
-  return estimatedTime;
+}
+
+/**
+ * Parse and format estimated time from PostgreSQL interval format
+ * Formats like: '2h 30m', '45m', etc.
+ */
+export function formatEstimatedTime(estimatedTime: string | null): string | null {
+  return formatTimeString(estimatedTime, true);
 }
 
 /**
@@ -350,36 +427,7 @@ export function formatEstimatedTime(estimatedTime: string | null): string | null
 export function getEstimatedTimeClass(estimatedTime: string | null): string {
   if (!estimatedTime) return 'text-gray-400';
   
-  // Try to extract total minutes
-  let totalMinutes = 0;
-  
-  // Check if it's in HH:MM:SS format
-  const timeRegex = /^(\d+):(\d+):(\d+)$/;
-  const timeMatch = estimatedTime.match(timeRegex);
-  
-  if (timeMatch) {
-    const hours = parseInt(timeMatch[1]);
-    const minutes = parseInt(timeMatch[2]);
-    totalMinutes = hours * 60 + minutes;
-  } else {
-    // Check for 'X minutes' format
-    const minutesOnly = /^(\d+)\s+minutes?$/i;
-    const minutesMatch = estimatedTime.match(minutesOnly);
-    
-    if (minutesMatch) {
-      totalMinutes = parseInt(minutesMatch[1]);
-    } else {
-      // Try to handle 'X hours Y minutes' format
-      const hoursAndMinutes = /(\d+)\s+hours?(?:\s+(\d+)\s+minutes?)?/i;
-      const complexMatch = estimatedTime.match(hoursAndMinutes);
-      
-      if (complexMatch) {
-        const hours = parseInt(complexMatch[1] || '0');
-        const minutes = parseInt(complexMatch[2] || '0');
-        totalMinutes = hours * 60 + minutes;
-      }
-    }
-  }
+  const totalMinutes = parseTimeToMinutes(estimatedTime);
   
   // Return appropriate color class based on task length
   if (totalMinutes <= 15) {
@@ -400,65 +448,56 @@ export function getEstimatedTimeClass(estimatedTime: string | null): string {
  */
 export function getDueDateStyling(dueDate: string | null): { className: string, urgencyText: string } {
   if (!dueDate) {
-    return { className: 'text-gray-500 font-normal', urgencyText: '' };
+    return {
+      className: 'text-gray-400',
+      urgencyText: ''
+    };
   }
 
   const now = new Date();
-  const due = new Date(dueDate);
-  const diffTime = due.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  // Past due - red and bold
-  if (diffDays < 0) {
-    return { 
-      className: 'text-red-600 font-bold', 
-      urgencyText: 'Overdue!' 
+  const dueDateTime = new Date(dueDate);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  // Calculate days until due
+  const daysUntilDue = Math.ceil((dueDateTime.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Overdue
+  if (dueDateTime < today) {
+    return {
+      className: 'text-red-600 font-semibold',
+      urgencyText: 'Overdue'
     };
   }
   
-  // Due today - orange and semibold
-  if (diffDays === 0) {
-    return { 
-      className: 'text-orange-600 font-semibold', 
-      urgencyText: 'Today!' 
+  // Due today
+  if (dueDateTime.toDateString() === today.toDateString()) {
+    return {
+      className: 'text-orange-600 font-semibold',
+      urgencyText: 'Today'
     };
   }
   
-  // Due tomorrow - amber and medium
-  if (diffDays === 1) {
-    return { 
-      className: 'text-amber-600 font-medium', 
-      urgencyText: 'Tomorrow' 
+  // Due tomorrow
+  if (dueDateTime.toDateString() === tomorrow.toDateString()) {
+    return {
+      className: 'text-amber-600',
+      urgencyText: 'Tomorrow'
     };
   }
   
-  // Due this week (within 7 days) - amber and normal
-  if (diffDays <= 7) {
-    return { 
-      className: 'text-amber-500 font-normal', 
-      urgencyText: 'Soon' 
+  // Due within a week
+  if (daysUntilDue <= 7) {
+    return {
+      className: 'text-blue-600',
+      urgencyText: `${daysUntilDue} days`
     };
   }
   
-  // Due within two weeks - light amber and light
-  if (diffDays <= 14) {
-    return { 
-      className: 'text-amber-400 font-light', 
-      urgencyText: '' 
-    };
-  }
-  
-  // Due within a month - very light and normal
-  if (diffDays <= 30) {
-    return { 
-      className: 'text-amber-300 font-normal', 
-      urgencyText: '' 
-    };
-  }
-  
-  // More than a month away - grey and light
-  return { 
-    className: 'text-gray-400 font-light', 
-    urgencyText: '' 
+  // Due in more than a week
+  return {
+    className: 'text-green-600',
+    urgencyText: ''
   };
 }

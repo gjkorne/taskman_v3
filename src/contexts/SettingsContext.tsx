@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // Define the shape of our settings
-interface Settings {
+export interface Settings {
   theme: 'light' | 'dark' | 'system';
   defaultView: 'list' | 'grid';
   defaultTaskSort: 'due_date' | 'priority' | 'created_at';
@@ -11,7 +11,7 @@ interface Settings {
 }
 
 // Default settings
-const defaultSettings: Settings = {
+export const defaultSettings: Settings = {
   theme: 'system',
   defaultView: 'list',
   defaultTaskSort: 'due_date',
@@ -30,6 +30,35 @@ interface SettingsContextType {
 // Create the context
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
+/**
+ * Load a boolean setting from localStorage
+ */
+function loadBooleanSetting(key: string, defaultValue: boolean): boolean {
+  const storedValue = localStorage.getItem(key);
+  if (storedValue === null) return defaultValue;
+  return storedValue === 'true';
+}
+
+/**
+ * Load a string enum setting from localStorage
+ */
+function loadStringSetting<T extends string>(key: string, defaultValue: T, validValues: readonly T[]): T {
+  const storedValue = localStorage.getItem(key);
+  if (storedValue === null) return defaultValue;
+  return validValues.includes(storedValue as T) ? (storedValue as T) : defaultValue;
+}
+
+/**
+ * Save a setting to localStorage
+ */
+function saveSetting(key: string, value: string | boolean | number): void {
+  try {
+    localStorage.setItem(key, String(value));
+  } catch (error) {
+    console.error(`Error saving setting ${key}:`, error);
+  }
+}
+
 // Provider component
 interface SettingsProviderProps {
   children: ReactNode;
@@ -43,28 +72,32 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   useEffect(() => {
     const loadSettings = () => {
       try {
-        // Try to load each setting from localStorage
-        const storedTheme = localStorage.getItem('theme') as Settings['theme'] | null;
-        const storedDefaultView = localStorage.getItem('defaultView') as Settings['defaultView'] | null;
-        const storedDefaultTaskSort = localStorage.getItem('defaultTaskSort') as Settings['defaultTaskSort'] | null;
-        const storedNotificationsEnabled = localStorage.getItem('notificationsEnabled');
-        const storedAutoSave = localStorage.getItem('autoSave');
-        const storedAllowTaskSwitching = localStorage.getItem('allowTaskSwitching');
+        // Load settings with proper type safety
+        const theme = loadStringSetting('theme', defaultSettings.theme, ['light', 'dark', 'system'] as const);
+        const defaultView = loadStringSetting('defaultView', defaultSettings.defaultView, ['list', 'grid'] as const);
+        const defaultTaskSort = loadStringSetting(
+          'defaultTaskSort', 
+          defaultSettings.defaultTaskSort, 
+          ['due_date', 'priority', 'created_at'] as const
+        );
+        const notificationsEnabled = loadBooleanSetting('notificationsEnabled', defaultSettings.notificationsEnabled);
+        const autoSave = loadBooleanSetting('autoSave', defaultSettings.autoSave);
+        const allowTaskSwitching = loadBooleanSetting('allowTaskSwitching', defaultSettings.allowTaskSwitching);
 
-        // Update settings state with stored values or defaults
         setSettings({
-          theme: storedTheme || defaultSettings.theme,
-          defaultView: storedDefaultView || defaultSettings.defaultView,
-          defaultTaskSort: storedDefaultTaskSort || defaultSettings.defaultTaskSort,
-          notificationsEnabled: storedNotificationsEnabled ? storedNotificationsEnabled === 'true' : defaultSettings.notificationsEnabled,
-          autoSave: storedAutoSave ? storedAutoSave === 'true' : defaultSettings.autoSave,
-          allowTaskSwitching: storedAllowTaskSwitching ? storedAllowTaskSwitching === 'true' : defaultSettings.allowTaskSwitching,
+          theme,
+          defaultView,
+          defaultTaskSort,
+          notificationsEnabled,
+          autoSave,
+          allowTaskSwitching
         });
       } catch (error) {
         console.error('Error loading settings:', error);
         // Fall back to defaults
         setSettings(defaultSettings);
       }
+      
       setIsInitialized(true);
     };
 
@@ -104,14 +137,14 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     setSettings(prev => ({ ...prev, [key]: value }));
     
     // Save to localStorage immediately
-    localStorage.setItem(key, value?.toString() || '');
+    saveSetting(key, value);
   };
 
   // Function to save all settings
   const saveAllSettings = () => {
     // Save all settings to localStorage
     Object.entries(settings).forEach(([key, value]) => {
-      localStorage.setItem(key, value?.toString() || '');
+      saveSetting(key, value);
     });
   };
 
