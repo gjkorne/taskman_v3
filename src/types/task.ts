@@ -5,12 +5,12 @@
 export enum TaskStatus {
   PENDING = 'pending',
   ACTIVE = 'active',
-  PAUSED = 'paused',
+  IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   ARCHIVED = 'archived'
 }
 
-export type TaskStatusType = 'pending' | 'active' | 'paused' | 'completed' | 'archived';
+export type TaskStatusType = 'pending' | 'active' | 'in_progress' | 'completed' | 'archived';
 
 /**
  * Task status options as an object for component usage
@@ -18,77 +18,74 @@ export type TaskStatusType = 'pending' | 'active' | 'paused' | 'completed' | 'ar
 export const TaskStatusValues = {
   PENDING: TaskStatus.PENDING,
   ACTIVE: TaskStatus.ACTIVE,
-  PAUSED: TaskStatus.PAUSED,
+  IN_PROGRESS: TaskStatus.IN_PROGRESS,
   COMPLETED: TaskStatus.COMPLETED,
   ARCHIVED: TaskStatus.ARCHIVED,
 } as const;
 
+/**
+ * Task priority options
+ */
+export const TaskPriority = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  URGENT: 'urgent',
+} as const;
+
+export type TaskPriorityType = typeof TaskPriority[keyof typeof TaskPriority];
+
+/**
+ * Task category options
+ */
+export const TaskCategory = {
+  WORK: 'work',
+  PERSONAL: 'personal',
+  CHILDCARE: 'childcare',
+  OTHER: 'other',
+} as const;
+
+/**
+ * Task interface aligned with database schema
+ * Use this as the primary data structure for tasks throughout the app
+ */
 export interface Task {
   // Primary fields
   id: string;
   title: string;
   description: string | null;
-  created_by: string;
-  created_at: string;
   status: TaskStatusType;
-  priority: string;
-  estimated_time: number | null;
-  actual_time: number | null;
-  due_date: string | null;
-  completed_date: string | null;
+  priority: TaskPriorityType;
   
-  // Metadata fields
+  // Time tracking fields
+  estimated_time: string | null; // PostgreSQL interval as string
+  actual_time: string | null;    // PostgreSQL interval as string
+  
+  // Date fields
+  due_date: string | null;
+  created_at: string;
   updated_at: string | null;
+  
+  // Ownership and state
+  created_by: string | null;
   is_deleted: boolean | null;
   
-  // Activity tracking fields
-  last_active_at?: string | null;  // Last time any activity happened on this task
-  last_timer_stop?: string | null; // Last time a timer was stopped for this task
-  
-  // Foreign keys
+  // Organization fields
   list_id: string | null;
-  
-  // Categories
   category_name: string | null;
-  category_id: string | null;
-  
-  // Tags array for subcategories and other metadata
   tags: string[] | null;
   
-  // Optional UI-specific fields that may not be in the database
-  category?: string; // Used for form handling
-  
   // NLP-related fields
-  nlp_tokens?: any;
-  extracted_entities?: any;
-  embedding_data?: any;
-  confidence_score?: number;
-  processing_metadata?: any;
+  nlp_tokens?: any | null;
+  extracted_entities?: any | null;
+  embedding_data?: any | null;
+  confidence_score?: number | null;
+  processing_metadata?: any | null;
   
-  // Subtasks placeholder - to be implemented
-  subtasks?: Task[];
-}
-
-/**
- * TaskFormData represents the shape of data in the task creation form
- * This differs from the database schema to accommodate UI-specific needs
- */
-export interface TaskFormData {
-  title: string;
-  description?: string;
-  status: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  category: string;
-  estimatedTime?: string;
-  hasDueDate: boolean;
-  dueDate?: string;
-  tags: string[];
-  isDeleted: boolean;
-  rawInput?: string;
-  nlpExtracted?: {
-    confidence: number;
-    entities: Record<string, any>;
-  };
+  // UI-specific fields (not persisted to database)
+  hasDueDate?: boolean;           // Derived from due_date for form handling
+  estimatedTimeMinutes?: number;  // Derived from estimated_time for form handling
+  category?: string;              // Alias for category_name for backward compatibility
 }
 
 /**
@@ -115,26 +112,8 @@ export const TaskColumns = [
   'embedding_data',
   'confidence_score',
   'processing_metadata',
-  'category_name',
-  'category_id'
+  'category_name'
 ] as const;
 
-/**
- * Task priority options
- */
-export const TaskPriority = {
-  LOW: 'low',
-  MEDIUM: 'medium',
-  HIGH: 'high',
-  URGENT: 'urgent',
-} as const;
-
-/**
- * Task category options
- */
-export const TaskCategory = {
-  WORK: 'work',
-  PERSONAL: 'personal',
-  CHILDCARE: 'childcare',
-  OTHER: 'other',
-} as const;
+// Export for backward compatibility
+export type { TaskFormData } from '../components/TaskForm/schema';

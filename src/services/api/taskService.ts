@@ -1,14 +1,18 @@
 import { supabase } from '../../lib/supabase';
-import { TaskFormData } from '../../components/TaskForm/schema';
+import { TaskSubmitData, TaskDatabaseRow, VALID_STATUSES, VALID_PRIORITIES } from '../../components/TaskForm/schema';
 import { Task } from '../../types/task';
+
+// Debug flag for task service operations - set to true to enable debugging
+const isDevelopment = process.env.NODE_ENV !== 'production';
+const DEBUG_TASK_SERVICE = isDevelopment && false; // Set to true to enable debugging
 
 // Define the interface for the Task service
 export interface ITaskService {
   // Task CRUD operations
   getTasks(): Promise<{ data: Task[] | null; error: Error | null }>;
   getTaskById(id: string): Promise<{ data: Task | null; error: Error | null }>;
-  createTask(taskData: TaskFormData): Promise<{ data: Task | null; error: Error | null }>;
-  updateTask(id: string, taskData: Partial<TaskFormData>): Promise<{ data: Task | null; error: Error | null }>;
+  createTask(taskData: TaskSubmitData): Promise<{ data: Task | null; error: Error | null }>;
+  updateTask(id: string, taskData: Partial<TaskSubmitData>): Promise<{ data: Task | null; error: Error | null }>;
   deleteTask(id: string): Promise<{ error: Error | null }>;
   
   // Task status operations
@@ -29,29 +33,54 @@ export class TaskService implements ITaskService {
     return session.user.id;
   }
 
-  // Helper method to format task data for database
-  private formatTaskForDatabase(taskData: TaskFormData): Record<string, any> {
+  /**
+   * Map UI form data to database field names (camelCase to snake_case)
+   * This handles the differences between the UI form and database schema
+   */
+  private formatTaskForDatabase(taskData: TaskSubmitData): Record<string, any> {
+    // Start with fields that match DB schema exactly
     const formattedData: Record<string, any> = {
       title: taskData.title,
       description: taskData.description || '',
-      status: taskData.status || 'pending',
-      priority: taskData.priority || 'medium',
-      category_name: taskData.category || null,
+      status: this.validateStatus(taskData.status || 'pending'),
+      priority: this.validatePriority(taskData.priority || 'medium'),
       tags: taskData.tags || [],
-      is_deleted: taskData.isDeleted || false
     };
 
-    // Add due date if provided
-    if (taskData.hasDueDate && taskData.dueDate) {
-      formattedData.due_date = taskData.dueDate;
+    // Map UI fields to database column names
+    if (taskData.category !== undefined) {
+      formattedData.category_name = taskData.category;
     }
 
-    // Format estimated time as PostgreSQL interval if provided
+    if (taskData.isDeleted !== undefined) {
+      formattedData.is_deleted = taskData.isDeleted;
+    } else {
+      // Default to false if not specified
+      formattedData.is_deleted = false;
+    }
+
+    if (taskData.listId !== undefined) {
+      formattedData.list_id = taskData.listId;
+    }
+
+    // Handle due date (UI -> DB)
+    if (taskData.hasDueDate && taskData.dueDate) {
+      formattedData.due_date = taskData.dueDate;
+    } else if (!taskData.hasDueDate) {
+      formattedData.due_date = null;
+    }
+
+    // Format estimated time as PostgreSQL interval
     if (taskData.estimatedTime) {
       const minutes = parseInt(taskData.estimatedTime, 10);
       if (!isNaN(minutes)) {
+        // Format correctly as "X minutes" for PostgreSQL
+        // This prevents the conversion issues (e.g., 30 min becoming 4166h)
         formattedData.estimated_time = `${minutes} minutes`;
       }
+    } else {
+      // Make sure to explicitly set to null if not provided
+      formattedData.estimated_time = null;
     }
 
     // Add any NLP-related data
@@ -59,7 +88,59 @@ export class TaskService implements ITaskService {
       formattedData.raw_input = taskData.rawInput;
     }
 
+    if (DEBUG_TASK_SERVICE) {
+      console.log('Formatted task data for database:', formattedData);
+    }
+
     return formattedData;
+  }
+
+  /**
+   * Map database row to UI-friendly format (snake_case to camelCase)
+   * This handles differences between database schema and UI expectations
+   */
+  private formatTaskForUI(dbTask: TaskDatabaseRow): Task {
+    return {
+      id: dbTask.id,
+      title: dbTask.title,
+      description: dbTask.description || '',
+      status: dbTask.status,
+      priority: dbTask.priority,
+      due_date: dbTask.due_date,
+      estimated_time: dbTask.estimated_time,
+      actual_time: dbTask.actual_time,
+      tags: dbTask.tags || [],
+      created_at: dbTask.created_at,
+      updated_at: dbTask.updated_at,
+      created_by: dbTask.created_by,
+      is_deleted: dbTask.is_deleted || false,
+      category_name: dbTask.category_name,
+      // Additional fields can be mapped here as needed
+    } as Task;
+  }
+
+  /**
+   * Validate task status against allowed values
+   */
+  private validateStatus(status: string): string {
+    // Check if status is valid
+    if ((VALID_STATUSES as readonly string[]).includes(status)) {
+      return status;
+    }
+    // Default to pending if invalid
+    return 'pending';
+  }
+
+  /**
+   * Validate task priority against allowed values
+   */
+  private validatePriority(priority: string): string {
+    // Check if priority is valid
+    if ((VALID_PRIORITIES as readonly string[]).includes(priority)) {
+      return priority;
+    }
+    // Default to medium if invalid
+    return 'medium';
   }
 
   /**
@@ -78,7 +159,10 @@ export class TaskService implements ITaskService {
       
       if (error) throw error;
       
-      return { data, error: null };
+      // Map each DB row to UI-friendly format
+      const formattedTasks = data?.map(task => this.formatTaskForUI(task as TaskDatabaseRow)) || null;
+      
+      return { data: formattedTasks, error: null };
     } catch (error) {
       console.error('Error fetching tasks:', error);
       return { data: null, error: error as Error };
@@ -100,7 +184,10 @@ export class TaskService implements ITaskService {
       
       if (error) throw error;
       
-      return { data, error: null };
+      // Format the task for UI if it exists
+      const formattedTask = data ? this.formatTaskForUI(data as TaskDatabaseRow) : null;
+      
+      return { data: formattedTask, error: null };
     } catch (error) {
       console.error('Error fetching task:', error);
       return { data: null, error: error as Error };
@@ -110,7 +197,7 @@ export class TaskService implements ITaskService {
   /**
    * Create a new task
    */
-  async createTask(taskData: TaskFormData): Promise<{ data: Task | null; error: Error | null }> {
+  async createTask(taskData: TaskSubmitData): Promise<{ data: Task | null; error: Error | null }> {
     try {
       const userId = await this.ensureAuthenticated();
       
@@ -125,7 +212,10 @@ export class TaskService implements ITaskService {
       
       if (error) throw error;
       
-      return { data, error: null };
+      // Format the created task for UI
+      const formattedTask = data ? this.formatTaskForUI(data as TaskDatabaseRow) : null;
+      
+      return { data: formattedTask, error: null };
     } catch (error) {
       console.error('Error creating task:', error);
       return { data: null, error: error as Error };
@@ -135,11 +225,11 @@ export class TaskService implements ITaskService {
   /**
    * Update an existing task
    */
-  async updateTask(id: string, taskData: Partial<TaskFormData>): Promise<{ data: Task | null; error: Error | null }> {
+  async updateTask(id: string, taskData: Partial<TaskSubmitData>): Promise<{ data: Task | null; error: Error | null }> {
     try {
       await this.ensureAuthenticated();
       
-      const formattedData = this.formatTaskForDatabase(taskData as TaskFormData);
+      const formattedData = this.formatTaskForDatabase(taskData as TaskSubmitData);
       
       const { data, error } = await supabase
         .from('tasks')
@@ -150,7 +240,10 @@ export class TaskService implements ITaskService {
       
       if (error) throw error;
       
-      return { data, error: null };
+      // Format the updated task for UI
+      const formattedTask = data ? this.formatTaskForUI(data as TaskDatabaseRow) : null;
+      
+      return { data: formattedTask, error: null };
     } catch (error) {
       console.error('Error updating task:', error);
       return { data: null, error: error as Error };
@@ -185,9 +278,12 @@ export class TaskService implements ITaskService {
     try {
       await this.ensureAuthenticated();
       
+      // Validate the status before sending to database
+      const validatedStatus = this.validateStatus(status);
+      
       const { error } = await supabase
         .from('tasks')
-        .update({ status })
+        .update({ status: validatedStatus })
         .eq('id', id);
       
       if (error) throw error;

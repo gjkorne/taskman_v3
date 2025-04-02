@@ -1,16 +1,17 @@
 Notes and Additional Features
 
-- *** Quick Changes ***
+- *** UI Changes ***
  ~~Change in top left~~ 
  remove grid view
  move search bar and add quick task     
  move filter and sort
  add mark complete button
+ make currently timing element larger to be more visible and almost annoying
  
 
 - *** Issues ***
- est time is off when saving. went from 30 min to 5 hours to 4166h 40 min
- invalid status not letting me start task
+ ~~est time is off when saving. went from 30 min to 5 hours to 4166h 40 min~~
+ ~~invalid status not letting me start task~~
 
 - *** Changes ***
  Cards more compact
