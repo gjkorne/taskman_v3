@@ -191,14 +191,14 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
       
       {/* Desktop-only filter and task entry */}
       <div className="hidden md:block bg-white border border-gray-200 rounded-lg shadow-md p-2 sm:p-4 mb-3 sm:mb-6 border-l-4 border-l-indigo-400">
-        <div className="flex flex-col md:flex-row md:items-center gap-1 sm:gap-3">
+        <div className="flex flex-col gap-4">
           {/* Quick task entry */}
-          <div className="flex-grow">
+          <div className="w-full">
             <QuickTaskEntry onTaskCreated={refreshTasks} />
           </div>
           
           {/* Quick Category Filters - Desktop only */}
-          <div className="flex-shrink-0 w-full md:w-auto">
+          <div className="w-full">
             <div className="flex items-center mb-2">
               <h3 className="text-sm font-medium text-gray-600">Quick Filters:</h3>
               {filters.category.length > 0 && (
@@ -216,21 +216,6 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => {
-                  setFilters({
-                    ...filters, 
-                    category: []
-                  });
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                  filters.category.length === 0 
-                    ? 'bg-indigo-100 text-indigo-800' 
-                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                }`}
-              >
-                All
-              </button>
               <button
                 onClick={() => {
                   setFilters({

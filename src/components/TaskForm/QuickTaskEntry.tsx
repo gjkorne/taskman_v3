@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useTaskActions } from '../../hooks/useTaskActions';
 import { TaskStatus } from '../../types/task';
-
-interface QuickTaskEntryProps {
-  onTaskCreated?: () => void;
-}
+import { Icon } from '../UI/Icon';
 
 /**
  * Quick entry component for adding tasks with minimal input
@@ -13,7 +9,9 @@ interface QuickTaskEntryProps {
  */
 export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
   const [taskTitle, setTaskTitle] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('work'); // Default to 'work' category
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const { createTask } = useTaskActions({
     refreshTasks: async () => {
       if (onTaskCreated) onTaskCreated();
@@ -33,7 +31,8 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
         title: taskTitle.trim(),
         status: TaskStatus.PENDING,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        category: selectedCategory || undefined
       });
       
       // Clear input after successful creation
@@ -52,6 +51,81 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
 
   return (
     <form className="w-full" onSubmit={handleSubmit}>
+      {/* Category Radio Buttons */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        <div className="w-full mb-2">
+          <h3 className="text-sm font-medium text-gray-600">Choose category:</h3>
+        </div>
+        <label className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
+          selectedCategory === 'work' ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-200 hover:bg-gray-50'
+        }`}>
+          <input
+            type="radio"
+            name="quick-category"
+            value="work"
+            checked={selectedCategory === 'work'}
+            onChange={() => setSelectedCategory('work')}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
+          />
+          <span 
+            className="inline-block w-3 h-3 rounded-full mr-2"
+            style={{ backgroundColor: '#3B82F6' }}
+          ></span>
+          <span className="text-sm font-medium">Work</span>
+        </label>
+        <label className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
+          selectedCategory === 'personal' ? 'bg-purple-100 border-purple-300' : 'bg-white border-gray-200 hover:bg-gray-50'
+        }`}>
+          <input
+            type="radio"
+            name="quick-category"
+            value="personal"
+            checked={selectedCategory === 'personal'}
+            onChange={() => setSelectedCategory('personal')}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
+          />
+          <span 
+            className="inline-block w-3 h-3 rounded-full mr-2"
+            style={{ backgroundColor: '#8B5CF6' }}
+          ></span>
+          <span className="text-sm font-medium">Personal</span>
+        </label>
+        <label className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
+          selectedCategory === 'childcare' ? 'bg-green-100 border-green-300' : 'bg-white border-gray-200 hover:bg-gray-50'
+        }`}>
+          <input
+            type="radio"
+            name="quick-category"
+            value="childcare"
+            checked={selectedCategory === 'childcare'}
+            onChange={() => setSelectedCategory('childcare')}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
+          />
+          <span 
+            className="inline-block w-3 h-3 rounded-full mr-2"
+            style={{ backgroundColor: '#10B981' }}
+          ></span>
+          <span className="text-sm font-medium">Childcare</span>
+        </label>
+        <label className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
+          selectedCategory === 'other' ? 'bg-amber-100 border-amber-300' : 'bg-white border-gray-200 hover:bg-gray-50'
+        }`}>
+          <input
+            type="radio"
+            name="quick-category"
+            value="other"
+            checked={selectedCategory === 'other'}
+            onChange={() => setSelectedCategory('other')}
+            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
+          />
+          <span 
+            className="inline-block w-3 h-3 rounded-full mr-2"
+            style={{ backgroundColor: '#F59E0B' }}
+          ></span>
+          <span className="text-sm font-medium">Other</span>
+        </label>
+      </div>
+
       <div className="flex items-center">
         {/* Mobile: Large prominent icon */}
         <div className="md:hidden flex justify-center w-full py-2">
@@ -68,14 +142,14 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
             className="w-16 h-16 flex items-center justify-center text-white bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-full shadow-lg hover:shadow-xl hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:scale-105 animate-pulse-subtle"
             aria-label="Add a new task"
           >
-            <Plus className="w-9 h-9" />
+            <Icon name="Plus" size={24} />
           </button>
         </div>
         
         {/* Desktop: Full input with background */}
         <div className="relative flex-grow hidden md:block">
           <div className="flex items-center px-4 py-3 bg-white border rounded-lg transition-all border-gray-300 hover:border-indigo-400 hover:shadow focus-within:border-indigo-500 focus-within:shadow-md">
-            <Plus className="w-5 h-5 text-gray-400 mr-2" />
+            <Icon name="Plus" size={16} className="text-gray-400 mr-2" />
             <input
               type="text"
               placeholder="Add a new task..."
@@ -95,4 +169,8 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
       </div>
     </form>
   );
+}
+
+interface QuickTaskEntryProps {
+  onTaskCreated?: () => void;
 }
