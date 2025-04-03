@@ -175,7 +175,10 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
       </div>
       
       {/* Right Section: All Actions */}
-      <div className="flex items-center justify-end space-x-1 sm:space-x-2 ml-auto">
+      <div 
+        className="flex items-center justify-end space-x-1 sm:space-x-2 ml-auto"
+        onClick={(e) => e.stopPropagation()} // Prevent clicks on actions from opening edit form
+      >
         {/* Timer control */}
         {task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.ARCHIVED && (
           <div className="flex-shrink-0">

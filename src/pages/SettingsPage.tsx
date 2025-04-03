@@ -51,14 +51,45 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Default View</label>
-          <select
-            value={settings.defaultView}
-            onChange={(e) => updateSetting('defaultView', e.target.value as 'list' | 'grid')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          >
-            <option value="list">List</option>
-            <option value="grid">Grid</option>
-          </select>
+          <div className="flex space-x-4">
+            {(['list', 'grid'] as const).map((view) => (
+              <button
+                key={view}
+                onClick={() => updateSetting('defaultView', view)}
+                className={`px-4 py-2 rounded-md ${
+                  settings.defaultView === view 
+                    ? 'bg-indigo-600 text-white' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                {view.charAt(0).toUpperCase() + view.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">UI Density</label>
+          <div className="flex space-x-4">
+            {(['default', 'compact'] as const).map((density) => (
+              <button
+                key={density}
+                onClick={() => updateSetting('uiDensity', density)}
+                className={`px-4 py-2 rounded-md ${
+                  settings.uiDensity === density 
+                    ? 'bg-indigo-600 text-white' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                {density === 'default' ? 'Default (Comfortable)' : 'Compact'}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            {settings.uiDensity === 'default' 
+              ? 'Default spacing with larger text for better readability' 
+              : 'Reduced spacing and smaller text for more compact layout'}
+          </p>
         </div>
       </div>
       

@@ -3,12 +3,13 @@ import { Controller } from 'react-hook-form';
 import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TaskDebug } from './TaskDebug';
+import { TagsInput } from '../Common/TagsInput';
+import { FormSection } from '../Common/FormSection';
+import { PrioritySelector } from '../Common/PrioritySelector';
+import { CategorySelector } from '../Common/CategorySelector';
 import { useTaskForm } from '../../hooks/useTaskForm';
-import FormSection from '../Common/FormSection';
-import CategorySelector from '../Common/CategorySelector';
-import PrioritySelector from '../Common/PrioritySelector';
-import TagsInput from '../Common/TagsInput';
-import NotesEditor from '../TaskNotes/NotesEditor';
+import { NotesEditor } from '../TaskNotes/NotesEditor';
+import { getSubcategoriesForCategory } from '../../types/categories';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -28,6 +29,7 @@ export interface UnifiedTaskFormProps {
     hasDueDate?: boolean;
     estimatedTime?: number;
     status?: string;
+    subcategory?: string;
   };
 }
 
@@ -62,6 +64,7 @@ export function UnifiedTaskForm({
     formState: { errors },
     watch,
     setValue,
+    getValues,
     isLoading,
     error
   } = useTaskForm({
@@ -157,15 +160,48 @@ export function UnifiedTaskForm({
           {/* Classification Fields */}
           <div className="mt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Classification</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Category Selection */}
-              <CategorySelector
-                value={categoryName || ''}
-                onChange={(value) => setValue('category_name', value)}
-                error={errors.category_name?.message}
-                required={true}
-              />
-            </div>
+            
+            {/* Category Selection */}
+            <CategorySelector
+              value={categoryName || ''}
+              onChange={(value) => setValue('category_name', value)}
+              error={errors.category_name?.message}
+              required={true}
+            />
+            
+            {/* Subcategory Selection - Only shown when a category is selected */}
+            {categoryName && (
+              <div className="mt-3">
+                <label htmlFor="subcategory" className="block text-sm font-medium text-gray-700 mb-1">
+                  Subcategory
+                </label>
+                <select
+                  id="subcategory"
+                  value={getValues('subcategory') || ''}
+                  onChange={(e) => {
+                    setValue('subcategory', e.target.value);
+                    
+                    // Update tags with the subcategory information
+                    const currentTags = getValues('tags') || [];
+                    const updatedTags = currentTags.filter(tag => !tag.startsWith('subcategory:'));
+                    
+                    if (e.target.value) {
+                      updatedTags.push(`subcategory:${e.target.value}`);
+                    }
+                    
+                    setValue('tags', updatedTags);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <option value="">-- Select Subcategory --</option>
+                  {categoryName && getSubcategoriesForCategory(categoryName).map((subcat) => (
+                    <option key={subcat} value={subcat}>
+                      {subcat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             
             {/* Status Field - Only show in edit mode */}
             {mode === 'edit' && (

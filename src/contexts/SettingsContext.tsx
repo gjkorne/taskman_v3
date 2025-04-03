@@ -12,6 +12,7 @@ export interface Settings {
   hideDefaultCategories: boolean; // Whether to hide all default categories
   quickTaskCategories: string[]; // Categories to show in quick task entry
   defaultQuickTaskCategory: string; // Default selected category for quick task entry
+  uiDensity: 'default' | 'compact'; // UI density preference
 }
 
 // Default settings
@@ -26,6 +27,7 @@ export const defaultSettings: Settings = {
   hideDefaultCategories: false, // Don't hide default categories by default
   quickTaskCategories: ['work', 'personal', 'childcare', 'other'], // Default categories for quick task entry
   defaultQuickTaskCategory: 'work', // Default to work category
+  uiDensity: 'default', // Default to regular spacing and font size
 };
 
 // Context type definition
@@ -119,6 +121,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         const hideDefaultCategories = loadBooleanSetting('hideDefaultCategories', defaultSettings.hideDefaultCategories);
         const quickTaskCategories = loadArraySetting('quickTaskCategories', defaultSettings.quickTaskCategories);
         const defaultQuickTaskCategory = loadStringSetting('defaultQuickTaskCategory', defaultSettings.defaultQuickTaskCategory, defaultSettings.quickTaskCategories);
+        const uiDensity = loadStringSetting('uiDensity', defaultSettings.uiDensity, ['default', 'compact'] as const);
 
         setSettings({
           theme,
@@ -130,7 +133,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
           hiddenCategories,
           hideDefaultCategories,
           quickTaskCategories,
-          defaultQuickTaskCategory
+          defaultQuickTaskCategory,
+          uiDensity
         });
       } catch (error) {
         console.error('Error loading settings:', error);
