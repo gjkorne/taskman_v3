@@ -1,8 +1,8 @@
-import { BarChart3, Clock, List, Menu, Settings, AlertTriangle } from 'lucide-react';
+import { BarChart3, Calendar, Clock, List, Menu, Settings, AlertTriangle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 // Types
-export type ViewType = 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions';
+export type ViewType = 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -50,43 +50,50 @@ export function Sidebar({
             onClick={onToggleSidebar} 
             className="p-2 text-gray-500 rounded-md lg:hidden hover:bg-gray-100"
           >
-            <Menu size={20} />
+            <Menu className="h-5 w-5" />
           </button>
         </div>
         
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          <NavItem
-            icon={<List size={20} />}
-            label="Tasks"
+        {/* Navigation Links */}
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+          <NavItem 
+            icon={<List className="w-5 h-5" />} 
+            label="Tasks" 
             active={activeView === 'tasks'}
             onClick={() => onViewChange('tasks')}
           />
           
-          <NavItem
-            icon={<Clock size={20} />}
-            label="Timer"
+          <NavItem 
+            icon={<Calendar className="w-5 h-5" />} 
+            label="Calendar" 
+            active={activeView === 'calendar'}
+            onClick={() => onViewChange('calendar')}
+          />
+          
+          <NavItem 
+            icon={<Clock className="w-5 h-5" />} 
+            label="Timer" 
             active={activeView === 'timer'}
             onClick={() => onViewChange('timer')}
           />
           
-          <NavItem
-            icon={<Clock size={20} />}
+          <NavItem 
+            icon={<Clock className="w-5 h-5" />} 
             label="Time Sessions"
             active={activeView === 'time-sessions'}
             onClick={() => onViewChange('time-sessions')}
           />
           
-          <NavItem
-            icon={<BarChart3 size={20} />}
-            label="Reports"
+          <NavItem 
+            icon={<BarChart3 className="w-5 h-5" />} 
+            label="Reports" 
             active={activeView === 'reports'}
             onClick={() => onViewChange('reports')}
           />
           
-          <NavItem
-            icon={<Settings size={20} />}
-            label="Settings"
+          <NavItem 
+            icon={<Settings className="w-5 h-5" />} 
+            label="Settings" 
             active={activeView === 'settings'}
             onClick={() => onViewChange('settings')}
           />
@@ -98,7 +105,7 @@ export function Sidebar({
                 Development
               </h3>
               <NavItem
-                icon={<AlertTriangle size={20} />}
+                icon={<AlertTriangle className="w-5 h-5" />}
                 label="Admin"
                 active={activeView === 'admin'}
                 onClick={() => onViewChange('admin')}

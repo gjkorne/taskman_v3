@@ -6,6 +6,7 @@ interface TaskFormModalProps {
   onClose: () => void;
   onTaskCreated: () => void;
   title?: string;
+  initialDate?: Date;
 }
 
 /**
@@ -16,7 +17,8 @@ export function TaskFormModal({
   isOpen,
   onClose,
   onTaskCreated,
-  title = 'New Task'
+  title = 'New Task',
+  initialDate
 }: TaskFormModalProps) {
   if (!isOpen) return null;
   
@@ -51,6 +53,7 @@ export function TaskFormModal({
           mode="create"
           onSuccess={handleTaskCreated}
           onCancel={onClose}
+          initialValues={initialDate ? { due_date: initialDate.toISOString().split('T')[0] } : undefined}
         />
       </div>
     </div>

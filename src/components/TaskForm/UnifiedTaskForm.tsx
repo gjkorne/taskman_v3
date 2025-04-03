@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Controller } from 'react-hook-form';
 import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -18,6 +18,17 @@ export interface UnifiedTaskFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
   onClose?: () => void;
+  initialValues?: {
+    title?: string;
+    description?: string;
+    category_name?: string;
+    priority?: string;
+    tags?: string[];
+    due_date?: string;
+    hasDueDate?: boolean;
+    estimatedTime?: number;
+    status?: string;
+  };
 }
 
 /**
@@ -29,7 +40,8 @@ export function UnifiedTaskForm({
   mode = 'create',
   onSuccess,
   onCancel,
-  onClose
+  onClose,
+  initialValues
 }: UnifiedTaskFormProps) {
   // Track expanded/collapsed state for the notes field
   const [isNotesExpanded, setIsNotesExpanded] = React.useState(mode === 'edit');
@@ -45,7 +57,7 @@ export function UnifiedTaskForm({
     else if (onClose) onClose();
   };
   
-  // Use our custom hook for form management
+  // Custom hook to manage form state and submission
   const { 
     register, 
     handleSubmit, 
@@ -63,10 +75,26 @@ export function UnifiedTaskForm({
     }
   });
   
+  // Apply initial values when provided
+  useEffect(() => {
+    if (initialValues && !taskId) {
+      // Only apply initial values for new tasks
+      Object.entries(initialValues).forEach(([key, value]) => {
+        if (value !== undefined) {
+          setValue(key as any, value);
+          
+          // Special handling for due date
+          if (key === 'due_date' && value) {
+            setValue('hasDueDate', true);
+          }
+        }
+      });
+    }
+  }, [initialValues, setValue, taskId]);
+  
   // Watch form values for reactive UI updates
   const categoryName = watch('category_name');
   const hasDueDate = watch('hasDueDate');
-  // const subcategory = watch('subcategory'); // Remove or comment out unused variable
   const watchedTags = watch('tags') || [];
   
   return (

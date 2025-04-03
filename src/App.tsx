@@ -12,6 +12,7 @@ import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
 import { TaskDetailsPage } from './pages/TaskDetailsPage';
 import { TimeSessionsPage } from './pages/TimeSessionsPage';
+import { CalendarPage } from './components/Calendar/CalendarPage';
 import { useAuth } from './lib/auth';
 import { TimerProvider } from './contexts/TimerContext';
 import { SettingsProvider } from './contexts/SettingsContext';
@@ -48,7 +49,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions'>('tasks');
+  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar'>('tasks');
   const taskListRef = useRef<TaskListRefType>(null);
 
   // Handler for when a task is created through the global button
@@ -106,6 +107,7 @@ function App() {
                                   {activeView === 'settings' && <SettingsPage />}
                                   {activeView === 'admin' && <AdminPage />}
                                   {activeView === 'time-sessions' && <TimeSessionsPage />}
+                                  {activeView === 'calendar' && <CalendarPage />}
                                 </Layout>
                               </ProtectedRoute>
                             }
@@ -122,6 +124,22 @@ function App() {
                                   onTimerStateChange={handleTimerStateChange}
                                 >
                                   <TaskDetailsPage />
+                                </Layout>
+                              </ProtectedRoute>
+                            } 
+                          />
+                          {/* Calendar page (separate route) */}
+                          <Route 
+                            path="/calendar" 
+                            element={
+                              <ProtectedRoute>
+                                <Layout 
+                                  activeView="calendar"
+                                  onViewChange={setActiveView}
+                                  onTaskCreated={handleTaskCreated}
+                                  onTimerStateChange={handleTimerStateChange}
+                                >
+                                  <CalendarPage />
                                 </Layout>
                               </ProtectedRoute>
                             } 
