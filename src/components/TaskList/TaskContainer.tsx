@@ -1,17 +1,8 @@
-import { Task, TaskStatus } from '../../types/task';
+import { Task } from '../../types/task';
 import { TaskFilter } from './FilterPanel';
 import { TaskCard } from './TaskCard';
-import { useTimer } from '../../contexts/TimerContext';
-
-// Define section styles configuration for consistent UI
-const SECTION_STYLES = {
-  activeNow: { title: 'Active Now', bgColor: 'bg-blue-50' },
-  paused: { title: 'Paused', bgColor: 'bg-amber-50' },
-  inProgress: { title: 'In Progress', bgColor: 'bg-indigo-50' },
-  todo: { title: 'Todo', bgColor: 'bg-white' },
-  completed: { title: 'Completed', bgColor: 'bg-green-50' },
-  archived: { title: 'Archived', bgColor: 'bg-gray-50' }
-};
+import { TaskSection } from './TaskSection';
+import { useTaskCategories } from '../../hooks/useTaskCategories';
 
 interface TaskContainerProps {
   tasks: Task[];
@@ -30,9 +21,6 @@ export function TaskContainer({
   onDelete,
   onTimerStateChange
 }: TaskContainerProps) {
-  // Get the current timer state to accurately identify the active task
-  const { timerState } = useTimer();
-
   // Loading state indicator
   if (isLoading) {
     return (
@@ -60,62 +48,7 @@ export function TaskContainer({
     );
   }
 
-  // Utility function to categorize tasks
-  const categorizeTasks = (tasks: Task[]) => {
-    // ACTIVE TASKS: Tasks that are currently being TIMED (timer running)
-    const activeTasks = tasks.filter(task => 
-      timerState.taskId === task.id && timerState.status === 'running'
-    );
-    
-    // PAUSED TASKS: Tasks with paused timers BUT NOT in completed/archived status
-    const pausedTasks = tasks.filter(task => {
-      const isPaused = timerState.taskId === task.id && timerState.status === 'paused';
-      const isCompletedOrArchived = 
-        task.status === TaskStatus.COMPLETED || 
-        task.status === TaskStatus.ARCHIVED;
-      
-      // Only show in paused section if timer is paused AND task isn't completed/archived
-      return isPaused && !isCompletedOrArchived;
-    });
-  
-    // PROGRESS TASKS: Tasks with in_progress status but NOT currently being timed or paused
-    const inProgressTasks = tasks.filter(task => {
-      const isBeingTimed = timerState.taskId === task.id && 
-                         (timerState.status === 'running' || timerState.status === 'paused');
-      const hasInProgressStatus = task.status === TaskStatus.IN_PROGRESS;
-      
-      // Only show in this section if it has in_progress status but no active timer
-      return hasInProgressStatus && !isBeingTimed;
-    });
-  
-    // OTHER TASKS: Everything else (not being timed, not paused, not in progress)
-    const otherTasks = tasks.filter(task => {
-      // Not being timed
-      const isBeingTimed = timerState.taskId === task.id && 
-                         (timerState.status === 'running' || timerState.status === 'paused');
-      
-      // Not in progress
-      const hasInProgressStatus = task.status === TaskStatus.IN_PROGRESS;
-      
-      // A task should be in Other Tasks only if it's not in any other section
-      return !isBeingTimed && !hasInProgressStatus;
-    });
-
-    const todoTasks = otherTasks.filter(t => t.status === TaskStatus.PENDING);
-    const completedTasks = otherTasks.filter(t => t.status === TaskStatus.COMPLETED);
-    const archivedTasks = otherTasks.filter(t => t.status === TaskStatus.ARCHIVED);
-
-    return {
-      activeTasks,
-      pausedTasks,
-      inProgressTasks,
-      todoTasks,
-      completedTasks,
-      archivedTasks
-    };
-  };
-
-  // Categorize the tasks
+  // Use our custom hook to categorize tasks
   const {
     activeTasks,
     pausedTasks,
@@ -123,9 +56,9 @@ export function TaskContainer({
     todoTasks,
     completedTasks,
     archivedTasks
-  } = categorizeTasks(tasks);
+  } = useTaskCategories(tasks);
 
-  // Helper function to render a single task card
+  // Helper function to render a single task card (used in board view)
   const renderTaskCard = (task: Task, index: number) => (
     <TaskCard
       key={task.id}
@@ -137,40 +70,52 @@ export function TaskContainer({
     />
   );
 
-  // Helper function to render task section with consistent heading style
-  const renderTaskSection = (tasks: Task[], sectionKey: keyof typeof SECTION_STYLES) => {
-    if (tasks.length === 0) return null;
-    
-    const { title, bgColor } = SECTION_STYLES[sectionKey];
-    
-    return (
-      <div className="mb-6" key={title}>
-        {/* Section header with count and styled background */}
-        <div className={`flex items-center px-3 py-1.5 rounded-t-md ${bgColor} mb-1`}>
-          <h2 className="text-sm font-semibold">
-            {title}
-            <span className="ml-2 px-1.5 py-0.5 bg-white bg-opacity-90 rounded-full text-xs">
-              {tasks.length}
-            </span>
-          </h2>
-        </div>
-        <div className="px-4">
-          {tasks.map((task, index) => renderTaskCard(task, index))}
-        </div>
-      </div>
-    );
-  };
-
   // Render in list view (vertically stacked sections)
   if (viewMode === 'list') {
     return (
       <div className="space-y-6">
-        {renderTaskSection(activeTasks, 'activeNow')}
-        {renderTaskSection(pausedTasks, 'paused')}
-        {renderTaskSection(inProgressTasks, 'inProgress')}
-        {renderTaskSection(todoTasks, 'todo')}
-        {renderTaskSection(completedTasks, 'completed')}
-        {renderTaskSection(archivedTasks, 'archived')}
+        <TaskSection 
+          tasks={activeTasks} 
+          sectionKey="activeNow" 
+          onEdit={onEdit} 
+          onDelete={onDelete} 
+          onTimerStateChange={onTimerStateChange} 
+        />
+        <TaskSection 
+          tasks={pausedTasks} 
+          sectionKey="paused" 
+          onEdit={onEdit} 
+          onDelete={onDelete} 
+          onTimerStateChange={onTimerStateChange} 
+        />
+        <TaskSection 
+          tasks={inProgressTasks} 
+          sectionKey="inProgress" 
+          onEdit={onEdit} 
+          onDelete={onDelete} 
+          onTimerStateChange={onTimerStateChange} 
+        />
+        <TaskSection 
+          tasks={todoTasks} 
+          sectionKey="todo" 
+          onEdit={onEdit} 
+          onDelete={onDelete} 
+          onTimerStateChange={onTimerStateChange} 
+        />
+        <TaskSection 
+          tasks={completedTasks} 
+          sectionKey="completed" 
+          onEdit={onEdit} 
+          onDelete={onDelete} 
+          onTimerStateChange={onTimerStateChange} 
+        />
+        <TaskSection 
+          tasks={archivedTasks} 
+          sectionKey="archived" 
+          onEdit={onEdit} 
+          onDelete={onDelete} 
+          onTimerStateChange={onTimerStateChange} 
+        />
       </div>
     );
   } 
