@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TimeSession, timeSessionsService } from '../services/api/timeSessionsService';
-import { formatDistanceToNow, format, parseISO, intervalToDuration } from 'date-fns';
+import { formatDistanceToNow, format, parseISO } from 'date-fns';
 
 /**
  * Custom hook for managing time sessions
@@ -11,25 +11,79 @@ export function useTimeSessions(taskId?: string) {
   const [error, setError] = useState<Error | null>(null);
   const [totalTime, setTotalTime] = useState('00:00:00');
 
+  // Parse duration string to seconds (used by multiple functions)
+  const parseDurationToSeconds = (durationStr: string | null): number => {
+    if (!durationStr) return 0;
+    
+    // Try to parse "X seconds" format
+    const secondsMatch = durationStr.match(/^(\d+) seconds?$/);
+    if (secondsMatch) {
+      const seconds = parseInt(secondsMatch[1], 10);
+      if (!isNaN(seconds)) {
+        return seconds;
+      }
+    }
+    
+    // Try to parse "hh:mm:ss" format
+    const timeMatch = durationStr.match(/^(\d{2}):(\d{2}):(\d{2})$/);
+    if (timeMatch) {
+      const [, hours, minutes, seconds] = timeMatch;
+      return parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
+    }
+    
+    // Try to parse PostgreSQL verbose format
+    let totalSeconds = 0;
+    
+    // Extract hours
+    const hoursMatch = durationStr.match(/(\d+)\s+hour[s]?/);
+    if (hoursMatch) {
+      totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
+    }
+    
+    // Extract minutes
+    const minsMatch = durationStr.match(/(\d+)\s+min[s]?/);
+    if (minsMatch) {
+      totalSeconds += parseInt(minsMatch[1], 10) * 60;
+    }
+    
+    // Extract seconds
+    const secsMatch = durationStr.match(/(\d+)\s+sec[s]?/);
+    if (secsMatch) {
+      totalSeconds += parseInt(secsMatch[1], 10);
+    }
+    
+    return totalSeconds;
+  };
+
+  // Format seconds to hh:mm:ss format
+  const formatSecondsToTime = (totalSeconds: number): string => {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    return [
+      String(hours).padStart(2, '0'),
+      String(minutes).padStart(2, '0'),
+      String(seconds).padStart(2, '0')
+    ].join(':');
+  };
+
   // Format the session duration from PostgreSQL interval string
   const formatDuration = (durationStr: string | null): string => {
     if (!durationStr) return '00:00:00';
     
-    // Parse interval string (e.g., "3600 seconds")
-    const parts = durationStr.split(' ');
-    if (parts.length !== 2 || parts[1] !== 'seconds') return '00:00:00';
+    // Debug logging to see the actual format
+    console.log('Raw duration string:', durationStr);
     
-    const seconds = parseInt(parts[0], 10);
-    if (isNaN(seconds)) return '00:00:00';
+    const totalSeconds = parseDurationToSeconds(durationStr);
     
-    // Convert to hours, minutes, seconds
-    const duration = intervalToDuration({ start: 0, end: seconds * 1000 });
+    if (totalSeconds > 0) {
+      return formatSecondsToTime(totalSeconds);
+    }
     
-    return [
-      String(duration.hours || 0).padStart(2, '0'),
-      String(duration.minutes || 0).padStart(2, '0'),
-      String(duration.seconds || 0).padStart(2, '0')
-    ].join(':');
+    // If none of the formats match, return the original string or default
+    console.warn('Unable to parse duration format:', durationStr);
+    return durationStr || '00:00:00';
   };
 
   // Format the start and end time of a session
@@ -63,21 +117,13 @@ export function useTimeSessions(taskId?: string) {
     
     sessions.forEach(session => {
       if (session.duration) {
-        const parts = session.duration.split(' ');
-        if (parts.length === 2 && parts[1] === 'seconds') {
-          const seconds = parseInt(parts[0], 10);
-          if (!isNaN(seconds)) {
-            totalSeconds += seconds;
-          }
-        }
+        // Use the shared parsing function
+        totalSeconds += parseDurationToSeconds(session.duration);
       }
     });
     
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    // Use the shared formatting function
+    return formatSecondsToTime(totalSeconds);
   }, []);
 
   // Fetch sessions for a specific task
@@ -118,16 +164,39 @@ export function useTimeSessions(taskId?: string) {
   // Delete a session
   const deleteSession = async (sessionId: string) => {
     try {
-      await timeSessionsService.deleteSession(sessionId);
+      console.log('Attempting to delete session:', sessionId);
       
-      // Update the sessions list after deletion
-      if (taskId) {
-        fetchTaskSessions();
-      } else {
-        fetchUserSessions();
+      // First get the session to check if it's active
+      const currentSessions = [...sessions];
+      const sessionToDelete = currentSessions.find(s => s.id === sessionId);
+      
+      if (!sessionToDelete) {
+        console.error('Session not found for deletion:', sessionId);
+        throw new Error('Session not found');
       }
       
-      return true;
+      console.log('Session to delete:', sessionToDelete);
+      
+      // Delete the session from the database
+      const success = await timeSessionsService.deleteSession(sessionId);
+      
+      if (success) {
+        console.log('Session successfully deleted from database');
+        
+        // Immediately update the local state to remove the session
+        setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionId));
+        
+        // Then refresh from server
+        if (taskId) {
+          fetchTaskSessions();
+        } else {
+          fetchUserSessions();
+        }
+        
+        return true;
+      } else {
+        throw new Error('Failed to delete session');
+      }
     } catch (err) {
       console.error('Error deleting session:', err);
       setError(err instanceof Error ? err : new Error('Failed to delete session'));

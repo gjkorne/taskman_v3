@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Clock, PenTool, Tag, Check } from 'lucide-react';
+import { X, Calendar, Clock, PenTool, Tag, Check, StopCircle, Trash } from 'lucide-react';
 import { format } from 'date-fns';
 import type { TimeSession } from '../../services/api/timeSessionsService';
 import { timeSessionsService } from '../../services/api/timeSessionsService';
@@ -11,12 +11,14 @@ interface TimeSessionDetailsProps {
   sessionId: string;
   onClose: () => void;
   onSessionUpdated?: () => void;
+  onSessionDeleted?: () => void;
 }
 
 export function TimeSessionDetails({ 
   sessionId, 
   onClose,
-  onSessionUpdated 
+  onSessionUpdated,
+  onSessionDeleted
 }: TimeSessionDetailsProps) {
   const [session, setSession] = useState<TimeSession | null>(null);
   const [task, setTask] = useState<Task | null>(null);
@@ -25,6 +27,8 @@ export function TimeSessionDetails({
   const [notes, setNotes] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch session data
   useEffect(() => {
@@ -92,6 +96,59 @@ export function TimeSessionDetails({
       setError('Failed to save notes');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // End an active session
+  const handleEndSession = async () => {
+    if (!session || session.end_time) return;
+    
+    setIsEnding(true);
+    
+    try {
+      // Update session with current time as end_time
+      const endTime = new Date().toISOString();
+      const { data, error } = await timeSessionsService.updateSession(sessionId, { 
+        end_time: endTime
+      });
+      
+      if (error) throw error;
+      
+      // Update local state
+      if (data) {
+        setSession({
+          ...session,
+          end_time: endTime
+        });
+      }
+      
+      if (onSessionUpdated) onSessionUpdated();
+    } catch (err) {
+      console.error('Error ending session:', err);
+      setError('Failed to end session');
+    } finally {
+      setIsEnding(false);
+    }
+  };
+
+  // Delete the session
+  const handleDeleteSession = async () => {
+    if (!session) return;
+    
+    if (!window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    
+    try {
+      await timeSessionsService.deleteSession(sessionId);
+      if (onSessionDeleted) onSessionDeleted();
+      onClose();
+    } catch (err) {
+      console.error('Error deleting session:', err);
+      setError('Failed to delete session');
+      setIsDeleting(false);
     }
   };
 
@@ -163,10 +220,33 @@ export function TimeSessionDetails({
                 <Clock className="h-5 w-5 mr-2" />
                 <h3 className="text-lg font-medium">Time Session</h3>
               </div>
-              <div className="mt-2 md:mt-0">
-                <span className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800">
-                  {session.status || 'Completed'}
+              <div className="mt-2 md:mt-0 flex space-x-2">
+                <span className={cn(
+                  "px-2 py-1 text-xs font-medium rounded-full",
+                  session.end_time ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"
+                )}>
+                  {session.end_time ? 'Completed' : 'In Progress'}
                 </span>
+                
+                {!session.end_time && (
+                  <button
+                    onClick={handleEndSession}
+                    disabled={isEnding}
+                    className={cn(
+                      "px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 flex items-center",
+                      isEnding && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    {isEnding ? (
+                      <span>Ending...</span>
+                    ) : (
+                      <>
+                        <StopCircle className="h-3 w-3 mr-1" />
+                        End Session
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
             
@@ -285,6 +365,33 @@ export function TimeSessionDetails({
                 )}
               </div>
             )}
+          </div>
+          
+          {/* Delete session button */}
+          <div className="border-t pt-6">
+            <button
+              onClick={handleDeleteSession}
+              disabled={isDeleting}
+              className={cn(
+                "w-full flex items-center justify-center px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-md",
+                isDeleting && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              {isDeleting ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Deleting...
+                </span>
+              ) : (
+                <>
+                  <Trash className="h-4 w-4 mr-2" />
+                  Delete Session
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>

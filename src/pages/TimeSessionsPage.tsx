@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { format, subDays } from 'date-fns';
+import { useState, useEffect } from 'react';
+import { format, subDays, startOfDay, startOfWeek, startOfMonth, parseISO } from 'date-fns';
 import { Calendar, Clock, Download } from 'lucide-react';
 import { TimeSessionsList } from '../components/TimeSessions/TimeSessionsList';
 import { timeSessionsService } from '../services/api/timeSessionsService';
+import type { TimeSession } from '../services/api/timeSessionsService';
 
 export function TimeSessionsPage() {
   const [dateRange, setDateRange] = useState({
@@ -10,11 +11,127 @@ export function TimeSessionsPage() {
     endDate: new Date()
   });
   const [isExporting, setIsExporting] = useState(false);
-  
+  const [allSessions, setAllSessions] = useState<TimeSession[]>([]);
+  const [timeStats, setTimeStats] = useState({
+    today: '00:00:00',
+    week: '00:00:00',
+    month: '00:00:00'
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch sessions and calculate time stats
+  useEffect(() => {
+    const fetchSessions = async () => {
+      setIsLoading(true);
+      try {
+        // We need to fetch all sessions for the current month to calculate totals
+        const now = new Date();
+        const monthStart = startOfMonth(now);
+
+        const data = await timeSessionsService.getSessionsByDateRange(monthStart, now);
+        setAllSessions(data);
+
+        // Calculate time stats
+        calculateTimeStats(data);
+      } catch (error) {
+        console.error('Error fetching time sessions:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, []);
+
+  // Calculate time for different periods
+  const calculateTimeStats = (sessions: TimeSession[]) => {
+    const now = new Date();
+    const todayStart = startOfDay(now);
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+
+    // Helper function to parse session duration to seconds
+    const parseSessionDuration = (session: TimeSession): number => {
+      if (!session.duration) return 0;
+
+      // Try to parse "X seconds" format
+      const secondsMatch = session.duration.match(/^(\d+) seconds?$/);
+      if (secondsMatch) {
+        return parseInt(secondsMatch[1], 10);
+      }
+
+      // Try to parse "hh:mm:ss" format
+      const timeMatch = session.duration.match(/^(\d{2}):(\d{2}):(\d{2})$/);
+      if (timeMatch) {
+        const [, hours, minutes, seconds] = timeMatch;
+        return parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
+      }
+
+      // Try to parse PostgreSQL verbose format
+      let totalSeconds = 0;
+
+      // Extract hours
+      const hoursMatch = session.duration.match(/(\d+)\s+hour[s]?/);
+      if (hoursMatch) {
+        totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
+      }
+
+      // Extract minutes
+      const minsMatch = session.duration.match(/(\d+)\s+min[s]?/);
+      if (minsMatch) {
+        totalSeconds += parseInt(minsMatch[1], 10) * 60;
+      }
+
+      // Extract seconds
+      const secsMatch = session.duration.match(/(\d+)\s+sec[s]?/);
+      if (secsMatch) {
+        totalSeconds += parseInt(secsMatch[1], 10);
+      }
+
+      return totalSeconds;
+    };
+
+    // Helper to format seconds to hh:mm:ss
+    const formatSeconds = (totalSeconds: number): string => {
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
+
+    // Calculate totals for each period
+    let todaySeconds = 0;
+    let weekSeconds = 0;
+    let monthSeconds = 0;
+
+    sessions.forEach(session => {
+      const startTime = parseISO(session.start_time);
+
+      // Check if session is within today
+      if (startTime >= todayStart) {
+        todaySeconds += parseSessionDuration(session);
+      }
+
+      // Check if session is within this week
+      if (startTime >= weekStart) {
+        weekSeconds += parseSessionDuration(session);
+      }
+
+      // All sessions fetched are within this month
+      monthSeconds += parseSessionDuration(session);
+    });
+
+    setTimeStats({
+      today: formatSeconds(todaySeconds),
+      week: formatSeconds(weekSeconds),
+      month: formatSeconds(monthSeconds)
+    });
+  };
+
   // Export sessions as CSV
   const exportSessions = async () => {
     setIsExporting(true);
-    
+
     try {
       // Get all user sessions for the selected date range
       const sessions = await timeSessionsService.getSessionsByDateRange(
@@ -22,34 +139,41 @@ export function TimeSessionsPage() {
         dateRange.endDate
       );
       
+      // If date range matches current state, use cached sessions
+      const sessionsToExport = 
+        dateRange.startDate.getTime() === startOfMonth(new Date()).getTime() && 
+        dateRange.endDate.getTime() === new Date().getTime() 
+          ? allSessions 
+          : sessions;
+
       // Format sessions for CSV
       const csvContent = [
         // Header row
         'Task ID,Task Title,Start Time,End Time,Duration,Category',
         // Data rows
-        ...sessions.map((session: any) => {
+        ...sessionsToExport.map((session: any) => {
           const startTime = session.start_time ? new Date(session.start_time).toISOString() : '';
           const endTime = session.end_time ? new Date(session.end_time).toISOString() : '';
           const taskTitle = session.tasks?.title || 'Unknown Task';
           const category = session.tasks?.category_name || 'Uncategorized';
-          
+
           return `"${session.task_id}","${taskTitle}","${startTime}","${endTime}","${session.duration || ''}","${category}"`;
         })
       ].join('\n');
-      
+
       // Create download link
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', `time-sessions-${format(new Date(), 'yyyy-MM-dd')}.csv`);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
     } catch (error) {
       console.error('Error exporting sessions:', error);
       alert('Failed to export sessions. Please try again.');
@@ -57,7 +181,7 @@ export function TimeSessionsPage() {
       setIsExporting(false);
     }
   };
-  
+
   // Handle date range changes
   const handleDateChange = (type: 'startDate' | 'endDate') => (e: React.ChangeEvent<HTMLInputElement>) => {
     setDateRange(prev => ({
@@ -73,7 +197,7 @@ export function TimeSessionsPage() {
           <Clock className="mr-2 h-5 w-5" />
           Time Sessions
         </h1>
-        
+
         <div className="mt-4 md:mt-0 flex flex-wrap gap-3">
           <div className="flex items-center gap-2">
             <div className="flex items-center space-x-1 bg-white border rounded-md px-2 py-1">
@@ -96,7 +220,7 @@ export function TimeSessionsPage() {
               />
             </div>
           </div>
-          
+
           <button
             onClick={exportSessions}
             disabled={isExporting}
@@ -107,23 +231,41 @@ export function TimeSessionsPage() {
           </button>
         </div>
       </div>
-      
+
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white border rounded-lg p-4 shadow-sm">
           <div className="text-lg font-medium">Today</div>
-          <div className="mt-1 text-3xl font-medium text-indigo-600 font-mono">00:00:00</div>
+          <div className="mt-1 text-3xl font-medium text-indigo-600 font-mono">
+            {isLoading ? (
+              <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
+            ) : (
+              timeStats.today
+            )}
+          </div>
         </div>
         <div className="bg-white border rounded-lg p-4 shadow-sm">
           <div className="text-lg font-medium">This Week</div>
-          <div className="mt-1 text-3xl font-medium text-indigo-600 font-mono">00:00:00</div>
+          <div className="mt-1 text-3xl font-medium text-indigo-600 font-mono">
+            {isLoading ? (
+              <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
+            ) : (
+              timeStats.week
+            )}
+          </div>
         </div>
         <div className="bg-white border rounded-lg p-4 shadow-sm">
           <div className="text-lg font-medium">This Month</div>
-          <div className="mt-1 text-3xl font-medium text-indigo-600 font-mono">00:00:00</div>
+          <div className="mt-1 text-3xl font-medium text-indigo-600 font-mono">
+            {isLoading ? (
+              <div className="animate-pulse h-8 w-24 bg-gray-200 rounded"></div>
+            ) : (
+              timeStats.month
+            )}
+          </div>
         </div>
       </div>
-      
+
       {/* Sessions List */}
       <div className="bg-white border rounded-lg shadow-sm">
         <TimeSessionsList />

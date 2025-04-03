@@ -13,6 +13,13 @@ export interface TimeSession {
   created_at: string;
   status?: string;
   notes?: string;
+  // Add task information from joined queries
+  tasks?: {
+    title?: string;
+    status?: string;
+    priority?: string;
+    category_name?: string;
+  };
 }
 
 /**
@@ -50,7 +57,7 @@ export class TimeSessionsService {
     
     const { data, error } = await supabase
       .from('time_sessions')
-      .select('*, tasks(title, status, priority)')
+      .select('*, tasks(title, status, priority, category_name)')
       .eq('user_id', userData.user.id)
       .order('start_time', { ascending: false });
       
@@ -75,7 +82,7 @@ export class TimeSessionsService {
     
     const { data, error } = await supabase
       .from('time_sessions')
-      .select('*, tasks(title, status, priority)')
+      .select('*, tasks(title, status, priority, category_name)')
       .eq('user_id', userData.user.id)
       .gte('start_time', startDate.toISOString())
       .lte('start_time', endDate.toISOString())
@@ -120,17 +127,25 @@ export class TimeSessionsService {
    * Delete a time session by ID
    */
   async deleteSession(sessionId: string) {
-    const { error } = await supabase
-      .from('time_sessions')
-      .delete()
-      .eq('id', sessionId);
+    console.log(`Attempting to delete session with ID: ${sessionId}`);
+    
+    try {
+      const { error } = await supabase
+        .from('time_sessions')
+        .delete()
+        .eq('id', sessionId);
+        
+      if (error) {
+        console.error('Error deleting time session:', error);
+        throw error;
+      }
       
-    if (error) {
-      console.error('Error deleting time session:', error);
+      console.log(`Successfully deleted session: ${sessionId}`);
+      return true;
+    } catch (error) {
+      console.error('Exception during session deletion:', error);
       throw error;
     }
-    
-    return true;
   }
   
   /**
