@@ -1,6 +1,16 @@
 import { useState, useCallback } from 'react';
 import { taskService } from '../services/api';
 import { TaskStatus, TaskStatusType } from '../types/task';
+import { 
+  isValidStatusTransition, 
+  getStatusOnTimerStart, 
+  getStatusOnTimerPause 
+} from '../utils/taskStatusUtils';
+import { 
+  processError, 
+  logError, 
+  getUserFriendlyErrorMessage 
+} from '../utils/errorUtils';
 
 interface UseTaskActionsOptions {
   showToasts?: boolean;
@@ -28,7 +38,7 @@ export function useTaskActions({
   };
 
   /**
-   * Update the status of a task
+   * Update the status of a task with validation
    */
   const updateTaskStatus = useCallback(async (taskId: string, status: TaskStatusType) => {
     if (!taskId) return;
@@ -36,67 +46,66 @@ export function useTaskActions({
     // Validate parameters - both types and order
     console.log('useTaskActions.updateTaskStatus - Params received:', { taskId, status });
     
-    // Detect and fix swapped parameters
-    if (status.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) && 
-        (typeof taskId === 'string' && ['pending', 'active', 'paused', 'completed', 'archived'].includes(taskId))) {
-      console.error('Parameters are definitely swapped. Fixing automatically.');
-      // Swap parameters
-      [taskId, status] = [status, taskId as any];
-    }
-    
-    // Validate taskId format
-    if (!taskId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      console.error('Invalid UUID format for taskId:', taskId);
-      setError('Invalid task ID format');
-      if (onError) onError('Invalid task ID format', 'update-status');
-      return;
-    }
-    
-    // If status is a UUID (incorrect parameter order), use a default status
-    if (status.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      console.error('Status parameter is a UUID - using "active" as fallback');
-      status = 'active' as TaskStatusType;
-    }
-    
-    // Validate status value
-    const validStatuses = Object.values(TaskStatus);
-    if (!validStatuses.includes(status as any)) {
-      console.error('Invalid status value:', status);
-      setError('Invalid status value');
-      if (onError) onError('Invalid status value', 'update-status');
-      return;
-    }
-    
-    console.log('useTaskActions: Calling API with validated params:', { taskId, status });
-    
-    setIsLoading(true);
-    setError(null);
-    
+    // Parameter validation logic
     try {
-      const { error: apiError } = await taskService.updateTaskStatus(taskId, status);
+      const isValidUuid = typeof taskId === 'string' && 
+        taskId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
       
-      if (apiError) throw apiError;
+      const isValidStatus = Object.values(TaskStatus).includes(status as any);
+      
+      if (!isValidUuid) {
+        throw new Error('Invalid task ID format');
+      }
+      
+      if (!isValidStatus) {
+        throw new Error(`Invalid status: ${status}`);
+      }
+      
+      setIsLoading(true);
+      setError(null);
+      
+      // Fetch current task to validate status transition
+      const { data: currentTask, error: fetchError } = await taskService.getTaskById(taskId);
+      
+      if (fetchError) {
+        throw fetchError;
+      }
+      
+      // Validate the status transition
+      if (currentTask && !isValidStatusTransition(currentTask.status, status)) {
+        throw new Error(`Invalid status transition from ${currentTask.status} to ${status}`);
+      }
+      
+      // Update the task
+      const { error: updateError } = await taskService.updateTask(taskId, { status });
+      
+      if (updateError) {
+        throw updateError;
+      }
       
       // Refresh task data
       await refreshTasks();
       
       // Show success toast
       if (showToasts) {
-        // Make sure we're displaying a valid status name
-        addToast(`Task marked as ${status}`, 'success');
+        addToast('Task status updated successfully', 'success');
       }
       
-      // Call success callback if provided
+      // Trigger success callback
       if (onSuccess) {
         onSuccess('update-status');
       }
     } catch (err) {
-      console.error('Error updating task status:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update task status';
+      // Process and log the error
+      const processedError = processError(err);
+      logError(processedError, 'updateTaskStatus');
+      
+      // Get user-friendly error message
+      const errorMessage = getUserFriendlyErrorMessage(processedError);
       setError(errorMessage);
       
       if (showToasts) {
-        addToast('Failed to update task status', 'error');
+        addToast(errorMessage, 'error');
       }
       
       if (onError) {
@@ -111,42 +120,42 @@ export function useTaskActions({
    * Mark a task as completed
    */
   const completeTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, 'completed');
+    await updateTaskStatus(taskId, TaskStatus.COMPLETED);
   }, [updateTaskStatus]);
 
   /**
    * Start a task
    */
   const startTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, 'active');
+    await updateTaskStatus(taskId, getStatusOnTimerStart());
   }, [updateTaskStatus]);
 
   /**
    * Mark a task as active (ready to start)
    */
   const activateTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, 'active');
+    await updateTaskStatus(taskId, TaskStatus.ACTIVE);
   }, [updateTaskStatus]);
 
   /**
    * Pause a task
    */
   const pauseTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, 'paused');
+    await updateTaskStatus(taskId, getStatusOnTimerPause());
   }, [updateTaskStatus]);
 
   /**
    * Return a task to pending status
    */
   const resetTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, 'pending');
+    await updateTaskStatus(taskId, TaskStatus.PENDING);
   }, [updateTaskStatus]);
 
   /**
    * Archive a task
    */
   const archiveTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, 'archived');
+    await updateTaskStatus(taskId, TaskStatus.ARCHIVED);
   }, [updateTaskStatus]);
 
   /**
@@ -159,7 +168,9 @@ export function useTaskActions({
     try {
       const { data, error: apiError } = await taskService.createTask(taskData);
       
-      if (apiError) throw apiError;
+      if (apiError) {
+        throw apiError;
+      }
       
       // Refresh task data
       await refreshTasks();
@@ -176,12 +187,16 @@ export function useTaskActions({
       
       return data;
     } catch (err) {
-      console.error('Error creating task:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create task';
+      // Process and log the error
+      const processedError = processError(err);
+      logError(processedError, 'createTask');
+      
+      // Get user-friendly error message
+      const errorMessage = getUserFriendlyErrorMessage(processedError);
       setError(errorMessage);
       
       if (showToasts) {
-        addToast('Failed to create task', 'error');
+        addToast(errorMessage, 'error');
       }
       
       if (onError) {
@@ -206,7 +221,9 @@ export function useTaskActions({
     try {
       const { error: apiError } = await taskService.deleteTask(taskId);
       
-      if (apiError) throw apiError;
+      if (apiError) {
+        throw apiError;
+      }
       
       // Refresh task data
       await refreshTasks();
@@ -221,12 +238,16 @@ export function useTaskActions({
         onSuccess('delete');
       }
     } catch (err) {
-      console.error('Error deleting task:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete task';
+      // Process and log the error
+      const processedError = processError(err);
+      logError(processedError, 'deleteTask');
+      
+      // Get user-friendly error message
+      const errorMessage = getUserFriendlyErrorMessage(processedError);
       setError(errorMessage);
       
       if (showToasts) {
-        addToast('Failed to delete task', 'error');
+        addToast(errorMessage, 'error');
       }
       
       if (onError) {
@@ -249,7 +270,9 @@ export function useTaskActions({
     try {
       const { error: apiError } = await taskService.batchDeleteTasks(taskIds);
       
-      if (apiError) throw apiError;
+      if (apiError) {
+        throw apiError;
+      }
       
       // Refresh task data
       await refreshTasks();
@@ -264,12 +287,16 @@ export function useTaskActions({
         onSuccess('batch-delete');
       }
     } catch (err) {
-      console.error('Error batch deleting tasks:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete tasks';
+      // Process and log the error
+      const processedError = processError(err);
+      logError(processedError, 'batchDeleteTasks');
+      
+      // Get user-friendly error message
+      const errorMessage = getUserFriendlyErrorMessage(processedError);
       setError(errorMessage);
       
       if (showToasts) {
-        addToast('Failed to delete tasks', 'error');
+        addToast(errorMessage, 'error');
       }
       
       if (onError) {
