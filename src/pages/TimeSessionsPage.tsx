@@ -4,6 +4,7 @@ import { Calendar, Clock, Download } from 'lucide-react';
 import { TimeSessionsList } from '../components/TimeSessions/TimeSessionsList';
 import { timeSessionsService } from '../services/api/timeSessionsService';
 import type { TimeSession } from '../services/api/timeSessionsService';
+import { parseDurationToSeconds, formatSecondsToTime } from '../utils/timeUtils';
 
 export function TimeSessionsPage() {
   const [dateRange, setDateRange] = useState({
@@ -49,56 +50,6 @@ export function TimeSessionsPage() {
     const todayStart = startOfDay(now);
     const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
 
-    // Helper function to parse session duration to seconds
-    const parseSessionDuration = (session: TimeSession): number => {
-      if (!session.duration) return 0;
-
-      // Try to parse "X seconds" format
-      const secondsMatch = session.duration.match(/^(\d+) seconds?$/);
-      if (secondsMatch) {
-        return parseInt(secondsMatch[1], 10);
-      }
-
-      // Try to parse "hh:mm:ss" format
-      const timeMatch = session.duration.match(/^(\d{2}):(\d{2}):(\d{2})$/);
-      if (timeMatch) {
-        const [, hours, minutes, seconds] = timeMatch;
-        return parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
-      }
-
-      // Try to parse PostgreSQL verbose format
-      let totalSeconds = 0;
-
-      // Extract hours
-      const hoursMatch = session.duration.match(/(\d+)\s+hour[s]?/);
-      if (hoursMatch) {
-        totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
-      }
-
-      // Extract minutes
-      const minsMatch = session.duration.match(/(\d+)\s+min[s]?/);
-      if (minsMatch) {
-        totalSeconds += parseInt(minsMatch[1], 10) * 60;
-      }
-
-      // Extract seconds
-      const secsMatch = session.duration.match(/(\d+)\s+sec[s]?/);
-      if (secsMatch) {
-        totalSeconds += parseInt(secsMatch[1], 10);
-      }
-
-      return totalSeconds;
-    };
-
-    // Helper to format seconds to hh:mm:ss
-    const formatSeconds = (totalSeconds: number): string => {
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-
-      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    };
-
     // Calculate totals for each period
     let todaySeconds = 0;
     let weekSeconds = 0;
@@ -106,25 +57,26 @@ export function TimeSessionsPage() {
 
     sessions.forEach(session => {
       const startTime = parseISO(session.start_time);
+      const durationSeconds = parseDurationToSeconds(session.duration);
 
       // Check if session is within today
       if (startTime >= todayStart) {
-        todaySeconds += parseSessionDuration(session);
+        todaySeconds += durationSeconds;
       }
 
       // Check if session is within this week
       if (startTime >= weekStart) {
-        weekSeconds += parseSessionDuration(session);
+        weekSeconds += durationSeconds;
       }
 
       // All sessions fetched are within this month
-      monthSeconds += parseSessionDuration(session);
+      monthSeconds += durationSeconds;
     });
 
     setTimeStats({
-      today: formatSeconds(todaySeconds),
-      week: formatSeconds(weekSeconds),
-      month: formatSeconds(monthSeconds)
+      today: formatSecondsToTime(todaySeconds),
+      week: formatSecondsToTime(weekSeconds),
+      month: formatSecondsToTime(monthSeconds)
     });
   };
 

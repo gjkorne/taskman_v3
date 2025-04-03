@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TimeSession, timeSessionsService } from '../services/api/timeSessionsService';
 import { formatDistanceToNow, format, parseISO } from 'date-fns';
+import { formatDuration, calculateTotalDuration } from '../utils/timeUtils';
 
 /**
  * Custom hook for managing time sessions
@@ -10,81 +11,6 @@ export function useTimeSessions(taskId?: string) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [totalTime, setTotalTime] = useState('00:00:00');
-
-  // Parse duration string to seconds (used by multiple functions)
-  const parseDurationToSeconds = (durationStr: string | null): number => {
-    if (!durationStr) return 0;
-    
-    // Try to parse "X seconds" format
-    const secondsMatch = durationStr.match(/^(\d+) seconds?$/);
-    if (secondsMatch) {
-      const seconds = parseInt(secondsMatch[1], 10);
-      if (!isNaN(seconds)) {
-        return seconds;
-      }
-    }
-    
-    // Try to parse "hh:mm:ss" format
-    const timeMatch = durationStr.match(/^(\d{2}):(\d{2}):(\d{2})$/);
-    if (timeMatch) {
-      const [, hours, minutes, seconds] = timeMatch;
-      return parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
-    }
-    
-    // Try to parse PostgreSQL verbose format
-    let totalSeconds = 0;
-    
-    // Extract hours
-    const hoursMatch = durationStr.match(/(\d+)\s+hour[s]?/);
-    if (hoursMatch) {
-      totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
-    }
-    
-    // Extract minutes
-    const minsMatch = durationStr.match(/(\d+)\s+min[s]?/);
-    if (minsMatch) {
-      totalSeconds += parseInt(minsMatch[1], 10) * 60;
-    }
-    
-    // Extract seconds
-    const secsMatch = durationStr.match(/(\d+)\s+sec[s]?/);
-    if (secsMatch) {
-      totalSeconds += parseInt(secsMatch[1], 10);
-    }
-    
-    return totalSeconds;
-  };
-
-  // Format seconds to hh:mm:ss format
-  const formatSecondsToTime = (totalSeconds: number): string => {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    
-    return [
-      String(hours).padStart(2, '0'),
-      String(minutes).padStart(2, '0'),
-      String(seconds).padStart(2, '0')
-    ].join(':');
-  };
-
-  // Format the session duration from PostgreSQL interval string
-  const formatDuration = (durationStr: string | null): string => {
-    if (!durationStr) return '00:00:00';
-    
-    // Debug logging to see the actual format
-    console.log('Raw duration string:', durationStr);
-    
-    const totalSeconds = parseDurationToSeconds(durationStr);
-    
-    if (totalSeconds > 0) {
-      return formatSecondsToTime(totalSeconds);
-    }
-    
-    // If none of the formats match, return the original string or default
-    console.warn('Unable to parse duration format:', durationStr);
-    return durationStr || '00:00:00';
-  };
 
   // Format the start and end time of a session
   const formatSessionTime = (session: TimeSession) => {
@@ -111,19 +37,9 @@ export function useTimeSessions(taskId?: string) {
     };
   };
 
-  // Calculate the total time spent on a task
+  // Calculate the total time spent on sessions
   const calculateTotalTime = useCallback((sessions: TimeSession[]) => {
-    let totalSeconds = 0;
-    
-    sessions.forEach(session => {
-      if (session.duration) {
-        // Use the shared parsing function
-        totalSeconds += parseDurationToSeconds(session.duration);
-      }
-    });
-    
-    // Use the shared formatting function
-    return formatSecondsToTime(totalSeconds);
+    return calculateTotalDuration(sessions);
   }, []);
 
   // Fetch sessions for a specific task
