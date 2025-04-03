@@ -203,9 +203,10 @@ export function TaskDetailsPage() {
                   "flex items-center px-3 py-1.5 rounded-md text-sm",
                   action.className
                 )}
+                title={action.label}
               >
                 {action.icon}
-                <span className="ml-1">{action.label}</span>
+                <span className="ml-1 hidden sm:inline">{action.label}</span>
               </button>
             ))}
           </div>

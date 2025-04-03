@@ -5,8 +5,10 @@ interface FloatingActionButtonProps {
   onClick: () => void;
   icon?: React.ReactNode;
   label?: string;
-  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'custom';
   color?: 'primary' | 'secondary' | 'success' | 'danger';
+  className?: string;
+  title?: string;
 }
 
 /**
@@ -18,7 +20,9 @@ export function FloatingActionButton({
   icon = <Plus className="h-6 w-6" />,
   label = 'New Task',
   position = 'bottom-right',
-  color = 'primary'
+  color = 'primary',
+  className,
+  title
 }: FloatingActionButtonProps) {
   // Position classes
   const positionClasses = {
@@ -42,15 +46,18 @@ export function FloatingActionButton({
       className={cn(
         'fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center',
         'focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-150',
-        'z-50 group hover:scale-110',
-        positionClasses[position],
-        colorClasses[color]
+        'z-50 group hover:scale-110 touch-manipulation',
+        position === 'custom' ? '' : positionClasses[position],
+        colorClasses[color],
+        className
       )}
       aria-label={label}
+      title={title || label}
     >
       {icon}
+      {/* Optional tooltip - only shown on desktop */}
       {label && (
-        <span className="absolute right-full mr-3 bg-gray-900 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap">
+        <span className="absolute right-full mr-3 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none hidden lg:block">
           {label}
         </span>
       )}

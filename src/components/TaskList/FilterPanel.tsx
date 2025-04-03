@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Flag, Filter, CheckCircle, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, Flag, CheckCircle, Calendar } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { CATEGORIES } from '../../types/categories';
 
@@ -113,12 +113,9 @@ export function FilterPanel({
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-1">
-          <Filter className="h-4 w-4 text-gray-500" />
-          <span className="text-xs font-medium text-gray-600">Filters</span>
-        </div>
+        {/* Filter heading removed */}
         
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 ml-auto">
           {/* Show count of filtered tasks if provided */}
           {taskCount !== undefined && filteredCount !== undefined && (
             <span className="text-sm text-gray-500">

@@ -10,7 +10,7 @@ import {
   stringifyNotes 
 } from '../../types/list';
 import ListEditor from './ListEditor';
-import { ListChecks, FileText } from 'lucide-react';
+import { ListChecks, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface NotesEditorProps {
   value: string | null;
@@ -31,6 +31,8 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
 }) => {
   // Parse the notes string into a structured Notes object
   const [notes, setNotes] = useState<Notes>(parseNotes(value));
+  // State to track if checklist is expanded or collapsed
+  const [isChecklistExpanded, setIsChecklistExpanded] = useState(false);
 
   // Update internal state when props change
   useEffect(() => {
@@ -70,6 +72,11 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
     onChange(stringifyNotes(listNotes));
   };
 
+  // Toggle checklist expansion
+  const toggleChecklistExpansion = () => {
+    setIsChecklistExpanded(!isChecklistExpanded);
+  };
+
   return (
     <div className={`notes-editor ${className}`}>
       {/* Format switcher (only shown in edit mode) */}
@@ -104,22 +111,66 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
         </div>
       )}
       
-      {/* Notes content */}
-      {notes.format === NoteFormat.LIST ? (
-        <ListEditor
-          value={notes as ListNotes}
-          onChange={handleListChange}
-          readOnly={readOnly}
-        />
-      ) : (
+      {/* Render the appropriate editor based on the note format */}
+      {notes.format === NoteFormat.TEXT ? (
         <textarea
           value={(notes as TextNotes).content}
           onChange={(e) => handleTextChange(e.target.value)}
-          disabled={readOnly}
+          readOnly={readOnly}
+          className="w-full border-0 focus:ring-0 resize-none h-32 p-3 text-gray-700 placeholder-gray-400 focus:outline-none bg-transparent"
           placeholder="Add notes here..."
-          className="w-full min-h-[120px] p-2 border border-gray-300 rounded-md"
-          rows={5}
         />
+      ) : (
+        <div>
+          {/* Checklist header with collapse/expand button */}
+          {notes.format === NoteFormat.LIST && !readOnly && (
+            <div className="flex items-center justify-between border-b px-3 py-2 bg-gray-50">
+              <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                <ListChecks size={16} />
+                Checklist
+              </span>
+              <button
+                type="button"
+                onClick={toggleChecklistExpansion}
+                className="text-gray-500 hover:text-gray-700 p-1 rounded"
+                title={isChecklistExpanded ? "Collapse checklist" : "Expand checklist"}
+              >
+                {isChecklistExpanded ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
+              </button>
+            </div>
+          )}
+          
+          {/* Conditionally render the ListEditor based on expansion state */}
+          <div className={!isChecklistExpanded && !readOnly ? 'hidden' : ''}>
+            <ListEditor
+              value={notes as ListNotes}
+              onChange={handleListChange}
+              readOnly={readOnly}
+              className="p-2"
+            />
+          </div>
+          
+          {/* Show a preview when collapsed */}
+          {!isChecklistExpanded && !readOnly && (notes as ListNotes).items.length > 0 && (
+            <div className="px-3 py-2 text-sm text-gray-500">
+              {(notes as ListNotes).items.length} item{(notes as ListNotes).items.length !== 1 ? 's' : ''} in checklist
+              {(notes as ListNotes).items.some(item => item.completed) && (
+                <span> • {(notes as ListNotes).items.filter(item => item.completed).length} completed</span>
+              )}
+            </div>
+          )}
+          
+          {/* Empty state message when checklist is empty */}
+          {!readOnly && !isChecklistExpanded && (notes as ListNotes).items.length === 0 && (
+            <div className="px-3 py-2 text-sm text-gray-400 italic">
+              Click to expand and add checklist items
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

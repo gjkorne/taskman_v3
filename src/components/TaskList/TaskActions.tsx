@@ -38,9 +38,11 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
           size="sm"
           icon={<CheckCircle size={16} className="transition-transform group-hover:scale-110" />}
           title="Mark task as complete"
-          className="min-w-[130px] shadow-sm transition-all duration-200 hover:shadow group"
+          className="min-w-[130px] md:min-w-[130px] shadow-sm transition-all duration-200 hover:shadow group"
         >
-          {status === TaskStatus.ACTIVE ? "Complete" : "Mark as Complete"}
+          <span className="hidden md:inline">
+            {status === TaskStatus.ACTIVE ? "Complete" : "Mark as Complete"}
+          </span>
         </Button>
       )}
 
@@ -52,9 +54,11 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
           size="sm"
           icon={<PlayCircle size={16} className="transition-transform group-hover:scale-110" />}
           title="Resume task"
-          className="min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group"
+          className="min-w-[100px] md:min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group"
         >
-          Resume
+          <span className="hidden md:inline">
+            Resume
+          </span>
         </Button>
       )}
 
@@ -66,9 +70,11 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
           size="sm"
           icon={<ArchiveIcon size={16} className="transition-transform group-hover:scale-110" />}
           title="Archive task"
-          className="min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group"
+          className="min-w-[100px] md:min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group"
         >
-          Archive
+          <span className="hidden md:inline">
+            Archive
+          </span>
         </Button>
       )}
     </div>

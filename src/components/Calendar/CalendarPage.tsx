@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, parseISO, isToday } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useTaskContext } from '../../contexts/TaskContext';
 import { TaskFormModal } from '../TaskForm/TaskFormModal';
@@ -60,14 +60,15 @@ export function CalendarPage() {
   };
   
   // Toggle between month and day views
-  const toggleViewMode = () => {
-    setViewMode(viewMode === 'month' ? 'day' : 'month');
+  const toggleViewMode = (mode: CalendarViewMode) => {
+    setViewMode(mode);
   };
   
   // Render header with month navigation
   const renderHeader = () => {
     return (
-      <div className="flex flex-col space-y-4 mb-4">
+      <div className="flex flex-col space-y-3 mb-3 sm:mb-4">
+        {/* Month/Date and navigation */}
         <div className="flex items-center justify-between">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
             {viewMode === 'month' 
@@ -76,60 +77,74 @@ export function CalendarPage() {
           </h2>
           <div className="flex space-x-1 sm:space-x-2">
             <button
-              onClick={prevMonth}
-              className="p-1 sm:p-2 border border-gray-300 rounded-md hover:bg-gray-100"
-              aria-label="Previous month"
+              onClick={() => viewMode === 'month' ? prevMonth() : setSelectedDate(prev => addDays(prev, -1))}
+              className="p-1 sm:p-2 border border-gray-300 rounded-md hover:bg-gray-100 touch-manipulation"
+              aria-label={viewMode === 'month' ? "Previous month" : "Previous day"}
             >
               <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             </button>
             <button
               onClick={() => viewMode === 'month' ? setCurrentMonth(new Date()) : setSelectedDate(new Date())}
-              className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-md hover:bg-gray-100 text-xs sm:text-sm"
+              className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-md hover:bg-gray-100 text-xs sm:text-sm whitespace-nowrap touch-manipulation"
             >
               Today
             </button>
             <button
-              onClick={nextMonth}
-              className="p-1 sm:p-2 border border-gray-300 rounded-md hover:bg-gray-100"
-              aria-label="Next month"
+              onClick={() => viewMode === 'month' ? nextMonth() : setSelectedDate(prev => addDays(prev, 1))}
+              className="p-1 sm:p-2 border border-gray-300 rounded-md hover:bg-gray-100 touch-manipulation"
+              aria-label={viewMode === 'month' ? "Next month" : "Next day"}
             >
               <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             </button>
           </div>
         </div>
         
+        {/* View mode toggle and new task button */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-          <div className="flex space-x-2">
-            <button
-              onClick={toggleViewMode}
-              className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 border rounded-md transition-colors ${
-                viewMode === 'month' 
-                  ? 'bg-blue-500 text-white border-blue-600' 
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="text-xs sm:text-sm">Month</span>
-            </button>
+          <div className="flex w-full sm:w-auto justify-between sm:justify-start">
+            <div className="inline-flex rounded-md shadow-sm">
+              <button
+                onClick={() => toggleViewMode('month')}
+                className={`flex-1 flex items-center justify-center space-x-1 px-3 py-2 rounded-l-md border text-sm transition-colors ${
+                  viewMode === 'month' 
+                    ? 'bg-blue-500 text-white border-blue-600' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                } touch-manipulation`}
+                aria-label="Month view"
+              >
+                <CalendarIcon className="w-4 h-4" />
+                <span>Month</span>
+              </button>
+              
+              <button
+                onClick={() => toggleViewMode('day')}
+                className={`flex-1 flex items-center justify-center space-x-1 px-3 py-2 rounded-r-md border text-sm transition-colors ${
+                  viewMode === 'day' 
+                    ? 'bg-blue-500 text-white border-blue-600' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                } touch-manipulation`}
+                aria-label="Day view"
+              >
+                <Clock className="w-4 h-4" />
+                <span>Day</span>
+              </button>
+            </div>
             
             <button
-              onClick={toggleViewMode}
-              className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 border rounded-md transition-colors ${
-                viewMode === 'day' 
-                  ? 'bg-blue-500 text-white border-blue-600' 
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
+              onClick={() => openTaskModal(selectedDate)}
+              className="flex items-center justify-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm sm:hidden touch-manipulation"
+              aria-label="Add new task"
             >
-              <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="text-xs sm:text-sm">Day</span>
+              <Plus className="w-4 h-4" />
             </button>
           </div>
           
           <button
             onClick={() => openTaskModal(selectedDate)}
-            className="flex items-center justify-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+            className="hidden sm:flex items-center justify-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm touch-manipulation"
+            aria-label="Add new task"
           >
-            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+            <Plus className="w-4 h-4" />
             <span>New Task</span>
           </button>
         </div>
@@ -144,8 +159,9 @@ export function CalendarPage() {
     
     for (let i = 0; i < 7; i++) {
       days.push(
-        <div key={i} className="font-semibold text-center text-gray-600 text-xs sm:text-sm py-2">
-          {format(addDays(start, i), 'EEE')}
+        <div key={i} className="font-medium text-center text-gray-600 text-xs py-2">
+          {format(addDays(start, i), 'EEEEE')}
+          <span className="hidden sm:inline">{format(addDays(start, i), 'EEE').slice(1)}</span>
         </div>
       );
     }
@@ -170,24 +186,34 @@ export function CalendarPage() {
         const tasksForDay = tasksByDate[dateKey] || [];
         const isCurrentMonth = isSameMonth(day, monthStart);
         const isSelected = isSameDay(day, selectedDate);
+        const isTodayDate = isToday(day);
         
         days.push(
           <div
             key={dateKey}
             onClick={() => handleDateClick(day)}
-            className={`min-h-[60px] sm:min-h-[100px] border border-gray-200 p-1 cursor-pointer hover:bg-blue-50 ${
-              !isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'
-            } ${isSameDay(day, new Date()) ? 'bg-blue-50 border-blue-200' : ''}
-            ${isSelected ? 'bg-blue-100 border-blue-300' : ''}`}
+            className={`
+              relative min-h-[55px] sm:min-h-[100px] border border-gray-200 p-1 cursor-pointer 
+              hover:bg-blue-50 flex flex-col
+              ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'}
+              ${isTodayDate ? 'bg-blue-50 border-blue-200' : ''}
+              ${isSelected ? 'bg-blue-100 border-blue-300' : ''}
+            `}
           >
             <div className="flex justify-between items-start">
-              <span className="text-xs sm:text-sm font-medium">{format(day, 'd')}</span>
+              <span className={`
+                inline-flex justify-center items-center 
+                ${isTodayDate ? 'font-bold h-5 w-5 rounded-full bg-blue-500 text-white' : 'font-medium text-gray-700'}
+                text-xs
+              `}>
+                {format(day, 'd')}
+              </span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   openTaskModal(day);
                 }}
-                className="text-blue-600 hover:bg-blue-100 rounded-full p-1"
+                className="text-blue-600 hover:bg-blue-100 rounded-full p-1 touch-manipulation"
                 title="Add task"
                 aria-label="Add task for this day"
               >
@@ -195,18 +221,30 @@ export function CalendarPage() {
               </button>
             </div>
             
-            <div className="mt-1 space-y-1 overflow-y-auto max-h-[40px] sm:max-h-[80px]">
-              {tasksForDay.map((task) => (
-                <div
-                  key={task.id}
-                  className={`text-xs p-1 rounded truncate ${
-                    getPriorityClass(task.priority)
-                  }`}
-                  title={task.title}
-                >
-                  {task.title}
-                </div>
-              ))}
+            <div className="mt-1 space-y-1 overflow-y-auto max-h-[30px] sm:max-h-[70px] flex-grow">
+              {tasksForDay.length > 0 ? (
+                tasksForDay.map((task, index) => (
+                  // Only show first two tasks on mobile to avoid overflow
+                  (index < 2 || window.innerWidth > 640) ? (
+                    <div
+                      key={task.id}
+                      className={`text-xs p-1 rounded truncate ${
+                        getPriorityClass(task.priority)
+                      }`}
+                      title={task.title}
+                    >
+                      {task.title}
+                    </div>
+                  ) : index === 2 ? (
+                    // Show "more" indicator if there are additional tasks
+                    <div key="more" className="text-xs p-1 text-gray-500 text-center">
+                      +{tasksForDay.length - 2} more
+                    </div>
+                  ) : null
+                ))
+              ) : (
+                <div className="hidden sm:block text-xs text-gray-400 italic p-1">No tasks</div>
+              )}
             </div>
           </div>
         );
@@ -242,15 +280,15 @@ export function CalendarPage() {
   };
   
   return (
-    <div className="max-w-6xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
+    <div className="max-w-full sm:max-w-6xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
       <div className="bg-white rounded-lg shadow-sm p-2 sm:p-4">
         {renderHeader()}
         
         {viewMode === 'month' ? (
-          <>
+          <div className="overflow-hidden rounded-md border border-gray-200">
             {renderDays()}
             {renderCells()}
-          </>
+          </div>
         ) : (
           <DailyView date={selectedDate} />
         )}

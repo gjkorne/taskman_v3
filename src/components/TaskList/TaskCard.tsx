@@ -117,30 +117,30 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
   return (
     <div 
       className={cn(
-        "group relative flex flex-col sm:flex-row py-2 px-3 border-b border-gray-100 transition-colors",
+        "group relative flex flex-col sm:flex-row py-1 sm:py-2 px-2 sm:px-3 border-b border-gray-100 transition-colors",
         `border-l-2 ${priorityColor}`,  // Thin priority indicator
         index % 2 === 1 ? "bg-gray-50" : "bg-white",  // Alternating row colors
         "hover:bg-gray-100" // Darken hover state for better contrast
       )}
     >
       {/* Left Section: Title and Metadata */}
-      <div className="flex-grow min-w-0 mb-1 sm:mb-0">
+      <div className="flex-grow min-w-0 mb-0.5 sm:mb-0">
         {/* Title and Category Row */}
-        <div className="flex items-center mb-1">
-          <h3 className="font-bold text-base truncate mr-2 max-w-[70%]">
+        <div className="flex items-center mb-0.5 sm:mb-1">
+          <h3 className="font-bold text-base truncate mr-1 sm:mr-2 max-w-[70%]">
             {task.title}
           </h3>
           
           {/* Category tag */}
           {categoryName && (
-            <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-xs text-gray-700 flex-shrink-0">
+            <span className="px-1 py-0.5 rounded-full bg-gray-100 text-xs text-gray-700 flex-shrink-0">
               {categoryName}
             </span>
           )}
         </div>
         
         {/* Metadata Row */}
-        <div className="flex items-center space-x-2 text-xs text-gray-500">
+        <div className="flex items-center space-x-1 sm:space-x-2 text-xs text-gray-500">
           {/* Estimated time if available */}
           {task.estimated_time && (
             <span className="flex items-center">
@@ -152,7 +152,7 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
           {/* Due date if available */}
           {task.due_date && (
             <span className={cn(
-              "px-1.5 py-0.5 rounded-full", 
+              "px-1 py-0.5 rounded-full", 
               dueDateStyle?.className
             )}>
               Due: {format(new Date(task.due_date), 'MM/dd')}
@@ -162,19 +162,19 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
         
         {/* Task notes/list if present */}
         {task.description && (
-          <div className="mt-2">
+          <div className="mt-1 sm:mt-2">
             <NotesViewer 
               value={task.description} 
               maxLength={100} 
               maxListItems={3}
-              className="mt-1"
+              className="mt-0.5 sm:mt-1"
             />
           </div>
         )}
       </div>
       
       {/* Right Section: All Actions */}
-      <div className="flex items-center justify-end space-x-2 ml-auto">
+      <div className="flex items-center justify-end space-x-1 sm:space-x-2 ml-auto">
         {/* Timer control */}
         {task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.ARCHIVED && (
           <div className="flex-shrink-0">
@@ -201,24 +201,21 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="p-1 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <MoreVertical className={cn("h-4 w-4", getCategoryColor())} />
+          <MoreVertical className={`h-4 w-4 ${getCategoryColor()}`} />
         </button>
         
-        {/* Dropdown Menu */}
+        {/* Menu popup */}
         {isMenuOpen && (
-          <div 
-            className="absolute right-2 top-8 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-30"
-            onMouseLeave={() => setIsMenuOpen(false)}
-          >
+          <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-10 py-1">
             <button
               onClick={handleEdit}
-              className="w-full text-left px-4 py-2 text-xs hover:bg-gray-100 transition-colors"
+              className="block w-full text-left px-4 py-1 text-sm text-gray-700 hover:bg-gray-100"
             >
               Edit
             </button>
             <button
               onClick={handleDelete}
-              className="w-full text-left px-4 py-2 text-xs hover:bg-gray-100 text-red-600"
+              className="block w-full text-left px-4 py-1 text-sm text-red-600 hover:bg-gray-100"
             >
               Delete
             </button>

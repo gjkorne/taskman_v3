@@ -19,6 +19,7 @@ export const ListViewer: React.FC<ListViewerProps> = ({
   maxItems = 5,
   showCollapsed = true,
 }) => {
+  // Always start with collapsed view
   const [isExpanded, setIsExpanded] = React.useState(false);
   
   // Sort items by order
