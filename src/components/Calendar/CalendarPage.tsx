@@ -69,65 +69,67 @@ export function CalendarPage() {
     return (
       <div className="flex flex-col space-y-4 mb-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-800">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
             {viewMode === 'month' 
               ? format(currentMonth, 'MMMM yyyy')
-              : format(selectedDate, 'MMMM d, yyyy')}
+              : format(selectedDate, 'MMM d, yyyy')}
           </h2>
-          <div className="flex space-x-2">
+          <div className="flex space-x-1 sm:space-x-2">
             <button
               onClick={prevMonth}
-              className="p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+              className="p-1 sm:p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+              aria-label="Previous month"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             </button>
             <button
               onClick={() => viewMode === 'month' ? setCurrentMonth(new Date()) : setSelectedDate(new Date())}
-              className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100 text-sm"
+              className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-md hover:bg-gray-100 text-xs sm:text-sm"
             >
               Today
             </button>
             <button
               onClick={nextMonth}
-              className="p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+              className="p-1 sm:p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+              aria-label="Next month"
             >
-              <ChevronRight className="w-5 h-5 text-gray-600" />
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
             </button>
           </div>
         </div>
         
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           <div className="flex space-x-2">
             <button
               onClick={toggleViewMode}
-              className={`flex items-center space-x-2 px-3 py-2 border rounded-md transition-colors ${
+              className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 border rounded-md transition-colors ${
                 viewMode === 'month' 
                   ? 'bg-blue-500 text-white border-blue-600' 
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
             >
-              <CalendarIcon className="w-4 h-4" />
-              <span>Month</span>
+              <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="text-xs sm:text-sm">Month</span>
             </button>
             
             <button
               onClick={toggleViewMode}
-              className={`flex items-center space-x-2 px-3 py-2 border rounded-md transition-colors ${
+              className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 border rounded-md transition-colors ${
                 viewMode === 'day' 
                   ? 'bg-blue-500 text-white border-blue-600' 
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
             >
-              <Clock className="w-4 h-4" />
-              <span>Day</span>
+              <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="text-xs sm:text-sm">Day</span>
             </button>
           </div>
           
           <button
             onClick={() => openTaskModal(selectedDate)}
-            className="flex items-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="flex items-center justify-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
             <span>New Task</span>
           </button>
         </div>
@@ -142,7 +144,7 @@ export function CalendarPage() {
     
     for (let i = 0; i < 7; i++) {
       days.push(
-        <div key={i} className="font-semibold text-center text-gray-600 text-sm py-2">
+        <div key={i} className="font-semibold text-center text-gray-600 text-xs sm:text-sm py-2">
           {format(addDays(start, i), 'EEE')}
         </div>
       );
@@ -173,13 +175,13 @@ export function CalendarPage() {
           <div
             key={dateKey}
             onClick={() => handleDateClick(day)}
-            className={`min-h-[100px] border border-gray-200 p-1 cursor-pointer hover:bg-blue-50 ${
+            className={`min-h-[60px] sm:min-h-[100px] border border-gray-200 p-1 cursor-pointer hover:bg-blue-50 ${
               !isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'
             } ${isSameDay(day, new Date()) ? 'bg-blue-50 border-blue-200' : ''}
             ${isSelected ? 'bg-blue-100 border-blue-300' : ''}`}
           >
             <div className="flex justify-between items-start">
-              <span className="text-sm font-medium">{format(day, 'd')}</span>
+              <span className="text-xs sm:text-sm font-medium">{format(day, 'd')}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -187,12 +189,13 @@ export function CalendarPage() {
                 }}
                 className="text-blue-600 hover:bg-blue-100 rounded-full p-1"
                 title="Add task"
+                aria-label="Add task for this day"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
             
-            <div className="mt-1 space-y-1 overflow-y-auto max-h-[80px]">
+            <div className="mt-1 space-y-1 overflow-y-auto max-h-[40px] sm:max-h-[80px]">
               {tasksForDay.map((task) => (
                 <div
                   key={task.id}
@@ -239,8 +242,8 @@ export function CalendarPage() {
   };
   
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      <div className="bg-white rounded-lg shadow-sm p-4">
+    <div className="max-w-6xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
+      <div className="bg-white rounded-lg shadow-sm p-2 sm:p-4">
         {renderHeader()}
         
         {viewMode === 'month' ? (

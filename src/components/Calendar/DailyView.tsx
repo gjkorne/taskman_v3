@@ -39,11 +39,11 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ hour, sessions, tasks }) => {
   });
   
   return (
-    <div className="grid grid-cols-[80px_1fr] border-b border-gray-200">
-      <div className="py-2 pr-4 text-right text-sm text-gray-500 font-medium sticky left-0 bg-gray-50">
+    <div className="grid grid-cols-[60px_1fr] sm:grid-cols-[80px_1fr] border-b border-gray-200">
+      <div className="py-1 sm:py-2 pr-2 sm:pr-4 text-right text-xs sm:text-sm text-gray-500 font-medium sticky left-0 bg-gray-50">
         {formattedHour}
       </div>
-      <div className="min-h-[60px] relative border-l border-gray-200 py-1">
+      <div className="min-h-[45px] sm:min-h-[60px] relative border-l border-gray-200 py-1">
         {sessionsInSlot.map(session => {
           const start = parseISO(session.start_time);
           const end = session.end_time ? parseISO(session.end_time) : new Date();
@@ -79,7 +79,7 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ hour, sessions, tasks }) => {
           return (
             <div 
               key={session.id}
-              className={`absolute left-0 right-2 px-2 py-1 border rounded text-xs ${color}`}
+              className={`absolute left-0 right-1 sm:right-2 px-1 sm:px-2 py-1 border rounded text-xs ${color}`}
               style={{ 
                 top: `${top}%`, 
                 height: `${Math.max(height, 10)}%`,
@@ -87,10 +87,10 @@ const TimeSlot: React.FC<TimeSlotProps> = ({ hour, sessions, tasks }) => {
               }}
               title={`${task.title} (${durationText})`}
             >
-              <div className="font-medium truncate">{task.title}</div>
+              <div className="font-medium truncate text-[10px] sm:text-xs">{task.title}</div>
               <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>{durationText}</span>
+                <Clock className="w-2 h-2 sm:w-3 sm:h-3" />
+                <span className="text-[10px] sm:text-xs">{durationText}</span>
               </div>
             </div>
           );
@@ -195,27 +195,30 @@ export function DailyView({ date }: DailyViewProps) {
   const renderHeader = () => {
     return (
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">
-          {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+        <h2 className="text-sm sm:text-lg md:text-xl font-semibold text-gray-800 truncate">
+          {format(selectedDate, 'EEE, MMM d')}
+          <span className="hidden sm:inline">, {format(selectedDate, 'yyyy')}</span>
         </h2>
-        <div className="flex space-x-2">
+        <div className="flex space-x-1 sm:space-x-2">
           <button
             onClick={goToPreviousDay}
-            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+            className="p-1 sm:p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+            aria-label="Previous day"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </button>
           <button
             onClick={goToToday}
-            className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100 text-sm"
+            className="px-2 py-1 sm:px-3 sm:py-2 border border-gray-300 rounded-md hover:bg-gray-100 text-xs sm:text-sm"
           >
             Today
           </button>
           <button
             onClick={goToNextDay}
-            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+            className="p-1 sm:p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+            aria-label="Next day"
           >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </button>
         </div>
       </div>
@@ -231,28 +234,35 @@ export function DailyView({ date }: DailyViewProps) {
         {renderHeader()}
         
         {isLoading ? (
-          <div className="py-8 text-center text-gray-500">
+          <div className="py-4 sm:py-8 text-center text-gray-500 text-sm">
+            <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
             Loading time sessions...
           </div>
         ) : error ? (
-          <div className="py-8 text-center text-red-500">
-            Error: {error.message}
+          <div className="py-4 sm:py-8 text-center text-red-500 text-sm">
+            <p>Error: {error.message}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-2 px-3 py-1 bg-red-500 text-white rounded-md text-xs hover:bg-red-600"
+            >
+              Retry
+            </button>
           </div>
         ) : sessions.length === 0 ? (
-          <div className="py-8 text-center text-gray-500">
+          <div className="py-4 sm:py-8 text-center text-gray-500 text-sm">
             No time sessions recorded for this day.
             <div className="mt-2">
               <button 
                 onClick={() => setIsTaskModalOpen(true)}
-                className="text-blue-600 hover:underline"
+                className="text-blue-600 hover:underline text-xs sm:text-sm"
               >
                 Create a task
               </button>
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <div className="min-w-[600px]">
+          <div className="overflow-x-auto -mx-2 sm:mx-0">
+            <div className="min-w-[300px] sm:min-w-[600px] px-2 sm:px-0">
               {hours.map(hour => (
                 <TimeSlot 
                   key={hour} 
