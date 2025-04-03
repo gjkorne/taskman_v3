@@ -325,7 +325,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Stop timer completely (e.g., when task is completed)
-  const stopTimer = async (finalStatus: TaskStatusType = TaskStatus.COMPLETED) => {
+  const stopTimer = async (finalStatus: TaskStatusType = TaskStatus.PENDING) => {
     if (timerState.status === 'idle' || !timerState.taskId) return;
     const currentTaskId = timerState.taskId; // Store taskId before potential state changes
 
