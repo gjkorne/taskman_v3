@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TaskStatus, TaskStatusType } from '../../types/task';
-import { 
-  STATUS_DISPLAY_CONFIG, 
-  isValidStatusTransition 
-} from '../../utils/taskStatusUtils';
+import { isValidStatusTransition } from '../../utils/taskStatusUtils';
 import StatusBadge from './StatusBadge';
 import * as Icons from 'lucide-react';
 
@@ -90,7 +87,6 @@ export const TaskStatusSelector: React.FC<TaskStatusSelectorProps> = ({
         <div className="absolute z-10 mt-1 w-48 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
           <div className="py-1" role="menu" aria-orientation="vertical">
             {validTransitions.map((status) => {
-              const config = STATUS_DISPLAY_CONFIG[status];
               const isActive = status === currentStatus;
               
               return (

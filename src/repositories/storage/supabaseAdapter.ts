@@ -35,6 +35,21 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
    */
   async getAll(): Promise<T[]> {
     try {
+      console.log(`SupabaseAdapter.getAll: Fetching from ${this.tableName} table`);
+      
+      // Check authentication status
+      const { data: authData, error: authError } = await supabase.auth.getSession();
+      if (authError) {
+        console.error('SupabaseAdapter: Authentication error:', authError);
+        throw authError;
+      }
+      
+      if (!authData.session) {
+        console.warn('SupabaseAdapter: No authenticated session found');
+      } else {
+        console.log('SupabaseAdapter: Authenticated as user:', authData.session.user.id);
+      }
+      
       let query = supabase.from(this.tableName).select(this.options.select || '*');
       
       // Apply default ordering if specified
@@ -44,9 +59,15 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
         });
       }
       
+      console.log(`SupabaseAdapter.getAll: Executing query on ${this.tableName}`);
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error(`SupabaseAdapter.getAll: Query error for ${this.tableName}:`, error);
+        throw error;
+      }
+      
+      console.log(`SupabaseAdapter.getAll: Successfully fetched from ${this.tableName}:`, data ? data.length : 0, 'items');
       
       // Transform rows if transformer is provided
       if (this.options.transformRow && data) {
@@ -55,7 +76,7 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
       
       return data as T[];
     } catch (error) {
-      console.error(`Error fetching all from ${this.tableName}:`, error);
+      console.error(`SupabaseAdapter.getAll: Error fetching all from ${this.tableName}:`, error);
       throw error;
     }
   }

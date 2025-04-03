@@ -3,7 +3,7 @@ import { Task, TaskStatus, TaskStatusType } from '../types/task';
 import { taskService } from '../services/taskService';
 import { TaskFilter, defaultFilters } from '../components/TaskList/FilterPanel';
 import { filterTasks } from '../lib/taskUtils';
-import { useToast, ToastType } from '../components/Toast';
+import { useToast } from '../components/Toast';
 
 // Types for the context
 interface TaskContextType {
@@ -128,27 +128,28 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
   
-  // Initial fetch of tasks
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-  
   // Fetch tasks from the service
   const fetchTasks = useCallback(async () => {
-    if (isLoading) return;
-    
     setIsLoading(true);
     setError(null);
     
     try {
+      console.log('Fetching tasks...');
       await taskService.getTasks();
+      console.log('Tasks fetched successfully');
     } catch (error) {
-      setError('Failed to fetch tasks');
       console.error('Error fetching tasks:', error);
+      setError('Failed to fetch tasks');
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, []);
+  
+  // Initial fetch of tasks
+  useEffect(() => {
+    console.log('Initial tasks fetch triggered');
+    fetchTasks();
+  }, [fetchTasks]); // Add fetchTasks to dependency array
   
   // Refresh tasks
   const refreshTasks = useCallback(async () => {
@@ -199,49 +200,47 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [addToast]);
   
-  // Delete a task
+  // Delete task
   const deleteTask = useCallback(async (taskId: string) => {
     try {
       await taskService.deleteTask(taskId);
-      addToast("Task Deleted: Task was successfully deleted", "success");
+      closeDeleteModal();
+      addToast("Task deleted successfully", "success");
     } catch (error) {
       setError('Failed to delete task');
       console.error('Error deleting task:', error);
       addToast("Delete Failed: Could not delete task", "error");
-    } finally {
-      setTaskToDelete(null);
-      setIsDeleteModalOpen(false);
     }
   }, [addToast]);
   
   // Modal control functions
-  const openEditModal = (taskId: string) => {
+  const openEditModal = useCallback((taskId: string) => {
     setEditTaskId(taskId);
     setIsEditModalOpen(true);
-  };
+  }, []);
   
-  const closeEditModal = () => {
+  const closeEditModal = useCallback(() => {
     setEditTaskId(null);
     setIsEditModalOpen(false);
-  };
+  }, []);
   
-  const openDeleteModal = (taskId: string) => {
+  const openDeleteModal = useCallback((taskId: string) => {
     setTaskToDelete(taskId);
     setIsDeleteModalOpen(true);
-  };
+  }, []);
   
-  const closeDeleteModal = () => {
+  const closeDeleteModal = useCallback(() => {
     setTaskToDelete(null);
     setIsDeleteModalOpen(false);
-  };
+  }, []);
   
-  // Filter management
-  const resetFilters = () => {
+  // Filter reset function
+  const resetFilters = useCallback(() => {
     setFilters(defaultFilters);
     setSearchQuery('');
-  };
+  }, []);
   
-  // Construct context value
+  // Memoize context value to prevent unnecessary re-renders
   const contextValue: TaskContextType = {
     // State
     tasks,
@@ -271,7 +270,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     openDeleteModal,
     closeDeleteModal,
     
-    // Search and filters
+    // Search and filter
     searchQuery,
     filters,
     setSearchQuery,
@@ -289,7 +288,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
 // Custom hook to use task context
 export const useTaskContext = () => {
   const context = useContext(TaskContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useTaskContext must be used within a TaskProvider');
   }
   return context;

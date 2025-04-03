@@ -1,5 +1,5 @@
 import { Task, TaskStatus, TaskStatusType } from '../types/task';
-import { TaskSubmitData, TaskStatus as FormTaskStatus } from '../components/TaskForm/schema';
+import { TaskSubmitData } from '../components/TaskForm/schema';
 import { IOfflineCapableRepository } from './types';
 import { SupabaseAdapter } from './storage/supabaseAdapter';
 import { IndexedDBAdapter } from './storage/indexedDBAdapter';
@@ -12,18 +12,27 @@ export type TaskCreateDTO = TaskSubmitData;
 export type TaskUpdateDTO = Partial<TaskSubmitData>;
 
 /**
+ * Extended Task type with offline sync properties
+ */
+interface OfflineTask extends Task {
+  _pendingSync?: boolean;
+  _lastUpdated?: string;
+}
+
+/**
  * TaskRepository - provides unified access to task data across local and remote storage
  * 
- * This repository implements offline-first architecture:
- * - All operations go through local storage first
- * - Remote operations happen in the background when online
- * - Sync conflicts are resolved with configurable strategies
+ * This repository implements offline-second architecture:
+ * - Remote storage (Supabase) is the primary data source
+ * - Local storage is used as a fallback when offline
+ * - Changes made while offline are synced when connectivity is restored
  */
 export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreateDTO, TaskUpdateDTO> {
   private remoteAdapter: SupabaseAdapter<Task>;
-  private localAdapter: IndexedDBAdapter<Task>;
+  private localAdapter!: IndexedDBAdapter<OfflineTask>; // Using definite assignment assertion
   private networkStatus: NetworkStatusService;
-  private syncInProgress = false;
+  private useLocalAsBackup = false; // Flag to control whether local storage is used as a backup
+  private syncInProgress = false;  // Flag to prevent multiple simultaneous syncs
 
   constructor(networkStatus?: NetworkStatusService) {
     // Initialize storage adapters
@@ -49,336 +58,477 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
         category_name: row.category_name || ''
       }),
       // Prepare data for DB insertion/update
-      prepareData: (data: Partial<Task>): Record<string, any> => {
-        // Convert domain model to DB row format
-        const dbData: Record<string, any> = {};
-        
-        // Direct field mappings
-        if (data.title !== undefined) dbData.title = data.title;
-        if (data.description !== undefined) dbData.description = data.description;
-        if (data.status !== undefined) dbData.status = data.status;
-        if (data.priority !== undefined) dbData.priority = data.priority;
-        if (data.tags !== undefined) dbData.tags = data.tags;
-        if (data.is_deleted !== undefined) dbData.is_deleted = data.is_deleted;
-        if (data.category_name !== undefined) dbData.category_name = data.category_name;
-        
-        // Same field names
-        if (data.due_date !== undefined) dbData.due_date = data.due_date;
-        if (data.estimated_time !== undefined) dbData.estimated_time = data.estimated_time;
-        if (data.actual_time !== undefined) dbData.actual_time = data.actual_time;
-        if (data.created_at !== undefined) dbData.created_at = data.created_at;
-        if (data.updated_at !== undefined) dbData.updated_at = data.updated_at;
-        if (data.created_by !== undefined) dbData.created_by = data.created_by;
-        if (data.list_id !== undefined) dbData.list_id = data.list_id;
-        
-        return dbData;
-      }
-    });
-    
-    // Initialize local storage with IndexedDB
-    this.localAdapter = new IndexedDBAdapter<Task>('tasks', {
-      transformRow: (item: any): Task => ({
-        id: item.id,
-        title: item.title,
-        description: item.description || '',
-        status: item.status || TaskStatus.PENDING,
-        priority: item.priority || 'medium',
-        due_date: item.due_date,
-        estimated_time: item.estimated_time,
-        actual_time: item.actual_time,
-        tags: item.tags || [],
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        created_by: item.created_by,
-        is_deleted: item.is_deleted || false,
-        list_id: item.list_id,
-        category_name: item.category_name || '',
-        _is_synced: item._is_synced || false,
-        _sync_status: item._sync_status || 'pending',
-        _conflict_resolution: item._conflict_resolution || null,
-        _local_updated_at: item._local_updated_at || new Date().toISOString()
+      prepareData: (data: Partial<Task>): Record<string, any> => ({
+        ...data
       })
     });
     
-    // Initialize network status service
-    this.networkStatus = networkStatus || new NetworkStatusService();
+    // Initialize local storage adapter for backup when offline
+    try {
+      this.localAdapter = new IndexedDBAdapter<OfflineTask>('tasks', {
+        // Same transformation options as remote adapter
+        transformRow: (row: any): OfflineTask => ({
+          id: row.id,
+          title: row.title,
+          description: row.description || '',
+          status: row.status || TaskStatus.PENDING,
+          priority: row.priority || 'medium',
+          due_date: row.due_date,
+          estimated_time: row.estimated_time,
+          actual_time: row.actual_time,
+          tags: row.tags || [],
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          created_by: row.created_by,
+          is_deleted: row.is_deleted || false,
+          list_id: row.list_id,
+          category_name: row.category_name || '',
+          _pendingSync: row._pendingSync,
+          _lastUpdated: row._lastUpdated
+        }),
+        prepareData: (data: Partial<OfflineTask>): Record<string, any> => ({
+          ...data
+        })
+      });
+      
+      // Test IndexedDB availability
+      this.testIndexedDB();
+    } catch (error) {
+      console.error('Error initializing IndexedDB adapter:', error);
+      this.useLocalAsBackup = false;
+    }
     
-    // Set up sync mechanism when connectivity changes
-    this.networkStatus.onConnectivityChange((isOnline: boolean) => {
-      if (isOnline) {
-        this.sync();
-      }
-    });
+    // Setup network status monitoring
+    if (networkStatus) {
+      this.networkStatus = networkStatus;
+    } else {
+      // Create a new instance of NetworkStatusService
+      this.networkStatus = new NetworkStatusService();
+    }
+  }
+  
+  /**
+   * Test IndexedDB connectivity and availability
+   * This helps determine if local storage can be used as a backup
+   */
+  private async testIndexedDB(): Promise<void> {
+    try {
+      // Perform a simple read operation to test availability
+      await this.localAdapter.getAll();
+      this.useLocalAsBackup = true;
+      console.log('IndexedDB initialized successfully for offline backup');
+    } catch (error) {
+      console.error('IndexedDB test failed, offline functionality will be limited:', error);
+      this.useLocalAsBackup = false;
+    }
   }
 
   /**
-   * Get all tasks from primary storage
+   * Retrieve all tasks - primarily from remote, fallback to local when offline
    */
   async getAll(): Promise<Task[]> {
-    try {
-      // First try to get from local storage
-      const localTasks = await this.localAdapter.getAll();
-      
-      // If online, try to sync first
-      if (this.networkStatus.isOnline() && !this.syncInProgress) {
-        this.sync().catch(error => console.error('Background sync failed:', error));
+    console.log('TaskRepository.getAll: Starting to fetch tasks');
+    console.log('Network status:', this.networkStatus.isOnline() ? 'Online' : 'Offline');
+    
+    // First try to get from remote storage
+    if (this.networkStatus.isOnline()) {
+      try {
+        console.log('TaskRepository.getAll: Attempting to fetch from remote storage');
+        const remoteTasks = await this.remoteAdapter.getAll();
+        console.log('TaskRepository.getAll: Successfully fetched from remote storage', remoteTasks.length, 'tasks');
+        
+        // If we have local storage capability, cache the results for offline use
+        if (this.useLocalAsBackup) {
+          console.log('TaskRepository.getAll: Caching tasks locally');
+          this.cacheTasksLocally(remoteTasks).catch(error => 
+            console.error('Failed to cache tasks locally:', error)
+          );
+        }
+        
+        return remoteTasks;
+      } catch (error) {
+        console.error('TaskRepository.getAll: Error fetching tasks from remote:', error);
+        // Fall back to local storage if online fetch fails
       }
-      
-      // Always return local data immediately for responsiveness
-      return localTasks.filter(task => !task.is_deleted);
-    } catch (error) {
-      console.error('Error getting tasks:', error);
-      throw error;
     }
+    
+    // If we're offline or remote fetch failed, try local storage
+    if (this.useLocalAsBackup) {
+      try {
+        console.log('TaskRepository.getAll: Attempting to fetch from local storage');
+        const localTasks = await this.localAdapter.getAll();
+        console.log('TaskRepository.getAll: Successfully fetched from local storage', localTasks.length, 'tasks');
+        return localTasks;
+      } catch (localError) {
+        console.error('TaskRepository.getAll: Error fetching from local storage:', localError);
+      }
+    }
+    
+    // If both remote and local fail, return empty array
+    console.warn('TaskRepository.getAll: Unable to fetch tasks from any source');
+    return [];
   }
 
   /**
-   * Get a task by ID
+   * Get a task by ID - try remote first, then local if offline
    */
   async getById(id: string): Promise<Task | null> {
-    try {
-      // Try local first
-      const localTask = await this.localAdapter.getById(id);
-      
-      // If found locally, return it
-      if (localTask) {
-        return localTask;
-      }
-      
-      // If online, check remote
-      if (this.networkStatus.isOnline()) {
+    // Try remote first if online
+    if (this.networkStatus.isOnline()) {
+      try {
         const remoteTask = await this.remoteAdapter.getById(id);
         
-        // If found remotely, save to local and return
-        if (remoteTask) {
-          await this.localAdapter.create({
-            ...remoteTask,
-            _is_synced: true
-          } as Task);
-          return remoteTask;
+        // Cache the task locally if found
+        if (remoteTask && this.useLocalAsBackup) {
+          this.localAdapter.update(id, remoteTask as OfflineTask).catch(error => 
+            console.error(`Failed to cache task ${id} locally:`, error)
+          );
         }
+        
+        return remoteTask;
+      } catch (error) {
+        console.error(`Error fetching task ${id} from remote:`, error);
+        // Fall back to local if remote fails
       }
-      
-      // Not found anywhere
-      return null;
-    } catch (error) {
-      console.error(`Error getting task ${id}:`, error);
-      throw error;
     }
+    
+    // If offline or remote failed, try local
+    if (this.useLocalAsBackup) {
+      try {
+        const localTask = await this.localAdapter.getById(id);
+        return localTask;
+      } catch (localError) {
+        console.error(`Error fetching task ${id} from local storage:`, localError);
+      }
+    }
+    
+    // If both remote and local fail, return null
+    return null;
   }
 
   /**
    * Create a new task
    */
   async create(data: TaskCreateDTO): Promise<Task> {
-    try {
-      // Prepare task with default values
-      const now = new Date().toISOString();
-      const newTask: Partial<Task> = {
-        ...data,
-        status: data.status || TaskStatus.PENDING,
-        priority: data.priority || 'medium',
-        is_deleted: false,
-        created_at: now,
-        updated_at: now
-      };
-      
-      // Always save locally first for instant feedback
-      const localTask = await this.localAdapter.create({
-        ...newTask, 
-        _is_synced: false,
-        _sync_status: 'pending',
-        _local_updated_at: now
-      } as Task);
-      
-      // If online, also save to remote
-      if (this.networkStatus.isOnline()) {
-        try {
-          const remoteTask = await this.remoteAdapter.create(newTask);
-          
-          // Update local copy with remote ID and mark as synced
-          await this.localAdapter.update(localTask.id, {
+    // Format task data with timestamps
+    const now = new Date().toISOString();
+    const taskData: Partial<Task> = {
+      ...data,
+      created_at: now,
+      updated_at: now
+    };
+    
+    // If online, create in remote first (online-first approach)
+    if (this.networkStatus.isOnline()) {
+      try {
+        const remoteTask = await this.remoteAdapter.create(taskData);
+        
+        // Cache in local storage if available
+        if (this.useLocalAsBackup) {
+          await this.localAdapter.create({
             ...remoteTask,
-            _is_synced: true,
-            _sync_status: 'synced',
-            _local_updated_at: now
-          } as Task);
-          
-          return remoteTask;
-        } catch (error) {
-          console.error('Error saving task to remote:', error);
-          // Continue with local task even if remote fails
+            _pendingSync: false,
+            _lastUpdated: now
+          } as OfflineTask);
+        }
+        
+        return remoteTask;
+      } catch (error) {
+        console.error('Error creating task in remote storage:', error);
+        // Fall back to local-only if remote fails and we're using local storage
+        if (!this.useLocalAsBackup) {
+          throw error; // Re-throw if local storage isn't available
         }
       }
-      
-      return localTask;
-    } catch (error) {
-      console.error('Error creating task:', error);
-      throw error;
     }
+    
+    // Create locally if offline or remote creation failed
+    if (this.useLocalAsBackup) {
+      try {
+        // Generate a temporary local ID
+        const localId = `local-${new Date().getTime()}-${Math.random().toString(36).slice(2, 11)}`;
+        
+        const localTask = await this.localAdapter.create({
+          ...taskData,
+          id: localId,
+          _pendingSync: true,
+          _lastUpdated: now
+        } as OfflineTask);
+        
+        return localTask;
+      } catch (localError) {
+        console.error('Error creating task in local storage:', localError);
+        throw localError;
+      }
+    }
+    
+    throw new Error('Cannot create task: both remote and local storage unavailable');
   }
 
   /**
    * Update an existing task
    */
   async update(id: string, data: TaskUpdateDTO): Promise<Task> {
-    try {
-      // Get the existing task
-      const existingTask = await this.getById(id);
-      if (!existingTask) {
-        throw new Error(`Task with id ${id} not found`);
-      }
-      
-      // Add updated timestamp
-      const updateData: Partial<Task> = {
-        ...data,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Always update locally first
-      const localTask = await this.localAdapter.update(id, {
-        ...updateData,
-        _is_synced: false,
-        _sync_status: 'pending',
-        _local_updated_at: new Date().toISOString()
-      } as Task);
-      
-      // If online, also update remote
-      if (this.networkStatus.isOnline()) {
-        try {
-          const remoteTask = await this.remoteAdapter.update(id, updateData);
-          
-          // Mark as synced
+    // Add updated timestamp
+    const now = new Date().toISOString();
+    const updateData: Partial<Task> = {
+      ...data,
+      updated_at: now
+    };
+    
+    // If online, update remote first
+    if (this.networkStatus.isOnline()) {
+      try {
+        const remoteTask = await this.remoteAdapter.update(id, updateData);
+        
+        // Update local cache if available
+        if (this.useLocalAsBackup) {
           await this.localAdapter.update(id, {
-            _is_synced: true,
-            _sync_status: 'synced'
-          } as Task);
-          
-          return remoteTask;
-        } catch (error) {
-          console.error(`Error updating task ${id} remotely:`, error);
-          // Continue with local task even if remote fails
+            ...remoteTask,
+            _pendingSync: false,
+            _lastUpdated: now
+          } as OfflineTask);
+        }
+        
+        return remoteTask;
+      } catch (error) {
+        console.error(`Error updating task ${id} in remote storage:`, error);
+        // Fall back to local-only if remote fails and we're using local storage
+        if (!this.useLocalAsBackup) {
+          throw error; // Re-throw if local storage isn't available
         }
       }
-      
-      return localTask;
-    } catch (error) {
-      console.error(`Error updating task ${id}:`, error);
-      throw error;
+    }
+    
+    // Update locally if offline or remote update failed
+    if (this.useLocalAsBackup) {
+      try {
+        // Get existing local task
+        const existingTask = await this.localAdapter.getById(id);
+        if (!existingTask) {
+          throw new Error(`Task ${id} not found in local storage`);
+        }
+        
+        const updatedTask = await this.localAdapter.update(id, {
+          ...existingTask,
+          ...updateData,
+          _pendingSync: true,
+          _lastUpdated: now
+        });
+        
+        return updatedTask;
+      } catch (localError) {
+        console.error(`Error updating task ${id} in local storage:`, localError);
+        throw localError;
+      }
+    }
+    
+    throw new Error('Cannot update task: both remote and local storage unavailable');
+  }
+
+  /**
+   * Cache tasks in local storage for offline use
+   */
+  private async cacheTasksLocally(tasks: Task[]): Promise<void> {
+    if (!this.useLocalAsBackup) return;
+    
+    // Store each task in IndexedDB
+    for (const task of tasks) {
+      try {
+        const existing = await this.localAdapter.getById(task.id);
+        if (existing) {
+          await this.localAdapter.update(task.id, task as OfflineTask);
+        } else {
+          await this.localAdapter.create(task as OfflineTask);
+        }
+      } catch (error) {
+        console.error(`Error caching task ${task.id} locally:`, error);
+      }
     }
   }
 
   /**
-   * Update task status
-   * @param id Task ID
-   * @param status New status - must be one of the valid statuses in the TaskSubmitData.status type
+   * Update the status of a task
    */
-  async updateStatus(id: string, status: string): Promise<Task> {
-    // We need to validate that the status is compatible with the form schema
-    // The schema.ts file's VALID_STATUSES doesn't include 'paused' but the Task interface does
-    const validFormStatuses: string[] = ['pending', 'active', 'in_progress', 'completed', 'archived'];
+  async updateStatus(taskId: string, status: TaskStatusType): Promise<Task | null> {
+    // Validate the status value
+    if (!Object.values(TaskStatus).includes(status as TaskStatus)) {
+      throw new Error(`Invalid status value: ${status}`);
+    }
     
-    // First check if the status is valid for the form
-    if (!validFormStatuses.includes(status)) {
-      // If the status is 'paused', we need to map it to a compatible form status
-      if (status === 'paused') {
-        // We'll map 'paused' to 'in_progress' for the form
-        status = 'in_progress';
-      } else {
-        throw new Error(`Invalid task status: ${status}`);
+    // If online, update remote directly
+    if (this.networkStatus.isOnline()) {
+      try {
+        const updatedTask = await this.remoteAdapter.update(taskId, { status });
+        
+        // Update local cache if we're using it
+        if (this.useLocalAsBackup) {
+          this.localAdapter.update(taskId, updatedTask as OfflineTask).catch(error => 
+            console.error(`Failed to update task ${taskId} in local cache:`, error)
+          );
+        }
+        
+        return updatedTask;
+      } catch (error) {
+        console.error(`Error updating task status for ${taskId} remotely:`, error);
+        // Fall back to local update if remote fails
       }
     }
     
-    // Update with the valid status
-    return this.update(id, { status: status as FormTaskStatus });
+    // If offline or remote update failed, update locally and queue for sync
+    if (this.useLocalAsBackup) {
+      try {
+        const localTask = await this.localAdapter.getById(taskId);
+        if (!localTask) {
+          throw new Error(`Task ${taskId} not found in local storage`);
+        }
+        
+        const updatedTask = await this.localAdapter.update(taskId, { 
+          ...localTask, 
+          status,
+          _pendingSync: true,
+          _lastUpdated: new Date().toISOString()
+        });
+        
+        return updatedTask;
+      } catch (localError) {
+        console.error(`Error updating task ${taskId} in local storage:`, localError);
+      }
+    }
+    
+    // If both remote and local updates fail, return null
+    return null;
   }
 
   /**
    * Delete a task (soft delete)
    */
   async delete(id: string): Promise<boolean> {
+    // First try remote deletion if online
+    if (this.networkStatus.isOnline()) {
+      try {
+        await this.remoteAdapter.update(id, { 
+          is_deleted: true,
+          updated_at: new Date().toISOString() 
+        });
+        
+        // Update local cache if available
+        if (this.useLocalAsBackup) {
+          const task = await this.localAdapter.getById(id);
+          if (task) {
+            await this.localAdapter.update(id, {
+              ...task,
+              is_deleted: true,
+              updated_at: new Date().toISOString(),
+              _pendingSync: false
+            });
+          }
+        }
+        
+        return true;
+      } catch (error) {
+        console.error(`Error deleting task ${id} from remote:`, error);
+        // Fall back to local if remote fails
+        if (!this.useLocalAsBackup) {
+          throw error;
+        }
+      }
+    }
+    
+    // Delete locally if offline or remote delete failed
+    if (this.useLocalAsBackup) {
+      try {
+        const task = await this.localAdapter.getById(id);
+        if (!task) {
+          throw new Error(`Task ${id} not found in local storage`);
+        }
+        
+        await this.localAdapter.update(id, {
+          ...task,
+          is_deleted: true,
+          updated_at: new Date().toISOString(),
+          _pendingSync: true
+        });
+        
+        return true;
+      } catch (localError) {
+        console.error(`Error deleting task ${id} from local storage:`, localError);
+        throw localError;
+      }
+    }
+    
+    throw new Error('Cannot delete task: both remote and local storage unavailable');
+  }
+
+  /**
+   * Sync changes between local and remote storage
+   */
+  async sync(): Promise<void> {
+    if (!this.useLocalAsBackup || this.syncInProgress || !this.networkStatus.isOnline()) {
+      return;
+    }
+    
     try {
-      // Get the existing task
-      const existingTask = await this.getById(id);
-      if (!existingTask) {
-        throw new Error(`Task with id ${id} not found`);
+      this.syncInProgress = true;
+      console.log('Starting sync...');
+      
+      // Get all tasks with pending changes
+      const localTasks = await this.localAdapter.getAll();
+      const pendingTasks = localTasks.filter(task => task._pendingSync);
+      
+      if (pendingTasks.length === 0) {
+        console.log('No pending changes to sync');
+        return;
       }
       
-      // Mark as deleted and update timestamp
-      const now = new Date().toISOString();
-      await this.localAdapter.update(id, {
-        is_deleted: true,
-        updated_at: now,
-        _is_synced: false,
-        _sync_status: 'pending',
-        _local_updated_at: now
-      } as Task);
+      console.log(`Found ${pendingTasks.length} tasks with pending changes`);
       
-      // If online, also update remote
-      if (this.networkStatus.isOnline()) {
+      // Process each pending task
+      for (const task of pendingTasks) {
         try {
-          await this.remoteAdapter.update(id, {
-            is_deleted: true,
-            updated_at: now
-          });
+          // Skip _pendingSync and _lastUpdated from data sent to server
+          const { _pendingSync, _lastUpdated, ...taskData } = task;
           
-          // Mark as synced
-          await this.localAdapter.update(id, {
-            _is_synced: true,
-            _sync_status: 'synced'
-          } as Task);
+          if (task.id.startsWith('local-')) {
+            // This is a new task created offline, create it on the server
+            const remoteTask = await this.remoteAdapter.create(taskData);
+            
+            // Delete the local temporary task
+            await this.localAdapter.delete(task.id);
+            
+            // Create a new task with the remote ID
+            await this.localAdapter.create({
+              ...remoteTask,
+              _pendingSync: false,
+              _lastUpdated: new Date().toISOString()
+            } as OfflineTask);
+            
+            console.log(`Created task ${task.id} -> ${remoteTask.id} on remote`);
+          } else {
+            // This is an existing task updated offline
+            await this.remoteAdapter.update(task.id, taskData);
+            
+            // Update local task to mark as synced
+            await this.localAdapter.update(task.id, {
+              ...task,
+              _pendingSync: false,
+              _lastUpdated: new Date().toISOString()
+            });
+            
+            console.log(`Updated task ${task.id} on remote`);
+          }
         } catch (error) {
-          console.error(`Error deleting task ${id} remotely:`, error);
-          // Continue with local delete even if remote fails
+          console.error(`Error syncing task ${task.id}:`, error);
+          // Continue with next task
         }
       }
       
-      return true;
+      console.log('Sync completed');
     } catch (error) {
-      console.error(`Error deleting task ${id}:`, error);
-      throw error;
+      console.error('Error during sync:', error);
+    } finally {
+      this.syncInProgress = false;
     }
-  }
-
-  /**
-   * Hard delete a task (permanent removal)
-   */
-  async hardDelete(id: string): Promise<boolean> {
-    try {
-      // Delete locally
-      await this.localAdapter.delete(id);
-      
-      // If online, also delete remotely
-      if (this.networkStatus.isOnline()) {
-        try {
-          await this.remoteAdapter.delete(id);
-        } catch (error) {
-          console.error(`Error hard deleting task ${id} remotely:`, error);
-          // Continue even if remote fails
-        }
-      }
-      
-      return true;
-    } catch (error) {
-      console.error(`Error hard deleting task ${id}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Check if there are pending changes to sync
-   * Implemented to satisfy IOfflineCapableRepository interface
-   */
-  async hasPendingChanges(): Promise<boolean> {
-    return this.hasUnsyncedChanges();
-  }
-  
-  /**
-   * Check if there are unsynchronized changes
-   */
-  async hasUnsyncedChanges(): Promise<boolean> {
-    const tasks = await this.localAdapter.getAll();
-    return tasks.some(task => task._is_synced === false);
   }
 
   /**
@@ -390,28 +540,52 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
     }
     
     try {
-      // Get all remote items
+      console.log('Forcing refresh from remote...');
+      
+      // Fetch all tasks from remote
       const remoteTasks = await this.remoteAdapter.getAll();
       
-      // Clear local storage
-      const localTasks = await this.localAdapter.getAll();
-      
-      // Only delete synced tasks to avoid losing local changes
-      for (const localTask of localTasks) {
-        if (localTask._is_synced) {
-          await this.localAdapter.delete(localTask.id);
+      if (this.useLocalAsBackup) {
+        // Get local tasks with pending changes to preserve them
+        const localTasks = await this.localAdapter.getAll();
+        const pendingTasks = localTasks.filter(task => task._pendingSync);
+        
+        // Create a map of pending tasks by ID
+        const pendingTasksMap = new Map<string, OfflineTask>();
+        pendingTasks.forEach(task => {
+          if (!task.id.startsWith('local-')) {
+            pendingTasksMap.set(task.id, task);
+          }
+        });
+        
+        // Update local storage
+        for (const remoteTask of remoteTasks) {
+          const pendingTask = pendingTasksMap.get(remoteTask.id);
+          
+          if (pendingTask) {
+            // Keep the pending task (don't overwrite with remote)
+            continue;
+          }
+          
+          // Update or create the task locally
+          const existing = await this.localAdapter.getById(remoteTask.id);
+          if (existing) {
+            await this.localAdapter.update(remoteTask.id, {
+              ...remoteTask,
+              _pendingSync: false,
+              _lastUpdated: new Date().toISOString()
+            } as OfflineTask);
+          } else {
+            await this.localAdapter.create({
+              ...remoteTask,
+              _pendingSync: false,
+              _lastUpdated: new Date().toISOString()
+            } as OfflineTask);
+          }
         }
       }
       
-      // Save all remote items locally
-      for (const remoteTask of remoteTasks) {
-        await this.localAdapter.create({
-          ...remoteTask,
-          _is_synced: true,
-          _sync_status: 'synced',
-          _local_updated_at: new Date().toISOString()
-        } as Task);
-      }
+      console.log('Refresh completed');
     } catch (error) {
       console.error('Error during force refresh:', error);
       throw error;
@@ -419,143 +593,19 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
   }
 
   /**
-   * Sync local and remote data
+   * Checks if there are pending changes that need to be synced
    */
-  async sync(): Promise<void> {
-    // Prevent multiple simultaneous syncs
-    if (this.syncInProgress || !this.networkStatus.isOnline()) {
-      return;
+  async hasPendingChanges(): Promise<boolean> {
+    if (!this.useLocalAsBackup) {
+      return false;
     }
     
     try {
-      this.syncInProgress = true;
-      
-      // Get all tasks from local
       const localTasks = await this.localAdapter.getAll();
-      
-      // Get unsynced local tasks
-      const unsyncedTasks = localTasks.filter(task => task._is_synced === false);
-      
-      // Process each unsynced task
-      for (const task of unsyncedTasks) {
-        try {
-          if (task.is_deleted) {
-            // If marked for deletion, delete remotely or update
-            if (task.id.startsWith('local-')) {
-              // Local-only item, just remove it
-              await this.localAdapter.delete(task.id);
-            } else {
-              // Remote item, update remote then mark as synced
-              await this.remoteAdapter.update(task.id, {
-                is_deleted: true,
-                updated_at: task.updated_at
-              });
-              
-              await this.localAdapter.update(task.id, {
-                _is_synced: true,
-                _sync_status: 'synced'
-              } as Task);
-            }
-          } else if (task.id.startsWith('local-')) {
-            // New local task that needs to be created remotely
-            const remoteTask = await this.remoteAdapter.create({
-              title: task.title,
-              description: task.description,
-              status: task.status,
-              priority: task.priority,
-              due_date: task.due_date,
-              estimated_time: task.estimated_time,
-              actual_time: task.actual_time,
-              tags: task.tags,
-              created_at: task.created_at,
-              updated_at: task.updated_at,
-              created_by: task.created_by,
-              is_deleted: task.is_deleted,
-              list_id: task.list_id,
-              category_name: task.category_name
-            });
-            
-            // Delete the local-only task
-            await this.localAdapter.delete(task.id);
-            
-            // Create a new synced task with the remote ID
-            await this.localAdapter.create({
-              ...remoteTask,
-              _is_synced: true,
-              _sync_status: 'synced',
-              _local_updated_at: new Date().toISOString()
-            } as Task);
-          } else {
-            // Existing task that needs to be updated remotely
-            await this.remoteAdapter.update(task.id, {
-              title: task.title,
-              description: task.description,
-              status: task.status,
-              priority: task.priority,
-              due_date: task.due_date,
-              estimated_time: task.estimated_time,
-              actual_time: task.actual_time,
-              tags: task.tags,
-              updated_at: task.updated_at,
-              is_deleted: task.is_deleted,
-              list_id: task.list_id,
-              category_name: task.category_name
-            });
-            
-            // Mark as synced
-            await this.localAdapter.update(task.id, {
-              _is_synced: true,
-              _sync_status: 'synced'
-            } as Task);
-          }
-        } catch (error) {
-          console.error(`Error syncing task ${task.id}:`, error);
-          // Update sync status to failed
-          await this.localAdapter.update(task.id, {
-            _sync_status: 'failed',
-            _sync_error: String(error)
-          } as Task);
-        }
-      }
-      
-      // Get the latest tasks from remote
-      const remoteTasks = await this.remoteAdapter.getAll();
-      
-      // Process remote tasks
-      for (const remoteTask of remoteTasks) {
-        const localTask = localTasks.find(t => t.id === remoteTask.id);
-        
-        if (!localTask) {
-          // New remote task, add to local
-          await this.localAdapter.create({
-            ...remoteTask,
-            _is_synced: true,
-            _sync_status: 'synced',
-            _local_updated_at: new Date().toISOString()
-          } as Task);
-        } else if (localTask._is_synced) {
-          // Local is synced, update with remote changes
-          // Compare updated_at times to see which is newer
-          const remoteDate = new Date(remoteTask.updated_at || 0);
-          const localDate = new Date(localTask.updated_at || 0);
-          
-          if (remoteDate > localDate) {
-            // Remote is newer, update local
-            await this.localAdapter.update(remoteTask.id, {
-              ...remoteTask,
-              _is_synced: true,
-              _sync_status: 'synced',
-              _local_updated_at: new Date().toISOString()
-            } as Task);
-          }
-        }
-      }
-      
+      return localTasks.some(task => task._pendingSync === true);
     } catch (error) {
-      console.error('Error syncing tasks:', error);
-      throw error;
-    } finally {
-      this.syncInProgress = false;
+      console.error('Error checking for pending changes:', error);
+      return false;
     }
   }
 }

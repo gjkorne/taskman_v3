@@ -23,10 +23,21 @@ export class TaskService {
    */
   async getTasks(): Promise<Task[]> {
     try {
+      console.log('TaskService: Getting all tasks from repository');
+      // Ensure we're initializing the repository properly
+      if (!taskRepository) {
+        console.error('TaskService: taskRepository is not initialized!');
+        throw new Error('Task repository is not initialized');
+      }
+      
       const tasks = await taskRepository.getAll();
+      console.log('TaskService: Successfully retrieved tasks:', tasks.length);
+      
+      // Emit the tasks-loaded event with the tasks array
       this.taskEvents.emit('tasks-loaded', tasks);
       return tasks;
     } catch (error) {
+      console.error('TaskService: Error fetching tasks:', error);
       this.handleError('Error fetching tasks', error);
       return [];
     }
@@ -96,9 +107,14 @@ export class TaskService {
    */
   async updateTaskStatus(id: string, status: TaskStatus): Promise<Task | null> {
     try {
-      const task = await taskRepository.updateTaskStatus(id, status);
-      this.taskEvents.emit('task-updated', task);
-      this.taskEvents.emit('tasks-changed');
+      console.log(`TaskService: Updating task ${id} status to ${status}`);
+      const task = await taskRepository.updateStatus(id, status);
+      
+      if (task) {
+        this.taskEvents.emit('task-updated', task);
+        this.taskEvents.emit('tasks-changed');
+      }
+      
       return task;
     } catch (error) {
       this.handleError(`Error updating task status for ${id}`, error);
