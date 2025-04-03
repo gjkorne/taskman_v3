@@ -1,18 +1,22 @@
 import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, parseISO } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useTaskContext } from '../../contexts/TaskContext';
 import { TaskFormModal } from '../TaskForm/TaskFormModal';
 import { Task } from '../../types/task';
+import { DailyView } from './DailyView';
+
+type CalendarViewMode = 'month' | 'day';
 
 /**
  * CalendarPage component
- * Displays tasks in a monthly calendar view based on their due dates
+ * Displays tasks in a calendar view with options for monthly or daily views
  */
 export function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
   
   // Get tasks from context
   const { filteredTasks, refreshTasks } = useTaskContext();
@@ -28,6 +32,16 @@ export function CalendarPage() {
       return acc;
     }, {});
   }, [filteredTasks]);
+  
+  // Handle day selection
+  const handleDateClick = (day: Date) => {
+    setSelectedDate(day);
+    
+    // If in month view, switch to day view when clicking a date
+    if (viewMode === 'month') {
+      setViewMode('day');
+    }
+  };
   
   // Navigate to previous month
   const prevMonth = () => {
@@ -45,31 +59,76 @@ export function CalendarPage() {
     setIsTaskModalOpen(true);
   };
   
+  // Toggle between month and day views
+  const toggleViewMode = () => {
+    setViewMode(viewMode === 'month' ? 'day' : 'month');
+  };
+  
   // Render header with month navigation
   const renderHeader = () => {
     return (
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">
-          {format(currentMonth, 'MMMM yyyy')}
-        </h2>
-        <div className="flex space-x-2">
+      <div className="flex flex-col space-y-4 mb-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-800">
+            {viewMode === 'month' 
+              ? format(currentMonth, 'MMMM yyyy')
+              : format(selectedDate, 'MMMM d, yyyy')}
+          </h2>
+          <div className="flex space-x-2">
+            <button
+              onClick={prevMonth}
+              className="p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <button
+              onClick={() => viewMode === 'month' ? setCurrentMonth(new Date()) : setSelectedDate(new Date())}
+              className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100 text-sm"
+            >
+              Today
+            </button>
+            <button
+              onClick={nextMonth}
+              className="p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="flex justify-between items-center">
+          <div className="flex space-x-2">
+            <button
+              onClick={toggleViewMode}
+              className={`flex items-center space-x-2 px-3 py-2 border rounded-md transition-colors ${
+                viewMode === 'month' 
+                  ? 'bg-blue-500 text-white border-blue-600' 
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <CalendarIcon className="w-4 h-4" />
+              <span>Month</span>
+            </button>
+            
+            <button
+              onClick={toggleViewMode}
+              className={`flex items-center space-x-2 px-3 py-2 border rounded-md transition-colors ${
+                viewMode === 'day' 
+                  ? 'bg-blue-500 text-white border-blue-600' 
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>Day</span>
+            </button>
+          </div>
+          
           <button
-            onClick={prevMonth}
-            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100"
+            onClick={() => openTaskModal(selectedDate)}
+            className="flex items-center space-x-1 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          <button
-            onClick={() => setCurrentMonth(new Date())}
-            className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100 text-sm"
-          >
-            Today
-          </button>
-          <button
-            onClick={nextMonth}
-            className="p-2 border border-gray-300 rounded-md hover:bg-gray-100"
-          >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
+            <Plus className="w-4 h-4" />
+            <span>New Task</span>
           </button>
         </div>
       </div>
@@ -108,18 +167,24 @@ export function CalendarPage() {
         const dateKey = format(day, 'yyyy-MM-dd');
         const tasksForDay = tasksByDate[dateKey] || [];
         const isCurrentMonth = isSameMonth(day, monthStart);
+        const isSelected = isSameDay(day, selectedDate);
         
         days.push(
           <div
             key={dateKey}
-            className={`min-h-[100px] border border-gray-200 p-1 ${
+            onClick={() => handleDateClick(day)}
+            className={`min-h-[100px] border border-gray-200 p-1 cursor-pointer hover:bg-blue-50 ${
               !isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'
-            } ${isSameDay(day, new Date()) ? 'bg-blue-50 border-blue-200' : ''}`}
+            } ${isSameDay(day, new Date()) ? 'bg-blue-50 border-blue-200' : ''}
+            ${isSelected ? 'bg-blue-100 border-blue-300' : ''}`}
           >
             <div className="flex justify-between items-start">
               <span className="text-sm font-medium">{format(day, 'd')}</span>
               <button
-                onClick={() => openTaskModal(day)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openTaskModal(day);
+                }}
                 className="text-blue-600 hover:bg-blue-100 rounded-full p-1"
                 title="Add task"
               >
@@ -177,8 +242,15 @@ export function CalendarPage() {
     <div className="max-w-6xl mx-auto px-4 py-6">
       <div className="bg-white rounded-lg shadow-sm p-4">
         {renderHeader()}
-        {renderDays()}
-        {renderCells()}
+        
+        {viewMode === 'month' ? (
+          <>
+            {renderDays()}
+            {renderCells()}
+          </>
+        ) : (
+          <DailyView date={selectedDate} />
+        )}
       </div>
       
       {isTaskModalOpen && (
