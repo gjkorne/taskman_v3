@@ -4,6 +4,7 @@ import { CategoryItem } from './CategoryItem';
 import { SubcategoryForm } from './SubcategoryForm';
 import { SubcategoryItem } from './SubcategoryItem';
 import { CategoryVisibilitySettings } from './CategoryVisibilitySettings';
+import { QuickTaskCategorySettings } from './QuickTaskCategorySettings';
 import { useState } from 'react';
 
 export function CategorySettings() {
@@ -23,7 +24,7 @@ export function CategorySettings() {
     selectedCategoryId
   } = useCategoryManager();
 
-  const [activeTab, setActiveTab] = useState<'management' | 'visibility'>('management');
+  const [activeTab, setActiveTab] = useState<'management' | 'visibility' | 'quicktask'>('management');
 
   // Get the currently selected category
   const selectedCategory = getSelectedCategory();
@@ -61,7 +62,7 @@ export function CategorySettings() {
 
   return (
     <div className="p-4">
-      <div className="flex space-x-1 rounded-lg bg-gray-100 p-1 mb-4">
+      <div className="flex flex-wrap space-x-1 rounded-lg bg-gray-100 p-1 mb-4">
         <button
           className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none ${
             activeTab === 'management'
@@ -81,6 +82,16 @@ export function CategorySettings() {
           onClick={() => setActiveTab('visibility')}
         >
           Category Visibility
+        </button>
+        <button
+          className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none ${
+            activeTab === 'quicktask'
+              ? 'bg-white shadow-sm text-gray-900'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+          }`}
+          onClick={() => setActiveTab('quicktask')}
+        >
+          Quick Task Settings
         </button>
       </div>
       
@@ -150,6 +161,12 @@ export function CategorySettings() {
       {activeTab === 'visibility' && (
         <div className="bg-white rounded-lg shadow p-4">
           <CategoryVisibilitySettings />
+        </div>
+      )}
+
+      {activeTab === 'quicktask' && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <QuickTaskCategorySettings />
         </div>
       )}
     </div>

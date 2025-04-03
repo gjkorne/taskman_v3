@@ -1,16 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTaskActions } from '../../hooks/useTaskActions';
 import { TaskStatus } from '../../types/task';
 import { Icon } from '../UI/Icon';
+import { useSettings } from '../../contexts/SettingsContext';
+import { useCategories } from '../../contexts/CategoryContext';
 
 /**
  * Quick entry component for adding tasks with minimal input
  * This provides a streamlined way to add tasks without opening the full form
  */
 export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
+  const { settings } = useSettings();
+  const { categories } = useCategories();
   const [taskTitle, setTaskTitle] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('work'); // Default to 'work' category
+  const [selectedCategory, setSelectedCategory] = useState(settings.defaultQuickTaskCategory);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Update selected category if default changes in settings
+  useEffect(() => {
+    setSelectedCategory(settings.defaultQuickTaskCategory);
+  }, [settings.defaultQuickTaskCategory]);
 
   const { createTask } = useTaskActions({
     refreshTasks: async () => {
@@ -18,6 +27,32 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
     },
     showToasts: true
   });
+
+  // Get the color for a category
+  const getCategoryColor = (categoryName: string): string => {
+    const category = categories.find(
+      cat => cat.name.toLowerCase() === categoryName.toLowerCase()
+    );
+    
+    // Return the category color or a default color
+    return category?.color || getDefaultCategoryColor(categoryName);
+  };
+
+  // Get default colors for standard categories
+  const getDefaultCategoryColor = (category: string): string => {
+    switch (category.toLowerCase()) {
+      case 'work':
+        return '#3B82F6'; // blue-500
+      case 'personal':
+        return '#8B5CF6'; // purple-500
+      case 'childcare':
+        return '#10B981'; // green-500
+      case 'other':
+        return '#F59E0B'; // amber-500
+      default:
+        return '#6B7280'; // gray-500
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,79 +87,41 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
   return (
     <form className="w-full" onSubmit={handleSubmit}>
       {/* Category Radio Buttons */}
-      <div className="flex flex-wrap gap-2 mb-3">
-        <div className="w-full mb-2">
-          <h3 className="text-sm font-medium text-gray-600">Choose category:</h3>
+      {settings.quickTaskCategories.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          <div className="w-full mb-2">
+            <h3 className="text-sm font-medium text-gray-600">Choose category:</h3>
+          </div>
+          {settings.quickTaskCategories.map(category => (
+            <label 
+              key={category}
+              className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
+                selectedCategory === category 
+                  ? 'bg-opacity-10 border-opacity-50' 
+                  : 'bg-white border-gray-200 hover:bg-gray-50'
+              }`}
+              style={{
+                backgroundColor: selectedCategory === category ? `${getCategoryColor(category)}20` : '',
+                borderColor: selectedCategory === category ? getCategoryColor(category) : ''
+              }}
+            >
+              <input
+                type="radio"
+                name="quick-category"
+                value={category}
+                checked={selectedCategory === category}
+                onChange={() => setSelectedCategory(category)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
+              />
+              <span 
+                className="inline-block w-3 h-3 rounded-full mr-2"
+                style={{ backgroundColor: getCategoryColor(category) }}
+              ></span>
+              <span className="text-sm font-medium capitalize">{category}</span>
+            </label>
+          ))}
         </div>
-        <label className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
-          selectedCategory === 'work' ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-200 hover:bg-gray-50'
-        }`}>
-          <input
-            type="radio"
-            name="quick-category"
-            value="work"
-            checked={selectedCategory === 'work'}
-            onChange={() => setSelectedCategory('work')}
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
-          />
-          <span 
-            className="inline-block w-3 h-3 rounded-full mr-2"
-            style={{ backgroundColor: '#3B82F6' }}
-          ></span>
-          <span className="text-sm font-medium">Work</span>
-        </label>
-        <label className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
-          selectedCategory === 'personal' ? 'bg-purple-100 border-purple-300' : 'bg-white border-gray-200 hover:bg-gray-50'
-        }`}>
-          <input
-            type="radio"
-            name="quick-category"
-            value="personal"
-            checked={selectedCategory === 'personal'}
-            onChange={() => setSelectedCategory('personal')}
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
-          />
-          <span 
-            className="inline-block w-3 h-3 rounded-full mr-2"
-            style={{ backgroundColor: '#8B5CF6' }}
-          ></span>
-          <span className="text-sm font-medium">Personal</span>
-        </label>
-        <label className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
-          selectedCategory === 'childcare' ? 'bg-green-100 border-green-300' : 'bg-white border-gray-200 hover:bg-gray-50'
-        }`}>
-          <input
-            type="radio"
-            name="quick-category"
-            value="childcare"
-            checked={selectedCategory === 'childcare'}
-            onChange={() => setSelectedCategory('childcare')}
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
-          />
-          <span 
-            className="inline-block w-3 h-3 rounded-full mr-2"
-            style={{ backgroundColor: '#10B981' }}
-          ></span>
-          <span className="text-sm font-medium">Childcare</span>
-        </label>
-        <label className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
-          selectedCategory === 'other' ? 'bg-amber-100 border-amber-300' : 'bg-white border-gray-200 hover:bg-gray-50'
-        }`}>
-          <input
-            type="radio"
-            name="quick-category"
-            value="other"
-            checked={selectedCategory === 'other'}
-            onChange={() => setSelectedCategory('other')}
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
-          />
-          <span 
-            className="inline-block w-3 h-3 rounded-full mr-2"
-            style={{ backgroundColor: '#F59E0B' }}
-          ></span>
-          <span className="text-sm font-medium">Other</span>
-        </label>
-      </div>
+      )}
 
       <div className="flex items-center">
         {/* Mobile: Large prominent icon */}

@@ -55,7 +55,7 @@ export function Sidebar({
         <div className="flex h-full flex-col">
           {/* Sidebar Header */}
           <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 border-b border-gray-200">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-800">TaskManager</h1>
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-800">TassKman</h1>
             <button 
               onClick={onToggleSidebar} 
               className="p-1 sm:p-2 text-gray-500 rounded-md lg:hidden hover:bg-gray-100"

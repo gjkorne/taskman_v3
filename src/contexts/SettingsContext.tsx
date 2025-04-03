@@ -10,6 +10,8 @@ export interface Settings {
   allowTaskSwitching: boolean; // Whether to switch tasks when starting a timer while another one is running
   hiddenCategories: string[]; // Array of category IDs that should be hidden
   hideDefaultCategories: boolean; // Whether to hide all default categories
+  quickTaskCategories: string[]; // Categories to show in quick task entry
+  defaultQuickTaskCategory: string; // Default selected category for quick task entry
 }
 
 // Default settings
@@ -22,6 +24,8 @@ export const defaultSettings: Settings = {
   allowTaskSwitching: false, // Default to the safe behavior of not auto-switching
   hiddenCategories: [], // No hidden categories by default
   hideDefaultCategories: false, // Don't hide default categories by default
+  quickTaskCategories: ['work', 'personal', 'childcare', 'other'], // Default categories for quick task entry
+  defaultQuickTaskCategory: 'work', // Default to work category
 };
 
 // Context type definition
@@ -44,12 +48,18 @@ function loadBooleanSetting(key: string, defaultValue: boolean): boolean {
 }
 
 /**
- * Load a string enum setting from localStorage
+ * Load a string setting from localStorage with validation against allowed values
  */
-function loadStringSetting<T extends string>(key: string, defaultValue: T, validValues: readonly T[]): T {
+function loadStringSetting<T extends string>(key: string, defaultValue: T, allowedValues?: readonly T[]): T {
   const storedValue = localStorage.getItem(key);
   if (storedValue === null) return defaultValue;
-  return validValues.includes(storedValue as T) ? (storedValue as T) : defaultValue;
+  
+  // If we have allowed values, validate against them
+  if (allowedValues && allowedValues.length > 0) {
+    return allowedValues.includes(storedValue as T) ? (storedValue as T) : defaultValue;
+  }
+  
+  return storedValue as T;
 }
 
 /**
@@ -107,6 +117,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         const allowTaskSwitching = loadBooleanSetting('allowTaskSwitching', defaultSettings.allowTaskSwitching);
         const hiddenCategories = loadArraySetting('hiddenCategories', defaultSettings.hiddenCategories);
         const hideDefaultCategories = loadBooleanSetting('hideDefaultCategories', defaultSettings.hideDefaultCategories);
+        const quickTaskCategories = loadArraySetting('quickTaskCategories', defaultSettings.quickTaskCategories);
+        const defaultQuickTaskCategory = loadStringSetting('defaultQuickTaskCategory', defaultSettings.defaultQuickTaskCategory, defaultSettings.quickTaskCategories);
 
         setSettings({
           theme,
@@ -116,7 +128,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
           autoSave,
           allowTaskSwitching,
           hiddenCategories,
-          hideDefaultCategories
+          hideDefaultCategories,
+          quickTaskCategories,
+          defaultQuickTaskCategory
         });
       } catch (error) {
         console.error('Error loading settings:', error);
