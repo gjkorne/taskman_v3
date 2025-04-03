@@ -12,6 +12,10 @@ import {
   getUserFriendlyErrorMessage 
 } from '../utils/errorUtils';
 
+// Set of statuses that can be used in status updates
+// This should align with the database constraints
+const allowedStatuses: TaskStatusType[] = ['pending', 'active', 'in_progress', 'paused', 'completed', 'archived'];
+
 interface UseTaskActionsOptions {
   showToasts?: boolean;
   refreshTasks?: () => Promise<void>;
@@ -51,14 +55,13 @@ export function useTaskActions({
       const isValidUuid = typeof taskId === 'string' && 
         taskId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
       
-      const isValidStatus = Object.values(TaskStatus).includes(status as any);
+      // Validate the status is allowed
+      if (!allowedStatuses.includes(status)) {
+        throw new Error(`Invalid status: ${status}`);
+      }
       
       if (!isValidUuid) {
         throw new Error('Invalid task ID format');
-      }
-      
-      if (!isValidStatus) {
-        throw new Error(`Invalid status: ${status}`);
       }
       
       setIsLoading(true);
@@ -76,8 +79,8 @@ export function useTaskActions({
         throw new Error(`Invalid status transition from ${currentTask.status} to ${status}`);
       }
       
-      // Update the task
-      const { error: updateError } = await taskService.updateTask(taskId, { status });
+      // Update the task status
+      const { error: updateError } = await taskService.updateTaskStatus(taskId, status);
       
       if (updateError) {
         throw updateError;

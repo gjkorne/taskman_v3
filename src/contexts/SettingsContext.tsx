@@ -8,6 +8,8 @@ export interface Settings {
   notificationsEnabled: boolean;
   autoSave: boolean;
   allowTaskSwitching: boolean; // Whether to switch tasks when starting a timer while another one is running
+  hiddenCategories: string[]; // Array of category IDs that should be hidden
+  hideDefaultCategories: boolean; // Whether to hide all default categories
 }
 
 // Default settings
@@ -18,6 +20,8 @@ export const defaultSettings: Settings = {
   notificationsEnabled: true,
   autoSave: true,
   allowTaskSwitching: false, // Default to the safe behavior of not auto-switching
+  hiddenCategories: [], // No hidden categories by default
+  hideDefaultCategories: false, // Don't hide default categories by default
 };
 
 // Context type definition
@@ -49,11 +53,29 @@ function loadStringSetting<T extends string>(key: string, defaultValue: T, valid
 }
 
 /**
+ * Load an array setting from localStorage
+ */
+function loadArraySetting<T>(key: string, defaultValue: T[]): T[] {
+  const storedValue = localStorage.getItem(key);
+  if (storedValue === null) return defaultValue;
+  try {
+    return JSON.parse(storedValue) as T[];
+  } catch (error) {
+    return defaultValue;
+  }
+}
+
+/**
  * Save a setting to localStorage
  */
-function saveSetting(key: string, value: string | boolean | number): void {
+function saveSetting(key: string, value: string | boolean | number | string[]): void {
   try {
-    localStorage.setItem(key, String(value));
+    // Handle arrays by stringifying them
+    if (Array.isArray(value)) {
+      localStorage.setItem(key, JSON.stringify(value));
+    } else {
+      localStorage.setItem(key, String(value));
+    }
   } catch (error) {
     console.error(`Error saving setting ${key}:`, error);
   }
@@ -83,6 +105,8 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
         const notificationsEnabled = loadBooleanSetting('notificationsEnabled', defaultSettings.notificationsEnabled);
         const autoSave = loadBooleanSetting('autoSave', defaultSettings.autoSave);
         const allowTaskSwitching = loadBooleanSetting('allowTaskSwitching', defaultSettings.allowTaskSwitching);
+        const hiddenCategories = loadArraySetting('hiddenCategories', defaultSettings.hiddenCategories);
+        const hideDefaultCategories = loadBooleanSetting('hideDefaultCategories', defaultSettings.hideDefaultCategories);
 
         setSettings({
           theme,
@@ -90,7 +114,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
           defaultTaskSort,
           notificationsEnabled,
           autoSave,
-          allowTaskSwitching
+          allowTaskSwitching,
+          hiddenCategories,
+          hideDefaultCategories
         });
       } catch (error) {
         console.error('Error loading settings:', error);

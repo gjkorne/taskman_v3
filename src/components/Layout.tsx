@@ -4,7 +4,6 @@ import { cn } from '../lib/utils';
 import { ActiveSession } from './Timer/ActiveSession';
 import { SearchPanel } from './TaskList/SearchPanel';
 import { Sidebar, ViewType } from './Navigation/Sidebar';
-import { FloatingActionButton } from './Common/FloatingActionButton';
 import { TaskFormModal } from './TaskForm/TaskFormModal';
 
 interface LayoutProps {
@@ -164,15 +163,18 @@ export function Layout({
         />
       )}
       
-      {/* Floating Action Button - only show on tasks view */}
-      {activeView === 'tasks' && (
-        <FloatingActionButton 
-          onClick={() => setShowTaskForm(true)}
-          className="fixed bottom-4 right-4 md:bottom-8 md:right-8 lg:hidden"
-          title="Add Task"
-          aria-label="Add new task"
-        />
-      )}
+      {/* Persistent Add Task button - visible on all views and screen sizes */}
+      <button 
+        className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-150 z-50 group hover:scale-110 bottom-8 right-8 bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 text-white"
+        aria-label="New Task"
+        onClick={() => setShowTaskForm(true)}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-plus h-6 w-6">
+          <path d="M5 12h14"></path>
+          <path d="M12 5v14"></path>
+        </svg>
+        <span className="absolute right-full mr-3 bg-gray-900 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap">New Task</span>
+      </button>
     </div>
   );
 }
