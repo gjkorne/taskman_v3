@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, CalendarIcon, Plus } from 'lucide-react';
+import { X, CalendarIcon, Plus, ChevronDownIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { CATEGORIES } from '../../types/categories';
 import { useTaskForm } from '../../hooks/useTaskForm';
@@ -35,6 +35,11 @@ export function TaskEditForm({
     if (onClose) onClose();
   };
   
+  const handleCancel = () => {
+    if (onCancel) onCancel();
+    else if (onClose) onClose();
+  };
+  
   const handleError = () => {
     // Custom error handling if needed
   };
@@ -56,7 +61,7 @@ export function TaskEditForm({
   });
   
   // Watch form values for reactive UI updates
-  const watchedCategory = watch('category');
+  const watchedCategory = watch('category_name');
   const watchedTags = watch('tags') || [];
   
   // Handle tag input and addition
@@ -165,20 +170,25 @@ export function TaskEditForm({
           <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
             Category
           </label>
-          <select
-            id="category"
-            {...register('category')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">Select a category</option>
-            {Object.keys(CATEGORIES).map(category => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-          {errors.category && (
-            <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
+          <div className="relative">
+            <select
+              id="category"
+              {...register('category_name')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-10"
+            >
+              <option value="">Choose a category</option>
+              {Object.keys(CATEGORIES).map((key) => (
+                <option key={key} value={key}>{key.charAt(0).toUpperCase() + key.slice(1)}</option>
+              ))}
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+            </div>
+          </div>
+          {errors.category_name && (
+            <p className="mt-1 text-sm text-red-600">
+              {errors.category_name.message}
+            </p>
           )}
         </div>
         
@@ -186,6 +196,11 @@ export function TaskEditForm({
         <div>
           <label htmlFor="subcategory" className="block text-sm font-medium text-gray-700 mb-1">
             Subcategory
+            {watchedCategory && (
+              <span className="font-normal text-gray-500 ml-1">
+                (from {watchedCategory.charAt(0).toUpperCase() + watchedCategory.slice(1)})
+              </span>
+            )}
           </label>
           <select
             id="subcategory"
@@ -208,30 +223,38 @@ export function TaskEditForm({
       
       {/* Due Date Field */}
       <div>
-        <label htmlFor="hasDueDate" className="flex items-center text-sm font-medium text-gray-700 mb-1">
-          <input
-            type="checkbox"
-            id="hasDueDate"
-            {...register('hasDueDate')}
-            className="mr-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-          />
-          Set Due Date
+        <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
+          Due Date
         </label>
+        <div className="flex items-center gap-3 mb-3">
+          <label className="flex items-center">
+            <input 
+              type="checkbox"
+              {...register('hasDueDate')}
+              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+            />
+            <span className="ml-2 text-sm text-gray-600">Set a due date</span>
+          </label>
+        </div>
         
         {watch('hasDueDate') && (
-          <div className="relative mt-2">
-            <input
-              id="dueDate"
+          <div className="relative">
+            <input 
               type="date"
-              {...register('dueDate')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              id="due_date"
+              {...register('due_date')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
             />
-            <CalendarIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <CalendarIcon className="w-5 h-5 text-gray-400" />
+            </div>
           </div>
         )}
         
-        {errors.dueDate && (
-          <p className="mt-1 text-sm text-red-600">{errors.dueDate.message}</p>
+        {errors.due_date && (
+          <p className="mt-1 text-sm text-red-600">
+            {errors.due_date.message}
+          </p>
         )}
       </div>
       
@@ -304,7 +327,7 @@ export function TaskEditForm({
       <div className="flex justify-end space-x-3">
         <button
           type="button"
-          onClick={onCancel}
+          onClick={handleCancel}
           className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           Cancel
