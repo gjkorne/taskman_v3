@@ -99,93 +99,77 @@ export function TaskContainer({
     return !isBeingTimed && !hasInProgressStatus;
   });
 
-  // Log overall counts for debugging
-  console.log(`Total tasks: ${tasks.length}, Active: ${activeTasks.length}, Paused: ${pausedTasks.length}, In Progress: ${inProgressTasks.length}, Other: ${otherTasks.length}`);
-
-  return (
-    <div className="space-y-6">
-      {/* Active Tasks Section - Tasks currently being timed */}
-      {activeTasks.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-green-600 mb-3 flex items-center">
-            <span className="inline-block h-3 w-3 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-            Active Tasks ({activeTasks.length})
-          </h2>
-          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
-            {activeTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onTimerStateChange={onTimerStateChange}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Paused Tasks Section - Tasks with paused timers */}
-      {pausedTasks.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-amber-600 mb-3 flex items-center">
-            <span className="inline-block h-3 w-3 rounded-full bg-amber-500 mr-2"></span>
-            Paused Tasks ({pausedTasks.length})
-          </h2>
-          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
-            {pausedTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onTimerStateChange={onTimerStateChange}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* In Progress Tasks Section - Tasks marked as in_progress but not being timed */}
-      {inProgressTasks.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-indigo-600 mb-3 flex items-center">
-            <span className="inline-block h-3 w-3 rounded-full bg-indigo-500 mr-2"></span>
-            In Progress Tasks ({inProgressTasks.length})
-          </h2>
-          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
-            {inProgressTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onTimerStateChange={onTimerStateChange}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Other Tasks Section */}
-      {otherTasks.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">
-            {activeTasks.length > 0 || pausedTasks.length > 0 || inProgressTasks.length > 0 ? 'Other Tasks' : 'All Tasks'} ({otherTasks.length})
-          </h2>
-          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
-            {otherTasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onTimerStateChange={onTimerStateChange}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+  // Render tasks in their respective sections
+  const renderTaskCard = (task: Task) => (
+    <TaskCard
+      key={task.id}
+      task={task}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onTimerStateChange={onTimerStateChange}
+    />
   );
+
+  // Helper function to render task section with heading
+  const renderTaskSection = (title: string, tasks: Task[], bgColor: string = 'bg-white') => {
+    if (tasks.length === 0) return null;
+    
+    return (
+      <div className={`mb-8 pb-6 ${bgColor} rounded-lg shadow-sm border border-gray-100`}>
+        <div className="border-b border-gray-200 mb-4 px-4 py-3">
+          <h2 className="text-lg font-medium text-gray-800 flex items-center">
+            {title}
+            <span className="ml-2 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">
+              {tasks.length}
+            </span>
+          </h2>
+        </div>
+        <div className="px-4">
+          {tasks.map(renderTaskCard)}
+        </div>
+      </div>
+    );
+  };
+
+  // Decide on the layout based on viewMode
+  if (viewMode === 'list') {
+    return (
+      <div className="space-y-6">
+        {renderTaskSection('Active Now', activeTasks, 'bg-blue-50')}
+        {renderTaskSection('Paused', pausedTasks, 'bg-amber-50')}
+        {renderTaskSection('In Progress', inProgressTasks, 'bg-indigo-50')}
+
+        {/* Split other tasks by status */}
+        {renderTaskSection('Todo', otherTasks.filter(t => t.status === TaskStatus.PENDING), 'bg-white')}
+        {renderTaskSection('Completed', otherTasks.filter(t => t.status === TaskStatus.COMPLETED), 'bg-green-50')}
+        {renderTaskSection('Archived', otherTasks.filter(t => t.status === TaskStatus.ARCHIVED), 'bg-gray-50')}
+      </div>
+    );
+  } else {
+    // Grid view layout
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
+          <h2 className="text-lg font-medium px-2">Active & In Progress</h2>
+          {activeTasks.map(renderTaskCard)}
+          {pausedTasks.map(renderTaskCard)}
+          {inProgressTasks.map(renderTaskCard)}
+        </div>
+        
+        <div className="space-y-6">
+          <h2 className="text-lg font-medium px-2">Todo</h2>
+          {otherTasks
+            .filter(t => t.status === TaskStatus.PENDING)
+            .map(renderTaskCard)}
+        </div>
+        
+        <div className="space-y-6">
+          <h2 className="text-lg font-medium px-2">Completed</h2>
+          {otherTasks
+            .filter(t => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.ARCHIVED)
+            .map(renderTaskCard)}
+        </div>
+      </div>
+    );
+  }
 }

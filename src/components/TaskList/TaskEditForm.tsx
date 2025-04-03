@@ -8,19 +8,21 @@ import { useTaskForm } from '../../hooks/useTaskForm';
 type CategoryKey = keyof typeof CATEGORIES;
 
 interface TaskEditFormProps {
-  taskId: string | null;
+  taskId?: string | null;
   onSaved?: () => void;
   onCancel?: () => void;
   onClose?: () => void;
   onTaskUpdated?: () => void;
+  onSuccess?: () => void;
 }
 
 export function TaskEditForm({ 
-  taskId, 
+  taskId = null, 
   onSaved, 
   onCancel, 
   onClose, 
-  onTaskUpdated
+  onTaskUpdated,
+  onSuccess
 }: TaskEditFormProps) {
   // Tag input state for adding new tags
   const [tagInput, setTagInput] = useState('');
@@ -29,6 +31,7 @@ export function TaskEditForm({
   const handleSuccess = () => {
     if (onTaskUpdated) onTaskUpdated();
     if (onSaved) onSaved();
+    if (onSuccess) onSuccess();
     if (onClose) onClose();
   };
   

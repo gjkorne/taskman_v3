@@ -7,6 +7,7 @@ interface SearchBarProps {
   placeholder?: string;
   initialValue?: string; // Keep for backward compatibility
   onSearch?: (value: string) => void; // Keep for backward compatibility
+  className?: string; // Add className prop for styling flexibility
 }
 
 export function SearchBar({ 
@@ -14,7 +15,8 @@ export function SearchBar({
   onChange, 
   placeholder = 'Search tasks...', 
   initialValue = '', 
-  onSearch 
+  onSearch,
+  className = '' 
 }: SearchBarProps) {
   // Use controlled input if value/onChange are provided, otherwise use local state
   const isControlled = value !== undefined && onChange !== undefined;
@@ -91,7 +93,7 @@ export function SearchBar({
   }, []);
 
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       <div className={`
         flex items-center px-3 py-2 bg-white border rounded-lg transition-all
         ${isFocused ? 'border-blue-500 shadow-sm ring-1 ring-blue-500' : 'border-gray-300'}

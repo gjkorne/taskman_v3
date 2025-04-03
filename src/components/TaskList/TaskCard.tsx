@@ -122,11 +122,15 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
     }
   };
 
+  // Get priority border color for task
+  const priorityColor = getPriorityBorderColor(task.priority);
+
   return (
     <div 
       className={cn(
-        "relative flex flex-col p-4 rounded-lg shadow-sm transition-all",
-        "hover:shadow-md mb-2 border border-gray-200 bg-white"
+        "relative flex flex-col p-5 rounded-lg shadow-sm transition-all",
+        "hover:shadow-md mb-3 border border-gray-200 bg-white",
+        `border-l-4 ${priorityColor}`  // Apply priority color to entire left border
       )}
     >
       {/* Created Date - top right */}
@@ -150,9 +154,9 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
       <div className="absolute right-2 top-1/2 transform -translate-y-1/2 z-20">
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-2 hover:bg-gray-100 rounded-full"
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-150"
         >
-          <MoreVertical className={cn("h-6 w-6", getCategoryColor())} />
+          <MoreVertical className={cn("h-5 w-5", getCategoryColor())} />
         </button>
         
         {/* Dropdown Menu */}
@@ -163,13 +167,13 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
           >
             <button
               onClick={handleEdit}
-              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150"
             >
               Edit
             </button>
             <button
               onClick={handleDelete}
-              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150 text-red-600"
             >
               Delete
             </button>
@@ -180,14 +184,12 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
       {/* Task Title - Prominent in top left */}
       <h3 className={cn(
         "absolute left-3 top-3 text-left z-10 font-bold text-lg max-w-[55%] truncate shadow-sm px-3 py-1 rounded-r-lg bg-white",
-        "border-l-4",
-        getPriorityBorderColor(task.priority)
       )}>
         {task.title}
       </h3>
       
       {/* Task Description - Using our reusable component */}
-      <div className="mt-12 mb-14">
+      <div className="mt-14 mb-14">
         <TaskCardDetails 
           task={task} 
           isActive={task.status === 'active'} 

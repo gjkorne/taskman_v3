@@ -35,9 +35,10 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
         <Button 
           onClick={() => handleStatusUpdate(TaskStatus.COMPLETED)}
           variant="success"
-          size="xs"
-          icon={<CheckCircle size={14} />}
+          size="sm"
+          icon={<CheckCircle size={16} className="transition-transform group-hover:scale-110" />}
           title="Mark task as complete"
+          className="min-w-[130px] shadow-sm transition-all duration-200 hover:shadow group"
         >
           {status === TaskStatus.ACTIVE ? "Complete" : "Mark as Complete"}
         </Button>
@@ -48,9 +49,10 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
         <Button 
           onClick={() => handleStatusUpdate(TaskStatus.ACTIVE)}
           variant="primary"
-          size="xs"
-          icon={<PlayCircle size={14} />}
+          size="sm"
+          icon={<PlayCircle size={16} className="transition-transform group-hover:scale-110" />}
           title="Resume task"
+          className="min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group"
         >
           Resume
         </Button>
@@ -61,9 +63,10 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
         <Button 
           onClick={() => handleStatusUpdate(TaskStatus.ARCHIVED)}
           variant="secondary"
-          size="xs"
-          icon={<ArchiveIcon size={14} />}
+          size="sm"
+          icon={<ArchiveIcon size={16} className="transition-transform group-hover:scale-110" />}
           title="Archive task"
+          className="min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group"
         >
           Archive
         </Button>
