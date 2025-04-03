@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays, parseISO, differenceInSeconds } from 'date-fns';
 import { Calendar, Clock, Download } from 'lucide-react';
 import { TimeSessionsList } from '../components/TimeSessions/TimeSessionsList';
 import { timeSessionsService } from '../services/api/timeSessionsService';
@@ -55,7 +55,20 @@ export function TimeSessionsPage() {
 
     sessions.forEach(session => {
       const startTime = parseISO(session.start_time);
-      const durationSeconds = parseDurationToSeconds(session.duration);
+      
+      // Make sure we handle the duration correctly
+      let durationSeconds = 0;
+      
+      if (session.duration) {
+        durationSeconds = parseDurationToSeconds(session.duration);
+      } else if (session.end_time) {
+        // Calculate from start and end time if duration is missing
+        const endTime = parseISO(session.end_time);
+        durationSeconds = differenceInSeconds(endTime, startTime);
+      }
+      
+      // Ensure we have a positive number
+      durationSeconds = Math.max(0, durationSeconds);
 
       // Check if session is within today
       if (isSameDay(startTime, now)) {
@@ -67,7 +80,7 @@ export function TimeSessionsPage() {
         weekSeconds += durationSeconds;
       }
 
-      // All sessions fetched are within this month
+      // Check if session is within this month
       if (isSameMonth(startTime, now)) {
         monthSeconds += durationSeconds;
       }

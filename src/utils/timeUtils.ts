@@ -24,10 +24,24 @@ export function parseDurationToSeconds(durationStr: string | null): number {
   }
   
   // Try to parse "hh:mm:ss" format
-  const timeMatch = durationStr.match(/^(\d{2}):(\d{2}):(\d{2})$/);
+  const timeMatch = durationStr.match(/^(\d{1,2}):(\d{1,2}):(\d{1,2})(?:\.\d+)?$/);
   if (timeMatch) {
     const [, hours, minutes, seconds] = timeMatch;
     return parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
+  }
+  
+  // Try to parse PostgreSQL ISO 8601 format: P0Y0M0DT0H30M0S
+  const isoMatch = durationStr.match(/P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)(?:\.\d+)?S)?/i);
+  if (isoMatch) {
+    const [, years, months, days, hours, minutes, seconds] = isoMatch;
+    let totalSeconds = 0;
+    if (years) totalSeconds += parseInt(years, 10) * 365 * 24 * 3600;
+    if (months) totalSeconds += parseInt(months, 10) * 30 * 24 * 3600;
+    if (days) totalSeconds += parseInt(days, 10) * 24 * 3600;
+    if (hours) totalSeconds += parseInt(hours, 10) * 3600;
+    if (minutes) totalSeconds += parseInt(minutes, 10) * 60;
+    if (seconds) totalSeconds += parseInt(seconds, 10);
+    return totalSeconds;
   }
   
   // Try to parse PostgreSQL verbose format
@@ -46,25 +60,20 @@ export function parseDurationToSeconds(durationStr: string | null): number {
   }
   
   // Extract seconds
-  const secsMatch = durationStr.match(/(\d+)\s+sec[s]?/);
+  const secsMatch = durationStr.match(/(\d+(?:\.\d+)?)\s+sec[s]?/);
   if (secsMatch) {
-    totalSeconds += parseInt(secsMatch[1], 10);
+    totalSeconds += Math.floor(parseFloat(secsMatch[1]));
   }
   
-  // If no formats matched, try to extract any numbers as minutes
+  // If we still couldn't parse it, try one more format: "X days HH:MM:SS"
   if (totalSeconds === 0) {
-    const anyNumberMatch = durationStr.match(/(\d+)/);
-    if (anyNumberMatch) {
-      const value = parseInt(anyNumberMatch[1], 10);
-      if (!isNaN(value)) {
-        // If it's a reasonably small number, assume it's minutes
-        if (value < 1000) {
-          totalSeconds = value * 60;
-        } else {
-          // Otherwise assume it's seconds
-          totalSeconds = value;
-        }
-      }
+    const daysTimeMatch = durationStr.match(/(?:(\d+)\s+days?\s+)?(\d{1,2}):(\d{2}):(\d{2})/);
+    if (daysTimeMatch) {
+      const [, days, hours, minutes, seconds] = daysTimeMatch;
+      if (days) totalSeconds += parseInt(days, 10) * 24 * 3600;
+      totalSeconds += parseInt(hours, 10) * 3600;
+      totalSeconds += parseInt(minutes, 10) * 60;
+      totalSeconds += parseInt(seconds, 10);
     }
   }
   
@@ -75,9 +84,12 @@ export function parseDurationToSeconds(durationStr: string | null): number {
  * Format seconds to "HH:MM:SS" string
  */
 export function formatSecondsToTime(totalSeconds: number): string {
+  // Ensure totalSeconds is an integer
+  totalSeconds = Math.floor(totalSeconds);
+  
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+  const seconds = Math.floor(totalSeconds % 60);
   
   return [
     String(hours).padStart(2, '0'),
