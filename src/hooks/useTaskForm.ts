@@ -153,7 +153,7 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
       description: formData.description,
       status: formData.status,
       priority: formData.priority,
-      category: formData.category_name, // Map to UI field name
+      category: formData.category_name || '', // Map category_name to category for API
       subcategory: formData.subcategory,
       dueDate: formData.due_date, // Map to UI field name
       hasDueDate: formData.hasDueDate,

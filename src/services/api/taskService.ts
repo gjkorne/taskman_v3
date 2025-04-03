@@ -201,8 +201,20 @@ export class TaskService implements ITaskService {
     try {
       const userId = await this.ensureAuthenticated();
       
+      // Log task data before processing
+      if (DEBUG_TASK_SERVICE) {
+        console.log('Creating task with data:', taskData);
+        console.log('Category value being submitted:', taskData.category);
+      }
+      
       const formattedData = this.formatTaskForDatabase(taskData);
       formattedData.created_by = userId;
+      
+      // Log formatted data before sending to database
+      if (DEBUG_TASK_SERVICE) {
+        console.log('Formatted task data before insert:', formattedData);
+        console.log('Category name in DB format:', formattedData.category_name);
+      }
       
       const { data, error } = await supabase
         .from('tasks')
@@ -214,6 +226,12 @@ export class TaskService implements ITaskService {
       
       // Format the created task for UI
       const formattedTask = data ? this.formatTaskForUI(data as TaskDatabaseRow) : null;
+      
+      // Log the task returned from the database
+      if (DEBUG_TASK_SERVICE && formattedTask) {
+        console.log('Created task with data:', formattedTask);
+        console.log('Category in returned task:', formattedTask.category_name);
+      }
       
       return { data: formattedTask, error: null };
     } catch (error) {

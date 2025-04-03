@@ -4,7 +4,6 @@ import { RichTextEditor } from './RichTextEditor';
 import { AlertCircle, ChevronDown, ChevronUp, Flag } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TaskDebug } from './TaskDebug';
-import { CATEGORIES } from '../../types/categories';
 import { useTaskForm } from '../../hooks/useTaskForm';
 import { useCategories } from '../../contexts/CategoryContext';
 
@@ -30,26 +29,27 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
   const builtInCategories = getBuiltInCategories();
   
   // Watch specific form fields for conditional rendering
-  const categoryId = watch('categoryId') as string | undefined;
-  const categoryName = watch('category') as keyof typeof CATEGORIES | '';
+  const categoryName = watch('category_name') as string | undefined;
   const hasDueDate = watch('hasDueDate');
   const selectedSubcategory = watch('subcategory');
 
   // This state is used to track whether the description is expanded or not
   const [isDescriptionExpanded, setIsDescriptionExpanded] = React.useState(false);
 
-  // Get the selected category object
-  const selectedCategory = categories.find(cat => cat.id === categoryId);
+  // Get the selected category object if it's a custom category
+  const selectedCategory = categories.find(cat => 
+    cat.name.toLowerCase() === categoryName?.toLowerCase()
+  );
   
   // Get subcategories based on selection
   const getAvailableSubcategories = () => {
     // For custom categories
-    if (categoryId && selectedCategory?.subcategories) {
+    if (selectedCategory?.subcategories) {
       return selectedCategory.subcategories;
     }
     
     // For built-in categories
-    if (categoryName && !categoryId && categoryName in builtInCategories) {
+    if (categoryName && categoryName in builtInCategories) {
       return builtInCategories[categoryName as keyof typeof builtInCategories];
     }
     
@@ -73,19 +73,20 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
     // Check if it's a custom category (starts with "custom:")
     if (value.startsWith('custom:')) {
       const categoryId = value.replace('custom:', '');
-      setValue('categoryId', categoryId);
       
-      // Find the category name for this ID and set it too
+      // Find the category name for this ID
       const category = categories.find(cat => cat.id === categoryId);
       if (category) {
-        setValue('category', category.name.toLowerCase());
+        setValue('category_name', category.name);
       } else {
-        setValue('category', '');
+        setValue('category_name', '');
       }
-    } else {
+    } else if (value) {
       // It's a built-in category
-      setValue('categoryId', undefined);
-      setValue('category', value);
+      setValue('category_name', value);
+    } else {
+      // No category selected
+      setValue('category_name', '');
     }
   };
 
@@ -173,10 +174,10 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
               </label>
               <select
                 onChange={handleCategoryChange}
-                value={categoryId ? `custom:${categoryId}` : categoryName}
+                value={selectedCategory ? `custom:${selectedCategory.id}` : categoryName || ''}
                 className={cn(
                   "w-full px-3 py-2 border rounded-md",
-                  errors.category ? "border-red-500" : "border-gray-300"
+                  errors.category_name ? "border-red-500" : "border-gray-300"
                 )}
               >
                 <option value="">-- Select Category (Optional) --</option>
@@ -200,8 +201,8 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
                   </optgroup>
                 )}
               </select>
-              {errors.category && (
-                <p className="mt-1 text-sm text-red-500">{errors.category.message}</p>
+              {errors.category_name && (
+                <p className="mt-1 text-sm text-red-500">{errors.category_name.message}</p>
               )}
             </div>
 
@@ -228,7 +229,7 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
           </div>
           
           {/* Subcategory selection - only shown when a category is selected */}
-          {(categoryId || categoryName) && subcategories.length > 0 && (
+          {categoryName && subcategories.length > 0 && (
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Subcategory
@@ -339,14 +340,14 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
                 <div className="mt-2">
                   <input
                     type="date"
-                    {...register('dueDate')}
+                    {...register('due_date')}
                     className={cn(
                       'w-full px-3 py-2 border rounded-md',
-                      errors.dueDate ? 'border-red-500' : 'border-gray-300'
+                      errors.due_date ? 'border-red-500' : 'border-gray-300'
                     )}
                   />
-                  {errors.dueDate && (
-                    <p className="mt-1 text-sm text-red-600">{errors.dueDate.message}</p>
+                  {errors.due_date && (
+                    <p className="mt-1 text-sm text-red-600">{errors.due_date.message}</p>
                   )}
                 </div>
               )}
