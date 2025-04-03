@@ -120,8 +120,9 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
         "group relative flex flex-col sm:flex-row py-1 sm:py-2 px-2 sm:px-3 border-b border-gray-100 transition-colors",
         `border-l-2 ${priorityColor}`,  // Thin priority indicator
         index % 2 === 1 ? "bg-gray-50" : "bg-white",  // Alternating row colors
-        "hover:bg-gray-100" // Darken hover state for better contrast
+        "hover:bg-gray-100 cursor-pointer" // Darken hover state for better contrast and add pointer cursor
       )}
+      onClick={handleEdit} // Make the entire card clickable to edit
     >
       {/* Left Section: Title and Metadata */}
       <div className="flex-grow min-w-0 mb-0.5 sm:mb-0">

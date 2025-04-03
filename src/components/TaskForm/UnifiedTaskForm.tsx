@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Controller } from 'react-hook-form';
 import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -43,9 +43,6 @@ export function UnifiedTaskForm({
   onClose,
   initialValues
 }: UnifiedTaskFormProps) {
-  // Track expanded/collapsed state for the notes field
-  const [isNotesExpanded, setIsNotesExpanded] = React.useState(mode === 'edit');
-  
   // Merge callbacks for simpler interaction with different parent components
   const handleSuccess = () => {
     if (onSuccess) onSuccess();
@@ -97,10 +94,32 @@ export function UnifiedTaskForm({
   const hasDueDate = watch('hasDueDate');
   const watchedTags = watch('tags') || [];
   
+  // Track expanded/collapsed state for the notes field
+  const [isNotesExpanded, setIsNotesExpanded] = useState(mode === 'edit');
+  
+  // Ref for the form container to detect outside clicks
+  const formRef = useRef<HTMLDivElement>(null);
+  
+  // Add a click outside event listener to close the form when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (formRef.current && !formRef.current.contains(event.target as Node)) {
+        if (onCancel) onCancel();
+        else if (onClose) onClose();
+      }
+    }
+    
+    // Attach the event listener
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    // Clean up the event listener
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onCancel, onClose]);
+
   return (
-    <div className="w-full">
-      {isDevelopment && <TaskDebug />}
-      
+    <div className="w-full" ref={formRef}>
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
@@ -113,7 +132,7 @@ export function UnifiedTaskForm({
         )}
         
         {/* TASK DETAILS SECTION */}
-        <FormSection title="Task Details" useGradient={true}>
+        <FormSection title="Task Details" useGradient={true} hideTitle={true}>
           {/* Title Field */}
           <div>
             <label htmlFor="task-title" className="block text-sm font-semibold text-gray-800">
@@ -126,7 +145,7 @@ export function UnifiedTaskForm({
               id="task-title"
               {...register('title')}
               className={cn(
-                'mt-1 block w-full rounded-lg glass-input shadow-sm transition-all text-lg p-2',
+                'mt-1 block w-full rounded-lg border shadow-sm transition-all text-lg p-2 bg-white',
                 errors.title ? 'border-red-500' : 'border-gray-300'
               )}
             />
@@ -135,12 +154,49 @@ export function UnifiedTaskForm({
             )}
           </div>
           
+          {/* Classification Fields */}
+          <div className="mt-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Classification</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Category Selection */}
+              <CategorySelector
+                value={categoryName || ''}
+                onChange={(value) => setValue('category_name', value)}
+                error={errors.category_name?.message}
+                required={true}
+              />
+            </div>
+            
+            {/* Status Field - Only show in edit mode */}
+            {mode === 'edit' && (
+              <div className="mt-4">
+                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  id="status"
+                  {...register('status')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="active">Active</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="archived">Archived</option>
+                </select>
+                {errors.status && (
+                  <p className="mt-1 text-sm text-red-600">{errors.status.message}</p>
+                )}
+              </div>
+            )}
+          </div>
+          
           {/* Notes Field */}
-          <div>
-            <div className="flex items-center justify-between">
-              <label htmlFor="task-notes" className="block text-sm font-semibold text-gray-800">
-                Notes
-              </label>
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-700">
+                {isNotesExpanded ? 'Notes & Checklist' : 'Notes'}
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsNotesExpanded(!isNotesExpanded)}
@@ -160,79 +216,27 @@ export function UnifiedTaskForm({
               </button>
             </div>
             
-            <div className={cn(!isNotesExpanded && 'hidden', 'border border-gray-300 rounded-md overflow-hidden')}>
+            <div className={cn(!isNotesExpanded && 'hidden')}>
+              {/* Controller for handling form state */}
               <Controller
                 name="description"
                 control={control}
                 render={({ field }) => (
-                  <NotesEditor 
-                    value={field.value || ''} 
-                    onChange={field.onChange} 
-                  />
+                  <div className="mt-1">
+                    <NotesEditor
+                      value={field.value || null}
+                      onChange={field.onChange}
+                      className="w-full bg-white border rounded-md border-gray-300 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500"
+                    />
+                  </div>
                 )}
               />
             </div>
           </div>
-        </FormSection>
-        
-        {/* CLASSIFICATION SECTION */}
-        <FormSection title="Classification" useGradient={true}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Category Selection */}
-            <CategorySelector
-              value={categoryName || ''}
-              onChange={(value) => setValue('category_name', value)}
-              error={errors.category_name?.message}
-            />
-            
-            {/* Estimated Time */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Estimated Time (minutes)
-              </label>
-              <input
-                type="number"
-                min="0"
-                {...register('estimatedTime')}
-                placeholder="e.g., 60"
-                className={cn(
-                  "w-full px-3 py-2 border rounded-md",
-                  errors.estimatedTime ? "border-red-500" : "border-gray-300"
-                )}
-              />
-              {errors.estimatedTime && (
-                <p className="mt-1 text-sm text-red-500">{errors.estimatedTime.message}</p>
-              )}
-              <p className="mt-1 text-xs text-gray-500">Enter total minutes (e.g., 300 for 5 hours)</p>
-            </div>
-          </div>
-          
-          {/* Status Field - Only show in edit mode */}
-          {mode === 'edit' && (
-            <div className="mt-4">
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                id="status"
-                {...register('status')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <option value="pending">Pending</option>
-                <option value="active">Active</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="archived">Archived</option>
-              </select>
-              {errors.status && (
-                <p className="mt-1 text-sm text-red-600">{errors.status.message}</p>
-              )}
-            </div>
-          )}
         </FormSection>
         
         {/* PRIORITY & TIMING SECTION */}
-        <FormSection title="Priority & Timing" useGradient={true}>
+        <FormSection title="Priority & Timing" useGradient={true} hideTitle={true}>
           {/* Priority Selection */}
           <PrioritySelector
             value={watch('priority') || 'medium'}
@@ -241,8 +245,29 @@ export function UnifiedTaskForm({
             error={errors.priority?.message}
           />
           
+          {/* Estimated Time */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Estimated Time (minutes)
+            </label>
+            <input
+              type="number"
+              min="0"
+              {...register('estimatedTime')}
+              placeholder="e.g., 60"
+              className={cn(
+                "w-full px-3 py-2 border rounded-md",
+                errors.estimatedTime ? "border-red-500" : "border-gray-300"
+              )}
+            />
+            {errors.estimatedTime && (
+              <p className="mt-1 text-sm text-red-500">{errors.estimatedTime.message}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">Enter total minutes (e.g., 300 for 5 hours)</p>
+          </div>
+          
           {/* Due Date Field */}
-          <div>
+          <div className="mt-4">
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -275,6 +300,9 @@ export function UnifiedTaskForm({
             onChange={(tags) => setValue('tags', tags)}
           />
         </FormSection>
+        
+        {/* Task Creation Diagnostic - Only shown in development */}
+        {isDevelopment && <TaskDebug />}
         
         {/* FORM ACTIONS */}
         <div className="flex justify-end space-x-3">

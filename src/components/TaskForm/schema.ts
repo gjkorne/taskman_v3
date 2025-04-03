@@ -36,7 +36,7 @@ export const taskFormSchema = z.object({
   status: z.enum(VALID_STATUSES).default('pending'),
   
   // Category fields - aligned with database
-  category_name: z.string().optional().nullable(), // Matches exact DB field name
+  category_name: z.string().min(1, 'Category is required'), // Make category required
   
   // UI-specific fields (not directly in DB schema)
   subcategory: z.string().optional().default(''), // For UI management, stored in tags

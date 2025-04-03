@@ -5,7 +5,6 @@ interface TaskFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTaskCreated: () => void;
-  title?: string;
   initialDate?: Date;
 }
 
@@ -17,7 +16,6 @@ export function TaskFormModal({
   isOpen,
   onClose,
   onTaskCreated,
-  title = 'New Task',
   initialDate
 }: TaskFormModalProps) {
   if (!isOpen) return null;
@@ -39,8 +37,7 @@ export function TaskFormModal({
       }}
     >
       <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-semibold text-gray-800">{title}</h2>
+        <div className="flex justify-end items-center mb-4">
           <button 
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors"
@@ -49,6 +46,7 @@ export function TaskFormModal({
             <X className="h-6 w-6" />
           </button>
         </div>
+        
         <TaskForm 
           mode="create"
           onSuccess={handleTaskCreated}

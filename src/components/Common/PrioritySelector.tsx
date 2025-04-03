@@ -45,7 +45,7 @@ export const PrioritySelector: React.FC<PrioritySelectorProps> = ({
           {priorityOptions.map(option => (
             <label 
               key={option.value} 
-              className="flex items-center space-x-3"
+              className="flex items-center space-x-3 p-2 rounded-md bg-white border border-gray-200"
             >
               <input
                 type="radio"

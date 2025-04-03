@@ -217,7 +217,12 @@ export const ListEditor: React.FC<ListEditorProps> = ({
             type="text"
             value={newItemText}
             onChange={(e) => setNewItemText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && addItem()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent form submission
+                addItem();
+              }
+            }}
             placeholder="Add new item..."
             className="flex-grow p-2 border border-gray-300 rounded-md"
           />
