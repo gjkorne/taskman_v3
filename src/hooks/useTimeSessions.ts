@@ -13,52 +13,17 @@ import {
  * Custom hook for managing time sessions
  */
 export function useTimeSessions(taskId?: string) {
+  // 1. All useState hooks
   const [sessions, setSessions] = useState<TimeSession[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [totalTime, setTotalTime] = useState('00:00:00');
-  
-  // Add a ref for tracking active sessions that need updating
-  const activeSessions = useRef<string[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  // Format the start and end time of a session
-  const formatSessionTime = (session: TimeSession) => {
-    const start = parseISO(session.start_time);
-    const formattedStart = formatTimeForDisplay(session.start_time);
-    
-    // If it's an active session (no end time)
-    if (!session.end_time) {
-      // Store active session ID for periodic refreshing
-      if (!activeSessions.current.includes(session.id)) {
-        activeSessions.current.push(session.id);
-      }
-      
-      const activeDuration = calculateActiveSessionDuration(session.start_time);
-      
-      return {
-        start: formattedStart,
-        end: 'In progress',
-        duration: activeDuration,
-        relative: formatDistanceToNow(start, { addSuffix: true })
-      };
-    }
-    
-    const formattedEnd = formatTimeForDisplay(session.end_time);
-    
-    // Use the improved formatDuration that can fallback to calculating based on timestamps
-    // This handles cases where the database duration is missing or incorrect
-    const displayDuration = formatDuration(session.duration, session.start_time, session.end_time);
-    
-    return {
-      start: formattedStart,
-      end: formattedEnd,
-      duration: displayDuration,
-      relative: formatDistanceToNow(start, { addSuffix: true })
-    };
-  };
-
-  // Calculate the total time spent on sessions
+  
+  // 2. All useRef hooks
+  const activeSessions = useRef<string[]>([]);
+  
+  // 3. All useCallback hooks in the original order
   const calculateTotalTime = useCallback((sessions: TimeSession[]) => {
     // Calculate duration for completed sessions
     const completedSessions = sessions.filter(session => session.end_time);
@@ -98,7 +63,6 @@ export function useTimeSessions(taskId?: string) {
     return totalFromCompleted;
   }, []);
 
-  // Fetch sessions for a specific task
   const fetchTaskSessions = useCallback(async () => {
     if (!taskId) return;
     
@@ -122,7 +86,6 @@ export function useTimeSessions(taskId?: string) {
     }
   }, [taskId, calculateTotalTime]);
 
-  // Fetch all user sessions
   const fetchUserSessions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -138,50 +101,15 @@ export function useTimeSessions(taskId?: string) {
     }
   }, []);
 
-  // Delete a session
-  const deleteSession = async (sessionId: string) => {
-    try {
-      console.log('Attempting to delete session:', sessionId);
-      
-      // First get the session to check if it's active
-      const currentSessions = [...sessions];
-      const sessionToDelete = currentSessions.find(s => s.id === sessionId);
-      
-      if (!sessionToDelete) {
-        console.error('Session not found for deletion:', sessionId);
-        throw new Error('Session not found');
-      }
-      
-      console.log('Session to delete:', sessionToDelete);
-      
-      // Delete the session from the database
-      const success = await timeSessionsService.deleteSession(sessionId);
-      
-      if (success) {
-        console.log('Session successfully deleted from database');
-        
-        // Immediately update the local state to remove the session
-        setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionId));
-        
-        // Then refresh from server
-        if (taskId) {
-          fetchTaskSessions();
-        } else {
-          fetchUserSessions();
-        }
-        
-        return true;
-      } else {
-        throw new Error('Failed to delete session');
-      }
-    } catch (err) {
-      console.error('Error deleting session:', err);
-      setError(err instanceof Error ? err : new Error('Failed to delete session'));
-      return false;
+  const refreshSessions = useCallback(() => {
+    if (taskId) {
+      fetchTaskSessions();
+    } else {
+      fetchUserSessions();
     }
-  };
+  }, [taskId, fetchTaskSessions, fetchUserSessions]);
 
-  // Initial data load
+  // 4. All useEffect hooks
   useEffect(() => {
     if (taskId) {
       fetchTaskSessions();
@@ -190,7 +118,6 @@ export function useTimeSessions(taskId?: string) {
     }
   }, [taskId, fetchTaskSessions, fetchUserSessions]);
 
-  // Set up a periodic refresh for active sessions
   useEffect(() => {
     // Only set up timer if we have active sessions
     if (activeSessions.current.length === 0) return;
@@ -201,21 +128,99 @@ export function useTimeSessions(taskId?: string) {
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [sessions]);
-  
-  // Recalculate total time when refresh trigger changes
+  }, [activeSessions.current.length]);
+
   useEffect(() => {
     if (activeSessions.current.length > 0) {
       setTotalTime(calculateTotalTime(sessions));
     }
   }, [refreshTrigger, calculateTotalTime, sessions]);
 
+  // Format the start and end time of a session (not a hook, so it can be defined anywhere)
+  const formatSessionTime = (session: TimeSession) => {
+    const start = parseISO(session.start_time);
+    const formattedStart = formatTimeForDisplay(session.start_time);
+    
+    // If it's an active session (no end time)
+    if (!session.end_time) {
+      // Store active session ID for periodic refreshing
+      if (!activeSessions.current.includes(session.id)) {
+        activeSessions.current.push(session.id);
+      }
+      
+      const activeDuration = calculateActiveSessionDuration(session.start_time);
+      
+      return {
+        start: formattedStart,
+        end: 'In progress',
+        duration: activeDuration,
+        relative: formatDistanceToNow(start, { addSuffix: true })
+      };
+    }
+    
+    const formattedEnd = formatTimeForDisplay(session.end_time);
+    
+    // Use the improved formatDuration that can fallback to calculating based on timestamps
+    // This handles cases where the database duration is missing or incorrect
+    const displayDuration = formatDuration(session.duration, session.start_time, session.end_time);
+    
+    return {
+      start: formattedStart,
+      end: formattedEnd,
+      duration: displayDuration,
+      relative: formatDistanceToNow(start, { addSuffix: true })
+    };
+  };
+
+  // Delete a session (regular function, not a hook)
+  const deleteSession = async (sessionId: string) => {
+    if (!sessionId) {
+      console.error('Invalid session ID for deletion');
+      return false;
+    }
+
+    try {
+      console.log('Attempting to delete session:', sessionId);
+      
+      // First update the UI optimistically by removing the session from state
+      setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionId));
+      
+      // Remove from active sessions if present
+      if (activeSessions.current.includes(sessionId)) {
+        activeSessions.current = activeSessions.current.filter(id => id !== sessionId);
+      }
+      
+      // Then perform the actual delete operation
+      const success = await timeSessionsService.deleteSession(sessionId);
+      
+      if (success) {
+        console.log('Session successfully deleted');
+        // Recalculate total time without the deleted session
+        const updatedSessions = sessions.filter(s => s.id !== sessionId);
+        setTotalTime(calculateTotalTime(updatedSessions));
+        return true;
+      } else {
+        // If deletion failed, revert the optimistic update
+        console.error('Failed to delete session, reverting UI');
+        refreshSessions();
+        return false;
+      }
+    } catch (err) {
+      console.error('Error deleting session:', err);
+      // If there was an error, revert the optimistic update and refresh
+      refreshSessions();
+      setError(err instanceof Error ? err : new Error('Failed to delete session'));
+      return false;
+    }
+  };
+
   return {
     sessions,
     isLoading,
     error,
-    totalTime,
     formatSessionTime,
-    deleteSession
+    totalTime,
+    deleteSession,
+    refreshSessions
   };
 }

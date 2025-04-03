@@ -129,6 +129,11 @@ export class TimeSessionsService {
   async deleteSession(sessionId: string) {
     console.log(`Attempting to delete session with ID: ${sessionId}`);
     
+    if (!sessionId) {
+      console.error('Invalid session ID for deletion');
+      return false;
+    }
+    
     try {
       const { error } = await supabase
         .from('time_sessions')
@@ -144,6 +149,7 @@ export class TimeSessionsService {
       return true;
     } catch (error) {
       console.error('Exception during session deletion:', error);
+      // Re-throw the error so the caller can handle it
       throw error;
     }
   }

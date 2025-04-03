@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, subDays, parseISO, differenceInSeconds } from 'date-fns';
-import { Calendar, Clock, Download } from 'lucide-react';
+import { Calendar, Clock, Download, RefreshCw } from 'lucide-react';
 import { TimeSessionsList } from '../components/TimeSessions/TimeSessionsList';
 import { timeSessionsService } from '../services/api/timeSessionsService';
 import type { TimeSession } from '../services/api/timeSessionsService';
@@ -12,6 +12,7 @@ export function TimeSessionsPage() {
     endDate: new Date()
   });
   const [isExporting, setIsExporting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [allSessions, setAllSessions] = useState<TimeSession[]>([]);
   const [timeStats, setTimeStats] = useState({
     today: '00:00:00',
@@ -22,27 +23,38 @@ export function TimeSessionsPage() {
 
   // Fetch sessions and calculate time stats
   useEffect(() => {
-    const fetchSessions = async () => {
-      setIsLoading(true);
-      try {
-        // We need to fetch all sessions for the current month to calculate totals
-        const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-        const data = await timeSessionsService.getSessionsByDateRange(monthStart, now);
-        setAllSessions(data);
-
-        // Calculate time stats
-        calculateTimeStats(data);
-      } catch (error) {
-        console.error('Error fetching time sessions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSessions();
+    fetchSessionsAndCalculateStats();
   }, []);
+
+  // Fetch sessions and calculate stats
+  const fetchSessionsAndCalculateStats = async () => {
+    setIsLoading(true);
+    try {
+      // We need to fetch all sessions for the current month to calculate totals
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const data = await timeSessionsService.getSessionsByDateRange(monthStart, now);
+      setAllSessions(data);
+
+      // Calculate time stats
+      calculateTimeStats(data);
+    } catch (error) {
+      console.error('Error fetching time sessions:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle refresh button click
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchSessionsAndCalculateStats();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Calculate time for different periods
   const calculateTimeStats = (sessions: TimeSession[]) => {
@@ -185,6 +197,16 @@ export function TimeSessionsPage() {
               />
             </div>
           </div>
+
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center space-x-1 bg-green-50 hover:bg-green-100 text-green-700 px-3 py-1.5 rounded-md transition-colors"
+            title="Refresh time stats"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
 
           <button
             onClick={exportSessions}
