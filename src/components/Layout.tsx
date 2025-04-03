@@ -113,6 +113,16 @@ export function Layout({
           onTaskCreated={handleTaskCreated}
         />
       )}
+      
+      {/* Floating action button */}
+      <button 
+        className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-150 z-50 group hover:scale-110 bottom-8 right-8 bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 text-white"
+        aria-label="New Task"
+        onClick={() => setShowTaskForm(true)}
+      >
+        <Icon name="Plus" size={24} />
+        <span className="absolute right-full mr-3 bg-gray-900 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap">New Task</span>
+      </button>
     </div>
   );
 }
