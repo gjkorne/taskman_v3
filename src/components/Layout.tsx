@@ -4,6 +4,7 @@ import { cn } from '../lib/utils';
 import { TaskForm } from './TaskForm/TaskForm';
 import { ActiveSession } from './Timer/ActiveSession';
 import { ConsoleErrorsButton } from './Debug/ConsoleErrorsButton';
+import { SearchPanel } from './TaskList/SearchPanel';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -125,6 +126,15 @@ export function Layout({ children, activeView, onViewChange, onTaskCreated, onTi
         <div className="relative z-50">
           <ActiveSession onTimerStateChange={onTimerStateChange} />
         </div>
+        
+        {/* Header with search bar - Only show on tasks view */}
+        {activeView === 'tasks' && (
+          <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm px-4 pt-3 pb-3">
+            <div className="max-w-[1600px] mx-auto">
+              <SearchPanel />
+            </div>
+          </div>
+        )}
         
         {/* Main content */}
         <main 

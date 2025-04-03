@@ -18,12 +18,13 @@ import { useTaskContext } from '../../contexts/TaskContext';
 
 interface TaskCardProps {
   task: Task;
+  index: number;
   onEdit?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onTimerStateChange?: () => void;
 }
 
-export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCardProps) {
+export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: TaskCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { categories } = useCategories();
   const { timerState, stopTimer } = useTimer();
@@ -115,8 +116,10 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
   return (
     <div 
       className={cn(
-        "group relative flex flex-col sm:flex-row py-2 px-3 border-b border-gray-100 hover:bg-gray-50 transition-colors",
-        `border-l-2 ${priorityColor}`  // Thin priority indicator
+        "group relative flex flex-col sm:flex-row py-2 px-3 border-b border-gray-100 transition-colors",
+        `border-l-2 ${priorityColor}`,  // Thin priority indicator
+        index % 2 === 1 ? "bg-gray-50" : "bg-white",  // Alternating row colors
+        "hover:bg-gray-100" // Darken hover state for better contrast
       )}
     >
       {/* Left Section: Title and Metadata */}

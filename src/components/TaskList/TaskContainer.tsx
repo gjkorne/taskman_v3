@@ -100,10 +100,11 @@ export function TaskContainer({
   });
 
   // Render tasks in their respective sections
-  const renderTaskCard = (task: Task) => (
+  const renderTaskCard = (task: Task, index: number) => (
     <TaskCard
       key={task.id}
       task={task}
+      index={index}
       onEdit={onEdit}
       onDelete={onDelete}
       onTimerStateChange={onTimerStateChange}
@@ -111,7 +112,7 @@ export function TaskContainer({
   );
 
   // Helper function to render task section with heading
-  const renderTaskSection = (title: string, tasks: Task[], bgColor: string = 'bg-white') => {
+  const renderTaskSection = (tasks: Task[], title: string, bgColor: string = 'bg-white') => {
     if (tasks.length === 0) return null;
     
     return (
@@ -125,7 +126,7 @@ export function TaskContainer({
           </h2>
         </div>
         <div className="px-4">
-          {tasks.map(renderTaskCard)}
+          {tasks.map((task, index) => renderTaskCard(task, index))}
         </div>
       </div>
     );
@@ -135,14 +136,14 @@ export function TaskContainer({
   if (viewMode === 'list') {
     return (
       <div className="space-y-6">
-        {renderTaskSection('Active Now', activeTasks, 'bg-blue-50')}
-        {renderTaskSection('Paused', pausedTasks, 'bg-amber-50')}
-        {renderTaskSection('In Progress', inProgressTasks, 'bg-indigo-50')}
+        {renderTaskSection(activeTasks, 'Active Now', 'bg-blue-50')}
+        {renderTaskSection(pausedTasks, 'Paused', 'bg-amber-50')}
+        {renderTaskSection(inProgressTasks, 'In Progress', 'bg-indigo-50')}
 
         {/* Split other tasks by status */}
-        {renderTaskSection('Todo', otherTasks.filter(t => t.status === TaskStatus.PENDING), 'bg-white')}
-        {renderTaskSection('Completed', otherTasks.filter(t => t.status === TaskStatus.COMPLETED), 'bg-green-50')}
-        {renderTaskSection('Archived', otherTasks.filter(t => t.status === TaskStatus.ARCHIVED), 'bg-gray-50')}
+        {renderTaskSection(otherTasks.filter(t => t.status === TaskStatus.PENDING), 'Todo', 'bg-white')}
+        {renderTaskSection(otherTasks.filter(t => t.status === TaskStatus.COMPLETED), 'Completed', 'bg-green-50')}
+        {renderTaskSection(otherTasks.filter(t => t.status === TaskStatus.ARCHIVED), 'Archived', 'bg-gray-50')}
       </div>
     );
   } else {
@@ -151,23 +152,23 @@ export function TaskContainer({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="space-y-6">
           <h2 className="text-lg font-medium px-2">Active & In Progress</h2>
-          {activeTasks.map(renderTaskCard)}
-          {pausedTasks.map(renderTaskCard)}
-          {inProgressTasks.map(renderTaskCard)}
+          {activeTasks.map((task, index) => renderTaskCard(task, index))}
+          {pausedTasks.map((task, index) => renderTaskCard(task, index))}
+          {inProgressTasks.map((task, index) => renderTaskCard(task, index))}
         </div>
         
         <div className="space-y-6">
           <h2 className="text-lg font-medium px-2">Todo</h2>
           {otherTasks
             .filter(t => t.status === TaskStatus.PENDING)
-            .map(renderTaskCard)}
+            .map((task, index) => renderTaskCard(task, index))}
         </div>
         
         <div className="space-y-6">
           <h2 className="text-lg font-medium px-2">Completed</h2>
           {otherTasks
             .filter(t => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.ARCHIVED)
-            .map(renderTaskCard)}
+            .map((task, index) => renderTaskCard(task, index))}
         </div>
       </div>
     );

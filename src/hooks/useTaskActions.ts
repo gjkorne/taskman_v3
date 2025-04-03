@@ -150,6 +150,51 @@ export function useTaskActions({
   }, [updateTaskStatus]);
 
   /**
+   * Create a new task
+   */
+  const createTask = useCallback(async (taskData: any) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data, error: apiError } = await taskService.createTask(taskData);
+      
+      if (apiError) throw apiError;
+      
+      // Refresh task data
+      await refreshTasks();
+      
+      // Show success toast
+      if (showToasts) {
+        addToast('Task created successfully', 'success');
+      }
+      
+      // Trigger success callback
+      if (onSuccess) {
+        onSuccess('create');
+      }
+      
+      return data;
+    } catch (err) {
+      console.error('Error creating task:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create task';
+      setError(errorMessage);
+      
+      if (showToasts) {
+        addToast('Failed to create task', 'error');
+      }
+      
+      if (onError) {
+        onError(errorMessage, 'create');
+      }
+      
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [refreshTasks, onSuccess, onError, addToast, showToasts]);
+
+  /**
    * Delete a task (soft delete)
    */
   const deleteTask = useCallback(async (taskId: string) => {
@@ -249,6 +294,7 @@ export function useTaskActions({
     resetTask,
     archiveTask,
     deleteTask,
-    batchDeleteTasks
+    batchDeleteTasks,
+    createTask
   };
 }

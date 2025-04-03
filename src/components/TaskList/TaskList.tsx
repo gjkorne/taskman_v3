@@ -1,11 +1,9 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
 import { TaskEditForm } from './TaskEditForm';
-import { FilterPanel } from './FilterPanel';
 import { TaskContainer } from './TaskContainer';
-import { SearchBar } from './SearchBar';
 import { useTaskContext } from '../../contexts/TaskContext';
 import { useTaskModal } from '../../hooks/useTaskModal';
+import { QuickTaskEntry } from '../TaskForm/QuickTaskEntry';
 
 // Define ref type for external access to TaskList methods
 export interface TaskListRefType {
@@ -24,11 +22,8 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
     error,
     isRefreshing,
     refreshTasks,
-    searchQuery,
-    setSearchQuery,
     filters,
-    setFilters,
-    resetFilters
+    setFilters
   } = useTaskContext();
   
   // Use our task modal hook
@@ -66,148 +61,126 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
 
   return (
     <div className="max-w-full mx-auto px-4 py-6 relative">
-      {/* Compact and improved search/filter bar */}
+      {/* Combined quick task entry and filters */}
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-3 mb-6">
-        <div className="flex flex-wrap gap-2 items-center">
-          {/* Left side - Search with integrated refresh */}
-          <div className="flex-grow flex items-center min-w-[260px] max-w-md">
-            <SearchBar 
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search tasks..."
-              className="flex-grow"
-            />
-            <button
-              onClick={() => refreshTasks()}
-              className={`ml-2 p-2 rounded-md bg-gray-100 hover:bg-gray-200 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
-              disabled={isRefreshing}
-              aria-label="Refresh tasks"
-            >
-              <RefreshCw className="h-4 w-4 text-gray-600" />
-            </button>
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          {/* Quick task entry */}
+          <div className="flex-grow">
+            <QuickTaskEntry onTaskCreated={refreshTasks} />
           </div>
           
-          {/* Right side - Compact filter */}
-          <div className="flex-shrink-0 flex items-center ml-auto">
-            <FilterPanel 
-              filters={filters}
-              onChange={setFilters}
-              onReset={resetFilters}
-            />
+          {/* Quick Category Filters */}
+          <div className="flex-shrink-0">
+            <div className="flex items-center mb-2">
+              <h3 className="text-sm font-medium text-gray-600">Quick Filters:</h3>
+              {filters.category.length > 0 && (
+                <button
+                  onClick={() => {
+                    setFilters({
+                      ...filters, 
+                      category: []
+                    });
+                  }}
+                  className="ml-2 text-xs text-indigo-600 hover:text-indigo-800"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  setFilters({
+                    ...filters, 
+                    category: []
+                  });
+                }}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  filters.category.length === 0 
+                    ? 'bg-indigo-100 text-indigo-800' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                All
+              </button>
+              
+              <button
+                onClick={() => {
+                  const newCategory = filters.category.includes('work') 
+                    ? filters.category.filter(c => c !== 'work')
+                    : [...filters.category, 'work'];
+                  setFilters({
+                    ...filters, 
+                    category: newCategory
+                  });
+                }}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  filters.category.includes('work') 
+                    ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-blue-50 hover:text-blue-700'
+                }`}
+              >
+                Work
+              </button>
+              
+              <button
+                onClick={() => {
+                  const newCategory = filters.category.includes('personal') 
+                    ? filters.category.filter(c => c !== 'personal')
+                    : [...filters.category, 'personal'];
+                  setFilters({
+                    ...filters, 
+                    category: newCategory
+                  });
+                }}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  filters.category.includes('personal') 
+                    ? 'bg-purple-100 text-purple-800 border border-purple-200' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-purple-50 hover:text-purple-700'
+                }`}
+              >
+                Personal
+              </button>
+              
+              <button
+                onClick={() => {
+                  const newCategory = filters.category.includes('childcare') 
+                    ? filters.category.filter(c => c !== 'childcare')
+                    : [...filters.category, 'childcare'];
+                  setFilters({
+                    ...filters, 
+                    category: newCategory
+                  });
+                }}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  filters.category.includes('childcare') 
+                    ? 'bg-green-100 text-green-800 border border-green-200' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-green-50 hover:text-green-700'
+                }`}
+              >
+                Childcare
+              </button>
+              
+              <button
+                onClick={() => {
+                  const newCategory = filters.category.includes('other') 
+                    ? filters.category.filter(c => c !== 'other')
+                    : [...filters.category, 'other'];
+                  setFilters({
+                    ...filters, 
+                    category: newCategory
+                  });
+                }}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  filters.category.includes('other') 
+                    ? 'bg-amber-100 text-amber-800 border border-amber-200' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-amber-50 hover:text-amber-700'
+                }`}
+              >
+                Other
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
-      
-      {/* Quick Category Filters */}
-      <div className="mb-6">
-        <div className="flex items-center mb-2">
-          <h3 className="text-sm font-medium text-gray-600">Quick Filters:</h3>
-          {filters.category.length > 0 && (
-            <button
-              onClick={() => {
-                setFilters({
-                  ...filters, 
-                  category: []
-                });
-              }}
-              className="ml-2 text-xs text-indigo-600 hover:text-indigo-800"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => {
-              setFilters({
-                ...filters, 
-                category: []
-              });
-            }}
-            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-              filters.category.length === 0 
-                ? 'bg-indigo-100 text-indigo-800' 
-                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-            }`}
-          >
-            All
-          </button>
-          
-          <button
-            onClick={() => {
-              const newCategory = filters.category.includes('work') 
-                ? filters.category.filter(c => c !== 'work')
-                : [...filters.category, 'work'];
-              setFilters({
-                ...filters, 
-                category: newCategory
-              });
-            }}
-            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-              filters.category.includes('work') 
-                ? 'bg-blue-100 text-blue-800 border border-blue-200' 
-                : 'bg-gray-100 text-gray-800 hover:bg-blue-50 hover:text-blue-700'
-            }`}
-          >
-            Work
-          </button>
-          
-          <button
-            onClick={() => {
-              const newCategory = filters.category.includes('personal') 
-                ? filters.category.filter(c => c !== 'personal')
-                : [...filters.category, 'personal'];
-              setFilters({
-                ...filters, 
-                category: newCategory
-              });
-            }}
-            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-              filters.category.includes('personal') 
-                ? 'bg-purple-100 text-purple-800 border border-purple-200' 
-                : 'bg-gray-100 text-gray-800 hover:bg-purple-50 hover:text-purple-700'
-            }`}
-          >
-            Personal
-          </button>
-          
-          <button
-            onClick={() => {
-              const newCategory = filters.category.includes('childcare') 
-                ? filters.category.filter(c => c !== 'childcare')
-                : [...filters.category, 'childcare'];
-              setFilters({
-                ...filters, 
-                category: newCategory
-              });
-            }}
-            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-              filters.category.includes('childcare') 
-                ? 'bg-green-100 text-green-800 border border-green-200' 
-                : 'bg-gray-100 text-gray-800 hover:bg-green-50 hover:text-green-700'
-            }`}
-          >
-            Childcare
-          </button>
-          
-          <button
-            onClick={() => {
-              const newCategory = filters.category.includes('other') 
-                ? filters.category.filter(c => c !== 'other')
-                : [...filters.category, 'other'];
-              setFilters({
-                ...filters, 
-                category: newCategory
-              });
-            }}
-            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-              filters.category.includes('other') 
-                ? 'bg-amber-100 text-amber-800 border border-amber-200' 
-                : 'bg-gray-100 text-gray-800 hover:bg-amber-50 hover:text-amber-700'
-            }`}
-          >
-            Other
-          </button>
         </div>
       </div>
       
