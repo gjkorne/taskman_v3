@@ -1,9 +1,8 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import { TaskEditForm } from './TaskEditForm';
 import { TaskContainer } from './TaskContainer';
 import { useTaskContext } from '../../contexts/TaskContext';
 import { useTaskModal } from '../../hooks/useTaskModal';
-import { QuickTaskEntry } from '../TaskForm/QuickTaskEntry';
+import { QuickTaskEntry, TaskForm } from '../TaskForm';
 
 // Define ref type for external access to TaskList methods
 export interface TaskListRefType {
@@ -205,7 +204,8 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-auto">
             <div className="p-6">
               <h2 className="text-xl font-semibold mb-4">Edit Task</h2>
-              <TaskEditForm 
+              <TaskForm 
+                mode="edit"
                 taskId={editTaskId} 
                 onClose={closeEditModal} 
                 onSuccess={() => {
@@ -224,7 +224,8 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-auto">
             <div className="p-6">
               <h2 className="text-xl font-semibold mb-4">Create New Task</h2>
-              <TaskEditForm 
+              <TaskForm 
+                mode="create"
                 onClose={() => setIsNewTaskModalOpen(false)} 
                 onSuccess={() => {
                   setIsNewTaskModalOpen(false);

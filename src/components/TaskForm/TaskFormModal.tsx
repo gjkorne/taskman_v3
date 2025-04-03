@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import { TaskForm } from './TaskForm';
+import { TaskForm } from './index';
 
 interface TaskFormModalProps {
   isOpen: boolean;
@@ -47,7 +47,11 @@ export function TaskFormModal({
             <X className="h-6 w-6" />
           </button>
         </div>
-        <TaskForm onTaskCreated={handleTaskCreated} />
+        <TaskForm 
+          mode="create"
+          onSuccess={handleTaskCreated}
+          onCancel={onClose}
+        />
       </div>
     </div>
   );

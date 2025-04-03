@@ -1,3 +1,5 @@
+// TODO: This component is being refactored to use the UnifiedTaskForm component.
+// For now, we're keeping it to maintain backward compatibility, but it should eventually be replaced.
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import { AlertCircle, ChevronDown, ChevronUp, Flag } from 'lucide-react';
@@ -6,6 +8,7 @@ import { TaskDebug } from './TaskDebug';
 import { useTaskForm } from '../../hooks/useTaskForm';
 import { useCategories } from '../../contexts/CategoryContext';
 import NotesEditor from '../TaskNotes/NotesEditor';
+import { UnifiedTaskForm } from './UnifiedTaskForm';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 

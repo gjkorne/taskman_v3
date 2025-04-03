@@ -12,7 +12,7 @@ import NotesEditor from '../TaskNotes/NotesEditor';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
-interface UnifiedTaskFormProps {
+export interface UnifiedTaskFormProps {
   taskId?: string | null;
   mode: 'create' | 'edit';
   onSuccess?: () => void;
