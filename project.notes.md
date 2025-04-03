@@ -4,11 +4,11 @@ Notes and Additional Features
 
 - *** UI Changes ***
  ~~Change in top left~~ 
- remove grid view
- move search bar and add quick task     
- move filter and sort
- add mark complete button
- make currently timing element larger to be more visible and almost annoying
+    ~~ remove grid view~~   
+    ~~ move search bar and add quick task~~     
+    ~~ move filter and sort~~
+    ~~ add mark complete button~~
+    ~~ make currently timing element larger to be more visible and almost annoying~~
  
 
 - *** Issues ***

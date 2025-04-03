@@ -15,6 +15,7 @@ import { useTimer } from '../../contexts/TimerContext';
 import { useTaskActions } from '../../hooks/useTaskActions';
 import { useCategories } from '../../contexts/CategoryContext';
 import { useTaskContext } from '../../contexts/TaskContext';
+import NotesViewer from '../TaskNotes/NotesViewer';
 
 interface TaskCardProps {
   task: Task;
@@ -158,6 +159,18 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
             </span>
           )}
         </div>
+        
+        {/* Task notes/list if present */}
+        {task.description && (
+          <div className="mt-2">
+            <NotesViewer 
+              value={task.description} 
+              maxLength={100} 
+              maxListItems={3}
+              className="mt-1"
+            />
+          </div>
+        )}
       </div>
       
       {/* Right Section: All Actions */}

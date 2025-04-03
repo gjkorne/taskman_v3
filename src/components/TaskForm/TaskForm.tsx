@@ -1,11 +1,11 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
-import { RichTextEditor } from './RichTextEditor';
 import { AlertCircle, ChevronDown, ChevronUp, Flag } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TaskDebug } from './TaskDebug';
 import { useTaskForm } from '../../hooks/useTaskForm';
 import { useCategories } from '../../contexts/CategoryContext';
+import NotesEditor from '../TaskNotes/NotesEditor';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -155,7 +155,10 @@ export function TaskForm({ onTaskCreated }: { onTaskCreated?: () => void }) {
                 name="description"
                 control={control}
                 render={({ field }) => (
-                  <RichTextEditor id="task-notes" value={field.value || ''} onChange={field.onChange} />
+                  <NotesEditor 
+                    value={field.value || ''} 
+                    onChange={field.onChange} 
+                  />
                 )}
               />
             </div>
