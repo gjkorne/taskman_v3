@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ActiveSession } from './Timer/ActiveSession';
 import { SearchPanel } from './TaskList/SearchPanel';
 import { Sidebar, ViewType } from './Navigation/Sidebar';
 import { TaskFormModal } from './TaskForm/TaskFormModal';
+import { Icon } from './UI/Icon';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -31,34 +31,41 @@ export function Layout({
       setIsMobile(window.innerWidth < 768);
     };
     
-    // Check on initial load
+    // Check immediately
     checkIfMobile();
     
-    // Listen for window resize events
+    // Check on window resize
     window.addEventListener('resize', checkIfMobile);
     
-    // Cleanup
+    // Clean up
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
   
-  // Close sidebar on view change in mobile
+  // If we switch to a non-mobile size, auto-close the sidebar
   useEffect(() => {
-    if (isMobile && isSidebarOpen) {
+    if (!isMobile) {
+      setIsSidebarOpen(false);
+    }
+  }, [isMobile]);
+  
+  // Close sidebar when view changes on mobile
+  useEffect(() => {
+    if (isMobile) {
       setIsSidebarOpen(false);
     }
   }, [activeView, isMobile]);
   
-  // Toggle sidebar visibility (mobile)
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
-  
-  // Handle task creation success
+  // Handle new task creation
   const handleTaskCreated = () => {
     if (onTaskCreated) {
       onTaskCreated();
     }
     setShowTaskForm(false);
+  };
+  
+  // Toggle sidebar
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
   
   // Get view title based on active view
@@ -93,40 +100,46 @@ export function Layout({
         onToggleSidebar={toggleSidebar}
       />
       
-      {/* Main content */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-        {/* Mobile header */}
-        <div className="lg:hidden border-b border-gray-200 sticky top-0 z-50 bg-white shadow-sm">
-          <div className="flex items-center h-14 sm:h-16 px-3 sm:px-4">
-            <button
-              onClick={toggleSidebar}
-              className="p-2 -ml-1 text-gray-500 rounded-md hover:bg-gray-100 touch-manipulation"
-              aria-label="Toggle navigation"
-            >
-              <Menu size={20} />
-            </button>
+      {/* Main container */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top navigation bar */}
+        <header className="bg-white border-b border-gray-200 z-40 sticky top-0">
+          <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6">
+            {/* Title and menu button */}
+            <div className="flex items-center">
+              {isMobile && (
+                <button
+                  onClick={toggleSidebar}
+                  className="mr-2 p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                >
+                  <span className="sr-only">Open sidebar</span>
+                  <Icon name="Menu" size={24} />
+                </button>
+              )}
+              <h1 className="text-xl font-semibold text-gray-900">
+                {getViewTitle()}
+              </h1>
+            </div>
             
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-800 ml-2 flex-1 truncate">
-              {getViewTitle()}
-            </h1>
-            
-            {/* Add task button in header - only show when NOT on tasks view to avoid duplication */}
-            {activeView !== 'tasks' && (
-              <button
-                onClick={() => setShowTaskForm(true)}
-                className="p-2 text-blue-500 rounded-md hover:bg-blue-50 touch-manipulation ml-2"
-                aria-label="Add new task"
-              >
-                <Plus size={20} />
-              </button>
-            )}
+            {/* Quick actions */}
+            <div className="flex items-center space-x-2">
+              {activeView === 'tasks' && (
+                <button
+                  onClick={() => setShowTaskForm(true)}
+                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <Icon name="Plus" size={16} className="mr-1" />
+                  New Task
+                </button>
+              )}
+              
+              {/* Active timer session */}
+              <ActiveSession
+                onTimerStateChange={onTimerStateChange}
+              />
+            </div>
           </div>
-        </div>
-        
-        {/* Active Session Bar - Will appear when a task is being timed */}
-        <div className="relative z-40">
-          <ActiveSession onTimerStateChange={onTimerStateChange} />
-        </div>
+        </header>
         
         {/* Header with search bar - Only show on tasks view */}
         {activeView === 'tasks' && (
@@ -144,7 +157,7 @@ export function Layout({
             "bg-gray-50 bg-opacity-80 relative"
           )}
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23a4abbd' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23a4abbd' fillOpacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
           }}
         >
           <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-6 w-full max-w-[1600px] mx-auto">
@@ -153,28 +166,14 @@ export function Layout({
         </main>
       </div>
       
-      {/* Task Form Modal */}
+      {/* New task modal */}
       {showTaskForm && (
-        <TaskFormModal
+        <TaskFormModal 
           isOpen={showTaskForm}
           onClose={() => setShowTaskForm(false)}
           onTaskCreated={handleTaskCreated}
-          title="Add Task"
         />
       )}
-      
-      {/* Persistent Add Task button - visible on all views and screen sizes */}
-      <button 
-        className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-150 z-50 group hover:scale-110 bottom-8 right-8 bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 text-white"
-        aria-label="New Task"
-        onClick={() => setShowTaskForm(true)}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-plus h-6 w-6">
-          <path d="M5 12h14"></path>
-          <path d="M12 5v14"></path>
-        </svg>
-        <span className="absolute right-full mr-3 bg-gray-900 text-white text-sm px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-150 whitespace-nowrap">New Task</span>
-      </button>
     </div>
   );
 }

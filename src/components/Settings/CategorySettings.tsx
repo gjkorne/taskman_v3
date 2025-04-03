@@ -5,7 +5,6 @@ import { SubcategoryForm } from './SubcategoryForm';
 import { SubcategoryItem } from './SubcategoryItem';
 import { CategoryVisibilitySettings } from './CategoryVisibilitySettings';
 import { useState } from 'react';
-import * as Tabs from '../UI/Tabs';
 
 export function CategorySettings() {
   const {
@@ -62,81 +61,97 @@ export function CategorySettings() {
 
   return (
     <div className="p-4">
-      <Tabs.Tabs value={activeTab} onValueChange={(value: 'management' | 'visibility') => setActiveTab(value)}>
-        <Tabs.TabsList className="mb-4">
-          <Tabs.TabsTrigger value="management">Manage Categories</Tabs.TabsTrigger>
-          <Tabs.TabsTrigger value="visibility">Category Visibility</Tabs.TabsTrigger>
-        </Tabs.TabsList>
-        
-        <Tabs.TabsContent value="management">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left column - Categories */}
-            <div className="bg-white rounded-lg shadow p-4">
-              <h2 className="text-lg font-semibold mb-4">Categories</h2>
-              
-              {/* Add new category form */}
-              <CategoryForm onAddCategory={handleAddCategory} />
-              
-              {/* Categories list */}
-              <div className="space-y-2">
-                {categories.length === 0 ? (
-                  <p className="text-gray-500 italic">No categories yet. Create one to get started.</p>
-                ) : (
-                  categories.map((category) => (
-                    <CategoryItem 
-                      key={category.id}
-                      category={category}
-                      selectedCategoryId={selectedCategoryId}
-                      onSelect={setActiveCategory}
-                      onEdit={handleEditCategory}
-                      onDelete={async (id) => { await deleteCategory(id); }}
-                      onMakeDefault={handleMakeDefault}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Right column - Subcategories */}
-            <div className="bg-white rounded-lg shadow p-4">
-              <h2 className="text-lg font-semibold mb-4">
-                {selectedCategory ? `Subcategories for ${selectedCategory.name}` : 'Select a category to manage subcategories'}
-              </h2>
-              
-              {selectedCategory ? (
-                <>
-                  {/* Add new subcategory form */}
-                  <SubcategoryForm onAddSubcategory={handleAddSubcategory} />
-                  
-                  {/* Subcategories list */}
-                  <div className="space-y-2">
-                    {(!selectedCategory.subcategories || selectedCategory.subcategories.length === 0) ? (
-                      <p className="text-gray-500 italic">No subcategories yet. Add one to organize tasks further.</p>
-                    ) : (
-                      selectedCategory.subcategories.map((subcategory) => (
-                        <SubcategoryItem 
-                          key={subcategory}
-                          name={subcategory}
-                          onEdit={async (oldName, newName) => { await renameSubcategory(oldName, newName); }}
-                          onDelete={async (name) => { await removeSubcategory(name); }}
-                        />
-                      ))
-                    )}
-                  </div>
-                </>
+      <div className="flex space-x-1 rounded-lg bg-gray-100 p-1 mb-4">
+        <button
+          className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none ${
+            activeTab === 'management'
+              ? 'bg-white shadow-sm text-gray-900'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+          }`}
+          onClick={() => setActiveTab('management')}
+        >
+          Manage Categories
+        </button>
+        <button
+          className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none ${
+            activeTab === 'visibility'
+              ? 'bg-white shadow-sm text-gray-900'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+          }`}
+          onClick={() => setActiveTab('visibility')}
+        >
+          Category Visibility
+        </button>
+      </div>
+      
+      {activeTab === 'management' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left column - Categories */}
+          <div className="bg-white rounded-lg shadow p-4">
+            <h2 className="text-lg font-semibold mb-4">Categories</h2>
+            
+            {/* Add new category form */}
+            <CategoryForm onAddCategory={handleAddCategory} />
+            
+            {/* Categories list */}
+            <div className="space-y-2">
+              {categories.length === 0 ? (
+                <p className="text-gray-500 italic">No categories yet. Create one to get started.</p>
               ) : (
-                <p className="text-gray-500 italic">Select a category from the left to manage its subcategories.</p>
+                categories.map((category) => (
+                  <CategoryItem 
+                    key={category.id}
+                    category={category}
+                    selectedCategoryId={selectedCategoryId}
+                    onSelect={setActiveCategory}
+                    onEdit={handleEditCategory}
+                    onDelete={async (id) => { await deleteCategory(id); }}
+                    onMakeDefault={handleMakeDefault}
+                  />
+                ))
               )}
             </div>
           </div>
-        </Tabs.TabsContent>
-        
-        <Tabs.TabsContent value="visibility">
+
+          {/* Right column - Subcategories */}
           <div className="bg-white rounded-lg shadow p-4">
-            <CategoryVisibilitySettings />
+            <h2 className="text-lg font-semibold mb-4">
+              {selectedCategory ? `Subcategories for ${selectedCategory.name}` : 'Select a category to manage subcategories'}
+            </h2>
+            
+            {selectedCategory ? (
+              <>
+                {/* Add new subcategory form */}
+                <SubcategoryForm onAddSubcategory={handleAddSubcategory} />
+                
+                {/* Subcategories list */}
+                <div className="space-y-2">
+                  {(!selectedCategory.subcategories || selectedCategory.subcategories.length === 0) ? (
+                    <p className="text-gray-500 italic">No subcategories yet. Add one to organize tasks further.</p>
+                  ) : (
+                    selectedCategory.subcategories.map((subcategory) => (
+                      <SubcategoryItem 
+                        key={subcategory}
+                        name={subcategory}
+                        onEdit={async (oldName, newName) => { await renameSubcategory(oldName, newName); }}
+                        onDelete={async (name) => { await removeSubcategory(name); }}
+                      />
+                    ))
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-gray-500 italic">Select a category from the left to manage its subcategories.</p>
+            )}
           </div>
-        </Tabs.TabsContent>
-      </Tabs.Tabs>
+        </div>
+      )}
+      
+      {activeTab === 'visibility' && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <CategoryVisibilitySettings />
+        </div>
+      )}
     </div>
   );
 }

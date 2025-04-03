@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { Children, isValidElement, cloneElement } from 'react';
 import { cn } from '../../lib/utils';
 
 interface TabsProps {
@@ -16,9 +16,9 @@ export function Tabs({
 }: TabsProps) {
   return (
     <div className={cn("w-full", className)}>
-      {React.Children.map(children, child => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child as React.ReactElement<any>, {
+      {Children.map(children, child => {
+        if (isValidElement(child)) {
+          return cloneElement(child as React.ReactElement<any>, {
             activeValue: value,
             onValueChange
           });

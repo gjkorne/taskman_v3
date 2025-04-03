@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useCategories } from '../../contexts/CategoryContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { CATEGORIES } from '../../types/categories';
 
 interface CategorySelectorProps {
@@ -31,6 +32,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   className = ''
 }) => {
   const { categories } = useCategories();
+  const { settings } = useSettings();
+  const { hiddenCategories, hideDefaultCategories } = settings;
 
   // Handle category selection
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -65,6 +68,16 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 
   // Get the built-in category keys
   const builtInCategoryKeys = Object.keys(CATEGORIES) as Array<CategoryKey>;
+  
+  // Filter out hidden default categories if setting is enabled
+  const visibleBuiltInCategoryKeys = hideDefaultCategories
+    ? []
+    : builtInCategoryKeys;
+    
+  // Filter out individually hidden categories
+  const visibleCustomCategories = categories.filter(
+    cat => !hiddenCategories.includes(cat.id)
+  );
 
   return (
     <div className={className}>
@@ -86,18 +99,20 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
           <option value="">-- Select Category {required ? '' : '(Optional)'} --</option>
           
           {/* Built-in categories */}
-          <optgroup label="Default Categories">
-            {builtInCategoryKeys.map((categoryKey) => (
-              <option key={categoryKey} value={categoryKey}>
-                {categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1)}
-              </option>
-            ))}
-          </optgroup>
+          {visibleBuiltInCategoryKeys.length > 0 && (
+            <optgroup label="Default Categories">
+              {visibleBuiltInCategoryKeys.map((categoryKey) => (
+                <option key={categoryKey} value={categoryKey}>
+                  {categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1)}
+                </option>
+              ))}
+            </optgroup>
+          )}
           
           {/* User-defined categories */}
-          {categories.length > 0 && (
+          {visibleCustomCategories.length > 0 && (
             <optgroup label="My Categories">
-              {categories.map(cat => (
+              {visibleCustomCategories.map(cat => (
                 <option key={cat.id} value={`custom:${cat.id}`}>
                   {cat.name}
                 </option>

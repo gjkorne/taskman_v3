@@ -1,6 +1,6 @@
 import { useCategories } from '../../contexts/CategoryContext';
 import { useSettings } from '../../contexts/SettingsContext';
-import { EyeOff, Eye } from 'lucide-react';
+import { Icon } from '../UI/Icon';
 
 export function CategoryVisibilitySettings() {
   const { categories, defaultCategories } = useCategories();
@@ -76,7 +76,7 @@ export function CategoryVisibilitySettings() {
                   }`}
                   title={hiddenCategories.includes(category.id) ? 'Show category' : 'Hide category'}
                 >
-                  {hiddenCategories.includes(category.id) ? <Eye size={18} /> : <EyeOff size={18} />}
+                  {hiddenCategories.includes(category.id) ? <Icon name="Eye" size={18} /> : <Icon name="EyeOff" size={18} />}
                 </button>
               </li>
             ))}
@@ -107,7 +107,7 @@ export function CategoryVisibilitySettings() {
                   }`}
                   title={hiddenCategories.includes(category.id) ? 'Show category' : 'Hide category'}
                 >
-                  {hiddenCategories.includes(category.id) ? <Eye size={18} /> : <EyeOff size={18} />}
+                  {hiddenCategories.includes(category.id) ? <Icon name="Eye" size={18} /> : <Icon name="EyeOff" size={18} />}
                 </button>
               </li>
             ))}
