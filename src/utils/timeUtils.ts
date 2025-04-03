@@ -4,6 +4,10 @@
 
 import { differenceInSeconds, format, parseISO, isSameDay as dateFnsIsSameDay, isSameWeek as dateFnsIsSameWeek, isSameMonth as dateFnsIsSameMonth } from 'date-fns';
 
+//=========================================================
+// DURATION PARSING FUNCTIONS
+//=========================================================
+
 /**
  * Parse PostgreSQL duration string to seconds
  * Handles various formats: "X seconds", "HH:MM:SS", "X hours Y mins Z secs"
@@ -80,6 +84,10 @@ export function parseDurationToSeconds(durationStr: string | null): number {
   return totalSeconds;
 }
 
+//=========================================================
+// TIME FORMATTING FUNCTIONS
+//=========================================================
+
 /**
  * Format seconds to "HH:MM:SS" string
  */
@@ -99,33 +107,32 @@ export function formatSecondsToTime(totalSeconds: number): string {
 }
 
 /**
- * Calculate duration between two ISO date strings
+ * Format milliseconds to "HH:MM:SS" string
+ * Similar to formatSecondsToTime but takes milliseconds as input
  */
-export function calculateDurationBetween(startTimeStr: string, endTimeStr: string | null): string {
-  if (!startTimeStr || !endTimeStr) return '00:00:00';
+export function formatMillisecondsToTime(totalMs: number): string {
+  // Convert ms to seconds first
+  return formatSecondsToTime(Math.floor(totalMs / 1000));
+}
 
-  try {
-    const startTime = parseISO(startTimeStr);
-    const endTime = parseISO(endTimeStr);
-    
-    // Validate dates
-    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-      console.error('Invalid start or end time', { startTimeStr, endTimeStr });
-      return '00:00:00';
-    }
-    
-    // Calculate seconds between dates using raw timestamp difference for accuracy
-    const durationInSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
-    
-    if (durationInSeconds <= 0) {
-      console.warn('Negative or zero duration calculated between', startTimeStr, 'and', endTimeStr);
-      return '00:00:00';
-    }
-    
-    return formatSecondsToTime(durationInSeconds);
-  } catch (error) {
-    console.error('Error calculating duration between dates:', error);
-    return '00:00:00';
+/**
+ * Format duration in a human-readable way (e.g. "2h 30m")
+ */
+export function formatDurationHumanReadable(durationStr: string | null): string {
+  if (!durationStr) return '0m';
+  
+  const totalSeconds = parseDurationToSeconds(durationStr);
+  if (totalSeconds === 0) return '0m';
+  
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  
+  if (hours === 0) {
+    return `${minutes}m`;
+  } else if (minutes === 0) {
+    return `${hours}h`;
+  } else {
+    return `${hours}h ${minutes}m`;
   }
 }
 
@@ -133,23 +140,64 @@ export function calculateDurationBetween(startTimeStr: string, endTimeStr: strin
  * Format a PostgreSQL duration string to "HH:MM:SS" format
  */
 export function formatDuration(durationStr: string | null, startTime?: string, endTime?: string): string {
-  // If we have valid start and end times, use those to calculate duration as a fallback
-  if ((!durationStr || durationStr === '00:00:00') && startTime && endTime) {
+  // Handle missing duration with start/end time calculation
+  if ((!durationStr || durationStr.trim() === '') && startTime && endTime) {
     return calculateDurationBetween(startTime, endTime);
   }
   
-  if (!durationStr) return '00:00:00';
-  
+  // Parse duration to seconds and format
   const totalSeconds = parseDurationToSeconds(durationStr);
-  
-  if (totalSeconds > 0) {
-    return formatSecondsToTime(totalSeconds);
+  return formatSecondsToTime(totalSeconds);
+}
+
+/**
+ * Format time for display in a consistent way across the application
+ */
+export function formatTimeForDisplay(timeStr: string): string {
+  try {
+    return format(parseISO(timeStr), 'h:mm a');
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return timeStr; // Return original string if formatting fails
+  }
+}
+
+/**
+ * Format time for display in a consistent way across the application
+ */
+export function formatTime(time: Date): string {
+  return format(time, 'h:mm a');
+}
+
+//=========================================================
+// DURATION CALCULATION FUNCTIONS
+//=========================================================
+
+/**
+ * Calculate duration between two ISO date strings
+ */
+export function calculateDurationBetween(startTimeStr: string, endTimeStr: string | null): string {
+  if (!startTimeStr || !endTimeStr) {
+    return '00:00:00';
   }
   
-  // If we get here, the duration string couldn't be parsed correctly
-  // and we don't have start/end times to use as fallback
-  console.warn('Failed to parse duration string:', durationStr);
-  return '00:00:00';
+  try {
+    const startTime = parseISO(startTimeStr);
+    const endTime = parseISO(endTimeStr);
+    
+    // Ensure valid dates
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      console.error('Invalid date format for duration calculation');
+      return '00:00:00';
+    }
+    
+    // Calculate total seconds
+    const totalSeconds = Math.max(0, differenceInSeconds(endTime, startTime));
+    return formatSecondsToTime(totalSeconds);
+  } catch (error) {
+    console.error('Error calculating duration:', error);
+    return '00:00:00';
+  }
 }
 
 /**
@@ -168,92 +216,26 @@ export function calculateTotalDuration(sessions: Array<{ duration: string | null
 }
 
 /**
- * Calculate duration between two ISO date strings
- * Returns duration in seconds
- */
-export function calculateDurationBetweenOld(startTime: string, endTime: string): number {
-  try {
-    const start = parseISO(startTime);
-    const end = parseISO(endTime);
-    return differenceInSeconds(end, start);
-  } catch (error) {
-    console.error('Error calculating duration between times:', error);
-    return 0;
-  }
-}
-
-/**
- * Format duration in a human-readable way (e.g. "2h 30m")
- */
-export function formatDurationHumanReadable(durationStr: string | null): string {
-  if (!durationStr) return '0m';
-  
-  const totalSeconds = parseDurationToSeconds(durationStr);
-  
-  // If the duration is very small (less than a minute), still show 1m to indicate some activity
-  if (totalSeconds > 0 && totalSeconds < 60) {
-    return '1m';
-  }
-  
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  
-  if (hours === 0 && minutes === 0) {
-    return totalSeconds > 0 ? '1m' : '0m';
-  }
-  
-  if (hours > 0) {
-    return `${hours}h${minutes > 0 ? ` ${minutes}m` : ''}`;
-  } else {
-    return `${minutes}m`;
-  }
-}
-
-/**
- * Format time for display in a consistent way across the application
- */
-export function formatTimeForDisplay(timeStr: string): string {
-  try {
-    const date = parseISO(timeStr);
-    return format(date, 'MMM d, yyyy h:mm a');
-  } catch (error) {
-    console.error('Error formatting time for display:', error);
-    return timeStr;
-  }
-}
-
-/**
- * Calculate duration of active session
- * For sessions without an end time
+ * Calculate duration of active session (for sessions without an end time)
  */
 export function calculateActiveSessionDuration(startTime: string): string {
+  if (!startTime) {
+    return '00:00:00';
+  }
+  
   try {
-    // First parse the start time
-    const start = parseISO(startTime);
-    
-    // Ensure start time is valid
-    if (isNaN(start.getTime())) {
-      console.error('Invalid start time for active session:', startTime);
-      return '00:00:00';
-    }
-    
-    // For sessions that would be in the future (due to timezone issues), return zero
-    if (start > new Date()) {
-      console.warn('Start time is in the future:', startTime);
-      return '00:00:00';
-    }
-    
-    // Calculate the difference from now
+    const startDate = parseISO(startTime);
     const now = new Date();
-    const durationInSeconds = differenceInSeconds(now, start);
     
-    // Ensure the duration is not negative
-    if (durationInSeconds < 0) {
-      console.warn('Negative duration calculated:', durationInSeconds);
+    // Ensure valid date
+    if (isNaN(startDate.getTime())) {
+      console.error('Invalid start time format for active session calculation');
       return '00:00:00';
     }
     
-    return formatSecondsToTime(durationInSeconds);
+    // Calculate elapsed seconds
+    const elapsedSeconds = Math.max(0, differenceInSeconds(now, startDate));
+    return formatSecondsToTime(elapsedSeconds);
   } catch (error) {
     console.error('Error calculating active session duration:', error);
     return '00:00:00';
@@ -261,11 +243,32 @@ export function calculateActiveSessionDuration(startTime: string): string {
 }
 
 /**
+ * Calculate duration between two ISO date strings
+ * Returns duration in seconds
+ * @deprecated Use calculateDurationBetween instead which returns a formatted string
+ */
+export function calculateDurationBetweenOld(startTime: string, endTime: string): number {
+  try {
+    const start = parseISO(startTime);
+    const end = parseISO(endTime);
+    return Math.max(0, differenceInSeconds(end, start));
+  } catch (error) {
+    console.error('Error calculating duration in seconds:', error);
+    return 0;
+  }
+}
+
+//=========================================================
+// DATE COMPARISON FUNCTIONS
+//=========================================================
+
+/**
  * Check if two dates are on the same day
  */
 export function isSameDay(date1: Date | string, date2: Date | string): boolean {
   const d1 = typeof date1 === 'string' ? parseISO(date1) : date1;
   const d2 = typeof date2 === 'string' ? parseISO(date2) : date2;
+  
   return dateFnsIsSameDay(d1, d2);
 }
 
@@ -276,6 +279,7 @@ export function isSameDay(date1: Date | string, date2: Date | string): boolean {
 export function isSameWeek(date1: Date | string, date2: Date | string, weekStartsOn: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 1): boolean {
   const d1 = typeof date1 === 'string' ? parseISO(date1) : date1;
   const d2 = typeof date2 === 'string' ? parseISO(date2) : date2;
+  
   return dateFnsIsSameWeek(d1, d2, { weekStartsOn });
 }
 
@@ -285,5 +289,21 @@ export function isSameWeek(date1: Date | string, date2: Date | string, weekStart
 export function isSameMonth(date1: Date | string, date2: Date | string): boolean {
   const d1 = typeof date1 === 'string' ? parseISO(date1) : date1;
   const d2 = typeof date2 === 'string' ? parseISO(date2) : date2;
+  
   return dateFnsIsSameMonth(d1, d2);
+}
+
+//=========================================================
+// POSTGRES INTERVAL HELPER FUNCTIONS
+//=========================================================
+
+/**
+ * Convert milliseconds to PostgreSQL interval format
+ * @param ms Milliseconds to convert 
+ * @returns PostgreSQL compatible interval string
+ */
+export function msToPostgresInterval(ms: number): string {
+  if (ms <= 0) return 'PT0S';
+  const seconds = Math.floor(ms / 1000);
+  return `${seconds} seconds`;
 }

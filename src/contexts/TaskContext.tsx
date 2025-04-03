@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Task, TaskStatusType } from '../types/task';
-import { taskService } from '../services/api';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { Task, TaskStatus, TaskStatusType } from '../types/task';
+import { taskService } from '../services/taskService';
 import { TaskFilter, defaultFilters } from '../components/TaskList/FilterPanel';
-import { filterTasks, sortTasks } from '../lib/taskUtils';
+import { filterTasks } from '../lib/taskUtils';
+import { useToast, ToastType } from '../components/Toast';
 
 // Types for the context
 interface TaskContextType {
@@ -12,10 +13,13 @@ interface TaskContextType {
   isLoading: boolean;
   error: string | null;
   isRefreshing: boolean;
+  isSyncing: boolean;
+  hasPendingChanges: boolean;
   
   // Task operations
   fetchTasks: () => Promise<void>;
   refreshTasks: () => Promise<void>;
+  syncTasks: () => Promise<void>;
   updateTaskStatus: (taskId: string, newStatus: TaskStatusType) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   
@@ -49,125 +53,167 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
   
-  // Modal state
+  // UI state for modals
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   
-  // Search and filter state
+  // Search and filtering state
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<TaskFilter>({
-    ...defaultFilters,
-    viewMode: 'list'
-  });
+  const [filters, setFilters] = useState<TaskFilter>(defaultFilters);
   
-  // Helper to check for development environment
-  const isDevelopment = process.env.NODE_ENV !== 'production';
+  // Get toast notifications
+  const { addToast } = useToast();
   
-  // Computed filtered tasks
-  const filteredTasks = sortTasks(filterTasks(tasks, filters, searchQuery), filters.sortBy, filters.sortOrder);
-
-  // Fetch tasks from API
-  const fetchTasks = async () => {
+  // Derived state - filtered and sorted tasks
+  const filteredTasks = filterTasks(tasks, filters, searchQuery);
+  
+  // Set up event listeners for task changes
+  useEffect(() => {
+    // Subscribe to task service events
+    const unsubs = [
+      taskService.on('tasks-loaded', (loadedTasks) => {
+        setTasks(loadedTasks);
+      }),
+      
+      taskService.on('task-created', (task) => {
+        setTasks(prev => [...prev, task]);
+      }),
+      
+      taskService.on('task-updated', (updatedTask) => {
+        setTasks(prev => 
+          prev.map(task => task.id === updatedTask.id ? updatedTask : task)
+        );
+      }),
+      
+      taskService.on('task-deleted', (taskId) => {
+        setTasks(prev => prev.filter(task => task.id !== taskId));
+      }),
+      
+      taskService.on('error', (error) => {
+        setError(error.message);
+        addToast("Error: " + error.message, "error");
+      })
+    ];
+    
+    // Clean up subscriptions on unmount
+    return () => {
+      unsubs.forEach(unsub => unsub());
+    };
+  }, [addToast]);
+  
+  // Check for pending changes on mount and periodically
+  useEffect(() => {
+    const checkPendingChanges = async () => {
+      try {
+        const hasChanges = await taskService.hasUnsyncedChanges();
+        setHasPendingChanges(hasChanges);
+      } catch (error) {
+        console.error('Error checking pending changes:', error);
+      }
+    };
+    
+    // Initial check
+    checkPendingChanges();
+    
+    // Set up interval for checking changes
+    const interval = setInterval(checkPendingChanges, 30000); // Check every 30 seconds
+    
+    return () => {
+      clearInterval(interval);
+    };
+  }, []);
+  
+  // Initial fetch of tasks
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+  
+  // Fetch tasks from the service
+  const fetchTasks = useCallback(async () => {
+    if (isLoading) return;
+    
     setIsLoading(true);
     setError(null);
     
     try {
-      const { data, error } = await taskService.getTasks();
-      
-      if (error) throw error;
-      
-      if (data) {
-        console.log('Loaded tasks with statuses:', data.map(t => ({ id: t.id, title: t.title, status: t.status })));
-        
-        // Ensure all tasks have a valid status from our TaskStatusType
-        const tasksWithValidStatus = data.map(task => {
-          // If task has no status or invalid status, set to 'pending'
-          if (!task.status || !['pending', 'active', 'paused', 'completed', 'archived'].includes(task.status)) {
-            return { ...task, status: 'pending' as TaskStatusType };
-          }
-          // Cast string status to TaskStatusType
-          return { ...task, status: task.status as TaskStatusType };
-        });
-        
-        setTasks(tasksWithValidStatus);
-      }
-      
-      setIsLoading(false);
-    } catch (err) {
-      console.error('Error fetching tasks:', err);
-      setError('Failed to load tasks');
+      await taskService.getTasks();
+    } catch (error) {
+      setError('Failed to fetch tasks');
+      console.error('Error fetching tasks:', error);
+    } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoading]);
   
-  // Refresh tasks - similar to fetchTasks but with loading indicator
-  const refreshTasks = async () => {
+  // Refresh tasks
+  const refreshTasks = useCallback(async () => {
+    if (isRefreshing) return;
+    
     setIsRefreshing(true);
+    setError(null);
     
     try {
-      await fetchTasks();
+      await taskService.getTasks();
+    } catch (error) {
+      setError('Failed to refresh tasks');
+      console.error('Error refreshing tasks:', error);
     } finally {
       setIsRefreshing(false);
     }
-  };
-
-  // Update task status using taskService
-  const updateTaskStatus = async (taskId: string, newStatus: TaskStatusType) => {
-    console.log(`[TaskContext] updateTaskStatus called for task ${taskId} to ${newStatus}`);
-    try {
-      const { error: apiError } = await taskService.updateTaskStatus(taskId, newStatus);
-
-      if (apiError) {
-        if (isDevelopment) {
-          console.error("Error updating task status:", apiError);
-        }
-        throw apiError;
-      }
-
-      // Update local state for immediate UI feedback
-      console.log(`[TaskContext] Attempting to set tasks with status ${newStatus} for ${taskId}`);
-      setTasks(prev => prev.map(task => 
-        task.id === taskId ? { ...task, status: newStatus } : task
-      ));
-    } catch (err) {
-      if (isDevelopment) {
-        console.error("Exception updating task status:", err);
-      }
-      console.log(`[TaskContext] Rolling back optimistic update for task ${taskId}`);
-      setError("Failed to update task status. Please try again.");
-    }
-  };
-
-  // Delete task using taskService
-  const deleteTask = async (taskId: string) => {
-    if (!taskId) return;
+  }, [isRefreshing]);
+  
+  // Sync tasks with server
+  const syncTasks = useCallback(async () => {
+    if (isSyncing) return;
+    
+    setIsSyncing(true);
+    setError(null);
     
     try {
-      const { error: apiError } = await taskService.deleteTask(taskId);
-
-      if (apiError) {
-        if (isDevelopment) {
-          console.error("Error deleting task:", apiError);
-        }
-        throw apiError;
-      }
-
-      // Update local state
-      setTasks(prev => prev.filter(task => task.id !== taskId));
-      
-      // Close the modal if it was open
-      closeDeleteModal();
-    } catch (err) {
-      if (isDevelopment) {
-        console.error("Exception deleting task:", err);
-      }
-      setError("Failed to delete task. Please try again.");
+      await taskService.syncTasks();
+      setHasPendingChanges(false);
+      addToast("Sync Complete: All tasks synchronized with server", "success");
+    } catch (error) {
+      setError('Failed to sync tasks');
+      console.error('Error syncing tasks:', error);
+      addToast("Sync Failed: Could not synchronize tasks with server", "error");
+    } finally {
+      setIsSyncing(false);
     }
-  };
-
+  }, [isSyncing, addToast]);
+  
+  // Update task status
+  const updateTaskStatus = useCallback(async (taskId: string, newStatus: TaskStatusType) => {
+    try {
+      // Convert TaskStatusType to TaskStatus if necessary
+      await taskService.updateTaskStatus(taskId, newStatus as TaskStatus);
+    } catch (error) {
+      setError('Failed to update task status');
+      console.error('Error updating task status:', error);
+      addToast("Update Failed: Could not update task status", "error");
+    }
+  }, [addToast]);
+  
+  // Delete a task
+  const deleteTask = useCallback(async (taskId: string) => {
+    try {
+      await taskService.deleteTask(taskId);
+      addToast("Task Deleted: Task was successfully deleted", "success");
+    } catch (error) {
+      setError('Failed to delete task');
+      console.error('Error deleting task:', error);
+      addToast("Delete Failed: Could not delete task", "error");
+    } finally {
+      setTaskToDelete(null);
+      setIsDeleteModalOpen(false);
+    }
+  }, [addToast]);
+  
   // Modal control functions
   const openEditModal = (taskId: string) => {
     setEditTaskId(taskId);
@@ -175,8 +221,8 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const closeEditModal = () => {
-    setIsEditModalOpen(false);
     setEditTaskId(null);
+    setIsEditModalOpen(false);
   };
   
   const openDeleteModal = (taskId: string) => {
@@ -185,40 +231,35 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const closeDeleteModal = () => {
-    setIsDeleteModalOpen(false);
     setTaskToDelete(null);
+    setIsDeleteModalOpen(false);
   };
   
-  // Reset filters function
+  // Filter management
   const resetFilters = () => {
-    setFilters({
-      ...defaultFilters,
-      viewMode: filters.viewMode // Keep current view mode when resetting
-    });
+    setFilters(defaultFilters);
     setSearchQuery('');
   };
-
-  // Load tasks on component mount
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  // The context value
-  const value = {
+  
+  // Construct context value
+  const contextValue: TaskContextType = {
     // State
     tasks,
     filteredTasks,
     isLoading,
     error,
     isRefreshing,
+    isSyncing,
+    hasPendingChanges,
     
     // Task operations
     fetchTasks,
     refreshTasks,
+    syncTasks,
     updateTaskStatus,
     deleteTask,
     
-    // UI state management
+    // UI state
     editTaskId,
     isEditModalOpen,
     isDeleteModalOpen,
@@ -230,16 +271,16 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     openDeleteModal,
     closeDeleteModal,
     
-    // Search and filter
+    // Search and filters
     searchQuery,
     filters,
     setSearchQuery,
     setFilters,
-    resetFilters
+    resetFilters,
   };
-
+  
   return (
-    <TaskContext.Provider value={value}>
+    <TaskContext.Provider value={contextValue}>
       {children}
     </TaskContext.Provider>
   );
@@ -248,10 +289,8 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
 // Custom hook to use task context
 export const useTaskContext = () => {
   const context = useContext(TaskContext);
-  
   if (context === undefined) {
     throw new Error('useTaskContext must be used within a TaskProvider');
   }
-  
   return context;
 };

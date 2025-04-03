@@ -50,72 +50,73 @@ export const TaskCategory = {
 /**
  * Task interface aligned with database schema
  * Use this as the primary data structure for tasks throughout the app
+ * 
+ * IMPORTANT: Property names use snake_case to match database column names
  */
 export interface Task {
-  // Primary fields
+  // Core fields
   id: string;
   title: string;
-  description: string | null;
+  description: string;
   status: TaskStatusType;
   priority: TaskPriorityType;
-  
-  // Time tracking fields
-  estimated_time: string | null; // PostgreSQL interval as string
-  actual_time: string | null;    // PostgreSQL interval as string
-  
-  // Date fields
   due_date: string | null;
-  created_at: string;
-  updated_at: string | null;
-  
-  // Ownership and state
-  created_by: string | null;
-  is_deleted: boolean | null;
-  
-  // Organization fields
-  list_id: string | null;
-  category_name: string | null;
+  estimated_time: string | null;
+  actual_time: string | null;
   tags: string[] | null;
   
-  // NLP-related fields
+  // Metadata fields
+  created_at: string;
+  updated_at: string | null;
+  created_by: string | null;
+  is_deleted: boolean;
+  list_id: string | null;
+  category_name: string | null;
+  
+  // Additional fields for NLP and AI features
   nlp_tokens?: any | null;
   extracted_entities?: any | null;
   embedding_data?: any | null;
   confidence_score?: number | null;
   processing_metadata?: any | null;
   
-  // UI-specific fields (not persisted to database)
-  hasDueDate?: boolean;           // Derived from due_date for form handling
-  estimatedTimeMinutes?: number;  // Derived from estimated_time for form handling
-  category?: string;              // Alias for category_name for backward compatibility
+  // UI helper fields (not stored in DB)
+  rawInput?: string;
+  
+  // Offline sync fields (only used in local storage)
+  _is_synced?: boolean;
+  _sync_status?: 'pending' | 'synced' | 'failed';
+  _conflict_resolution?: string | null;
+  _local_updated_at?: string;
+  _sync_error?: string;
 }
 
 /**
  * Represents the database columns as they appear in Supabase
  * Use this for reference when working with database queries
  */
-export const TaskColumns = [
-  'id',
-  'title',
-  'description',
-  'status',
-  'priority',
-  'due_date',
-  'estimated_time',
-  'actual_time',
-  'tags',
-  'created_at',
-  'updated_at',
-  'created_by',
-  'is_deleted',
-  'list_id',
-  'nlp_tokens',
-  'extracted_entities',
-  'embedding_data',
-  'confidence_score',
-  'processing_metadata',
-  'category_name'
-] as const;
+export const TaskColumns = {
+  ID: 'id',
+  TITLE: 'title',
+  DESCRIPTION: 'description',
+  STATUS: 'status',
+  PRIORITY: 'priority',
+  DUE_DATE: 'due_date',
+  ESTIMATED_TIME: 'estimated_time',
+  ACTUAL_TIME: 'actual_time',
+  TAGS: 'tags',
+  CREATED_AT: 'created_at',
+  UPDATED_AT: 'updated_at',
+  CREATED_BY: 'created_by',
+  IS_DELETED: 'is_deleted',
+  LIST_ID: 'list_id',
+  CATEGORY_NAME: 'category_name',
+  NLP_TOKENS: 'nlp_tokens',
+  EXTRACTED_ENTITIES: 'extracted_entities',
+  EMBEDDING_DATA: 'embedding_data',
+  CONFIDENCE_SCORE: 'confidence_score',
+  PROCESSING_METADATA: 'processing_metadata'
+} as const;
 
 // Export for backward compatibility
 export type { TaskFormData } from '../components/TaskForm/schema';

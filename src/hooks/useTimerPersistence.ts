@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TimerState } from '../types/timer';
+import { formatMillisecondsToTime } from '../utils/timeUtils';
 
 /**
  * A custom hook that manages persistence of timer state to localStorage
@@ -30,7 +31,7 @@ export const useTimerPersistence = () => {
         }
         
         // Recalculate displayTime based on loaded elapsed/previous times
-        parsed.displayTime = formatTime(parsed.elapsedTime + parsed.previouslyElapsed);
+        parsed.displayTime = formatMillisecondsToTime(parsed.elapsedTime + parsed.previouslyElapsed);
         
         return parsed; 
       }
@@ -53,38 +54,48 @@ export const useTimerPersistence = () => {
     }
   }, [state]);
   
-  // Clear timer state from localStorage
-  const clearTimerStorage = () => {
-    try {
-      localStorage.removeItem('timerState');
-      setState(loadInitialState());
-    } catch (e) {
-      console.error('Error clearing timer state from localStorage:', e);
-    }
+  // Create a function to update state that also handles formatting display time
+  const updateState = (newState: Partial<TimerState>) => {
+    setState(prevState => {
+      // Calculate the total elapsed time
+      const totalElapsed = (newState.elapsedTime ?? prevState.elapsedTime) + 
+                          (newState.previouslyElapsed ?? prevState.previouslyElapsed);
+      
+      // Calculate new display time
+      const displayTime = formatMillisecondsToTime(totalElapsed);
+      
+      return { 
+        ...prevState, 
+        ...newState,
+        displayTime
+      };
+    });
   };
   
-  // Force reload state from localStorage
-  const reloadState = () => {
-    setState(loadInitialState());
+  // Function to clear timer storage
+  const clearTimerStorage = () => {
+    localStorage.removeItem('timerState');
   };
   
   return {
     state,
-    setState,
-    clearTimerStorage,
-    reloadState
+    setState: updateState,
+    clearTimerStorage
   };
 };
 
-// Utility function for formatting time
+/**
+ * @deprecated Use formatMillisecondsToTime from timeUtils.ts instead
+ */
 export const formatTime = (totalMs: number): string => {
   const totalSeconds = Math.floor(totalMs / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+  
   return [
-    hours.toString().padStart(2, '0'),
-    minutes.toString().padStart(2, '0'),
-    seconds.toString().padStart(2, '0')
+    String(hours).padStart(2, '0'), 
+    String(minutes).padStart(2, '0'), 
+    String(seconds).padStart(2, '0')
   ].join(':');
 };
