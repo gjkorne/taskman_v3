@@ -2,6 +2,7 @@ import React from 'react';
 import { Trash, ChevronDown, ChevronUp, Info, Calendar } from 'lucide-react';
 import type { TimeSession } from '../../services/api/timeSessionsService';
 import { cn } from '../../lib/utils';
+import { formatDurationHumanReadable, calculateDurationBetween } from '../../utils/timeUtils';
 
 interface TimeSessionRowProps {
   session: TimeSession;
@@ -31,6 +32,20 @@ export function TimeSessionRow({
   const { start, end, duration, relative } = formattedTimes;
   const taskName = session.tasks?.title || 'Unknown Task';
   const taskCategory = session.tasks?.category_name || '';
+  
+  // Get a more user-friendly duration format
+  // For completed sessions, ensure we use a non-zero duration by checking timestamps
+  const humanReadableDuration = session.end_time 
+    ? (() => {
+        // First try to use the formatted duration from useTimeSessions hook
+        const fromHook = formatDurationHumanReadable(duration);
+        if (fromHook && fromHook !== '0m') return fromHook;
+        
+        // If hook duration is 0, calculate directly from timestamps
+        const calculated = calculateDurationBetween(session.start_time, session.end_time);
+        return formatDurationHumanReadable(calculated);
+      })()
+    : 'Active';
 
   return (
     <li 
@@ -79,7 +94,11 @@ export function TimeSessionRow({
         {/* Duration Column */}
         <div className="flex items-center">
           <span className="text-lg font-medium text-indigo-600">
-            {session.end_time ? duration : 'Active'}
+            {session.end_time ? (
+              <span title={duration}>{humanReadableDuration}</span>
+            ) : (
+              'Active'
+            )}
           </span>
         </div>
         
@@ -120,6 +139,7 @@ export function TimeSessionRow({
           start={start}
           end={end}
           duration={duration}
+          humanReadableDuration={humanReadableDuration}
           isActive={!session.end_time}
           sessionId={session.id}
           onDelete={onDelete}
@@ -133,6 +153,7 @@ interface TimeSessionExpandedDetailsProps {
   start: string;
   end: string;
   duration: string;
+  humanReadableDuration: string;
   isActive: boolean;
   sessionId: string;
   onDelete: (sessionId: string, e: React.MouseEvent) => void;
@@ -145,6 +166,7 @@ function TimeSessionExpandedDetails({
   start,
   end,
   duration,
+  humanReadableDuration,
   isActive,
   sessionId,
   onDelete
@@ -166,7 +188,9 @@ function TimeSessionExpandedDetails({
         </div>
         <div>
           <p className="text-gray-500 mb-1">Duration:</p>
-          <p className="font-medium text-indigo-600">{duration}</p>
+          <p className="font-medium text-indigo-600">
+            {humanReadableDuration} <span className="text-gray-400 text-xs">({duration})</span>
+          </p>
         </div>
         <div>
           <p className="text-gray-500 mb-1">Status:</p>

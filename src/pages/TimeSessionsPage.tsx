@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { format, subDays, startOfDay, startOfWeek, startOfMonth, parseISO } from 'date-fns';
+import { format, subDays, parseISO } from 'date-fns';
 import { Calendar, Clock, Download } from 'lucide-react';
 import { TimeSessionsList } from '../components/TimeSessions/TimeSessionsList';
 import { timeSessionsService } from '../services/api/timeSessionsService';
 import type { TimeSession } from '../services/api/timeSessionsService';
-import { parseDurationToSeconds, formatSecondsToTime } from '../utils/timeUtils';
+import { parseDurationToSeconds, formatSecondsToTime, isSameDay, isSameWeek, isSameMonth } from '../utils/timeUtils';
 
 export function TimeSessionsPage() {
   const [dateRange, setDateRange] = useState({
@@ -27,7 +27,7 @@ export function TimeSessionsPage() {
       try {
         // We need to fetch all sessions for the current month to calculate totals
         const now = new Date();
-        const monthStart = startOfMonth(now);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
         const data = await timeSessionsService.getSessionsByDateRange(monthStart, now);
         setAllSessions(data);
@@ -47,8 +47,6 @@ export function TimeSessionsPage() {
   // Calculate time for different periods
   const calculateTimeStats = (sessions: TimeSession[]) => {
     const now = new Date();
-    const todayStart = startOfDay(now);
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
 
     // Calculate totals for each period
     let todaySeconds = 0;
@@ -60,17 +58,19 @@ export function TimeSessionsPage() {
       const durationSeconds = parseDurationToSeconds(session.duration);
 
       // Check if session is within today
-      if (startTime >= todayStart) {
+      if (isSameDay(startTime, now)) {
         todaySeconds += durationSeconds;
       }
 
       // Check if session is within this week
-      if (startTime >= weekStart) {
+      if (isSameWeek(startTime, now)) {
         weekSeconds += durationSeconds;
       }
 
       // All sessions fetched are within this month
-      monthSeconds += durationSeconds;
+      if (isSameMonth(startTime, now)) {
+        monthSeconds += durationSeconds;
+      }
     });
 
     setTimeStats({
@@ -93,7 +93,7 @@ export function TimeSessionsPage() {
       
       // If date range matches current state, use cached sessions
       const sessionsToExport = 
-        dateRange.startDate.getTime() === startOfMonth(new Date()).getTime() && 
+        dateRange.startDate.getTime() === new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime() && 
         dateRange.endDate.getTime() === new Date().getTime() 
           ? allSessions 
           : sessions;
