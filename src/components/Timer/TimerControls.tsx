@@ -193,14 +193,17 @@ export function TimerControls({
       <button
         onClick={handleStartTimer}
         className={cn(
-          "px-2 py-1 text-xs font-normal rounded flex items-center",
-          "bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-200",
-          "transition-all duration-200",
+          "rounded font-medium inline-flex items-center justify-center",
+          "px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200",
+          "text-blue-700 border border-blue-200",
+          "focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+          "min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group",
           className
         )}
         title="Start timing this task"
       >
-        <Play size={12} />
+        <Play size={16} className="mr-1.5 transition-transform group-hover:scale-110" />
+        Start Task
       </button>
     );
   }
@@ -217,9 +220,6 @@ export function TimerControls({
         )}>
           <div className="flex items-center mr-1">
             <Clock size={14} className="text-green-600" />
-            <span className="ml-1 font-mono text-xs font-medium">
-              {formatElapsedTime(true)}
-            </span>
           </div>
           <TimerControlButtons
             isRunning={isRunning}
@@ -241,9 +241,6 @@ export function TimerControls({
         )}>
           <div className="flex items-center mr-1">
             <Clock size={14} className="text-amber-600" />
-            <span className="ml-1 font-mono text-xs font-medium">
-              {formatElapsedTime(true)}
-            </span>
           </div>
           <TimerControlButtons
             isRunning={isRunning}
@@ -260,14 +257,17 @@ export function TimerControls({
       <button
         onClick={handleStartTimer}
         className={cn(
-          "px-2 py-1 text-xs font-normal rounded flex items-center",
-          "bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-200",
-          "transition-all duration-200",
+          "rounded font-medium inline-flex items-center justify-center",
+          "px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200",
+          "text-blue-700 border border-blue-200",
+          "focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+          "min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group",
           className
         )}
         title="Restart timing this task"
       >
-        <Play size={12} />
+        <Play size={16} className="mr-1.5 transition-transform group-hover:scale-110" />
+        Restart
       </button>
     );
   }
@@ -355,15 +355,17 @@ export function TimerControls({
     <button
       onClick={handleStartTimer}
       className={cn(
-        "px-3 py-1.5 text-sm rounded-md flex items-center space-x-2",
-        "bg-emerald-500 hover:bg-emerald-600 text-white",
-        "transition-all duration-200 shadow-sm",
+        "rounded font-medium inline-flex items-center justify-center",
+        "px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200",
+        "text-blue-700 border border-blue-200",
+        "focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+        "min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group",
         className
       )}
       title="Start timing this task"
     >
-      <Play size={14} />
-      <span>Start Timer</span>
+      <Play size={16} className="mr-1.5 transition-transform group-hover:scale-110" />
+      Start Task
     </button>
   );
 }

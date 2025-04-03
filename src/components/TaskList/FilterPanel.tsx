@@ -100,14 +100,6 @@ export function FilterPanel({
     }
   };
 
-  // Change the view mode (list or grid)
-  const setViewMode = (viewMode: TaskFilter['viewMode']) => {
-    handleFilterChange({
-      ...filters,
-      viewMode
-    });
-  };
-
   // Determine if any filters are active
   const hasActiveFilters = 
     filters.status.length > 0 || 
@@ -121,9 +113,9 @@ export function FilterPanel({
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Filter className="h-5 w-5 text-indigo-500" />
-          <h3 className="font-medium text-gray-900">Filters & Sort</h3>
+        <div className="flex items-center space-x-1">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <span className="text-xs font-medium text-gray-600">Filters</span>
         </div>
         
         <div className="flex space-x-2">
@@ -156,32 +148,6 @@ export function FilterPanel({
             )}
           </button>
         </div>
-      </div>
-
-      {/* View mode toggle */}
-      <div className="flex border rounded-md overflow-hidden">
-        <button
-          className={cn(
-            "flex-1 px-4 py-2 text-sm font-medium",
-            filters.viewMode === 'list'
-              ? "bg-indigo-50 text-indigo-600"
-              : "bg-white text-gray-500 hover:bg-gray-50"
-          )}
-          onClick={() => setViewMode('list')}
-        >
-          List
-        </button>
-        <button
-          className={cn(
-            "flex-1 px-4 py-2 text-sm font-medium",
-            filters.viewMode === 'grid'
-              ? "bg-indigo-50 text-indigo-600"
-              : "bg-white text-gray-500 hover:bg-gray-50"
-          )}
-          onClick={() => setViewMode('grid')}
-        >
-          Grid
-        </button>
       </div>
 
       {/* Filter sections - only shown when expanded */}

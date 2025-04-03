@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TaskActions } from './TaskActions';
-import { TaskCardDetails } from './TaskCardDetails';
 import { 
   getTaskCategory, 
   getTaskCategoryInfo, 
   getCategoryColorStyle 
 } from '../../lib/categoryUtils';
-import { getPriorityBorderColor, getDueDateStyling } from '../../lib/taskUtils';
+import { getPriorityBorderColor, getDueDateStyling, formatEstimatedTime } from '../../lib/taskUtils';
 import { Task, TaskStatus, TaskStatusType } from '../../types/task';
 import { TimerControls } from '../Timer/TimerControls';
 import { useTimer } from '../../contexts/TimerContext';
@@ -50,11 +49,8 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
     return categoryStyle.text;
   };
 
-  // Handle status change - Corrected signature with proper type conversion
+  // Handle status change with proper type conversion
   const handleStatusChange = async (taskId: string, newStatus: TaskStatusType) => {
-    // Explicitly log parameters to debug
-    console.log('TaskCard: handleStatusChange called with:', { taskId, newStatus });
-    
     // Validate parameters received
     if (!taskId || typeof taskId !== 'string' || 
         !taskId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
@@ -63,7 +59,6 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
     }
     
     // Convert TaskStatusType (string literal) to TaskStatus (enum)
-    // This addresses the type mismatch when calling updateTaskStatus
     let statusEnum: TaskStatus;
     switch(newStatus) {
       case 'active':
@@ -77,21 +72,16 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
         break;
       case 'completed':
         statusEnum = TaskStatus.COMPLETED;
-        // If this task is being timed, stop the timer
         if (timerState.taskId === taskId && timerState.status !== 'idle') {
-          console.log('Task is being timed and marked as completed. Stopping timer.');
-          // Use the stopTimer from TimerContext with the COMPLETED status
           await stopTimer(TaskStatus.COMPLETED);
-          return; // stopTimer already updates the task status
+          return; 
         }
         break;
       case 'archived':
         statusEnum = TaskStatus.ARCHIVED;
-        // If this task is being timed, stop the timer
         if (timerState.taskId === taskId && timerState.status !== 'idle') {
-          console.log('Task is being timed and marked as archived. Stopping timer.');
           await stopTimer(TaskStatus.ARCHIVED);
-          return; // stopTimer already updates the task status
+          return;
         }
         break;
       default:
@@ -99,14 +89,11 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
         return;
     }
     
-    // Call the hook's updateTaskStatus with the properly converted enum
     await updateTaskStatus(taskId, statusEnum);
-    
-    // Force a refresh of the task list
     await refreshTasks();
   };
 
-  // Handle task editing
+  // Handle task editing and deletion
   const handleEdit = () => {
     if (onEdit) {
       onEdit(task.id);
@@ -114,7 +101,6 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
     }
   };
 
-  // Handle task deletion
   const handleDelete = () => {
     if (onDelete) {
       onDelete(task.id);
@@ -122,99 +108,102 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
     }
   };
 
-  // Get priority border color for task
+  // Get priority colors and styles
   const priorityColor = getPriorityBorderColor(task.priority);
+  const dueDateStyle = task.due_date ? getDueDateStyling(task.due_date) : null;
 
   return (
     <div 
       className={cn(
-        "relative flex flex-col p-5 rounded-lg shadow-sm transition-all",
-        "hover:shadow-md mb-3 border border-gray-200 bg-white",
-        `border-l-4 ${priorityColor}`  // Apply priority color to entire left border
+        "group relative flex items-center py-1.5 px-2 border-b border-gray-100 hover:bg-gray-50 transition-colors",
+        `border-l-2 ${priorityColor}`  // Thin priority indicator
       )}
     >
-      {/* Created Date - top right */}
-      <div className="absolute right-2 top-2 z-20 text-xs text-gray-500">
-        <span>Created: {format(new Date(task.created_at), 'MMM d, yyyy')}</span>
+      {/* Left: Priority indicator + Title */}
+      <div className="flex-grow flex items-center min-w-0">
+        {/* Title with truncation */}
+        <h3 className="font-medium text-sm truncate mr-2 max-w-[40%]">
+          {task.title}
+        </h3>
+        
+        {/* Tags and metadata - only visible on larger screens or hover */}
+        <div className="hidden sm:flex items-center space-x-2 text-xs text-gray-500">
+          {/* Category if available */}
+          {categoryName && (
+            <span className="px-1.5 py-0.5 rounded-full bg-gray-100">{categoryName}</span>
+          )}
+          
+          {/* Estimated time if available */}
+          {task.estimated_time && (
+            <span className="flex items-center">
+              <Clock className="h-3 w-3 mr-0.5 text-gray-400" />
+              {formatEstimatedTime(task.estimated_time)}
+            </span>
+          )}
+          
+          {/* Due date if available */}
+          {task.due_date && (
+            <span className={cn(
+              "px-1.5 py-0.5 rounded-full", 
+              dueDateStyle?.className
+            )}>
+              Due: {format(new Date(task.due_date), 'MM/dd')}
+            </span>
+          )}
+        </div>
       </div>
       
-      {/* Due Date - below created date */}
-      {task.due_date && (
-        <div className="absolute right-2 top-6 z-20">
-          <span className={cn(getDueDateStyling(task.due_date).className, "text-xs flex items-center")}>
-            Due: {format(new Date(task.due_date), 'MMM d')}
-            {getDueDateStyling(task.due_date).urgencyText && (
-              <span className="ml-1">{getDueDateStyling(task.due_date).urgencyText}</span>
-            )}
-          </span>
+      {/* Right: Actions section */}
+      <div className="flex items-center space-x-1">
+        {/* Timer controls - compact */}
+        {task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.ARCHIVED && (
+          <div className="flex-shrink-0">
+            <TimerControls 
+              taskId={task.id}
+              compact={true}
+              onTimerStateChange={onTimerStateChange}
+              className="scale-90"
+            />
+          </div>
+        )}
+        
+        {/* Task action buttons */}
+        <div className="flex-shrink-0 scale-90">
+          <TaskActions 
+            taskId={task.id} 
+            status={task.status as TaskStatusType} 
+            updateTaskStatus={handleStatusChange}
+          />
         </div>
-      )}
-      
-      {/* Dropdown Menu Button - middle right */}
-      <div className="absolute right-2 top-1/2 transform -translate-y-1/2 z-20">
+        
+        {/* Menu button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-150"
+          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
         >
-          <MoreVertical className={cn("h-5 w-5", getCategoryColor())} />
+          <MoreVertical className={cn("h-4 w-4", getCategoryColor())} />
         </button>
         
         {/* Dropdown Menu */}
         {isMenuOpen && (
           <div 
-            className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-30"
+            className="absolute right-2 top-8 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-30"
             onMouseLeave={() => setIsMenuOpen(false)}
           >
             <button
               onClick={handleEdit}
-              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150"
+              className="w-full text-left px-4 py-2 text-xs hover:bg-gray-100 transition-colors"
             >
               Edit
             </button>
             <button
               onClick={handleDelete}
-              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors duration-150 text-red-600"
+              className="w-full text-left px-4 py-2 text-xs hover:bg-gray-100 text-red-600"
             >
               Delete
             </button>
           </div>
         )}
-      </div>
-      
-      {/* Task Title - Prominent in top left */}
-      <h3 className={cn(
-        "absolute left-3 top-3 text-left z-10 font-bold text-lg max-w-[55%] truncate shadow-sm px-3 py-1 rounded-r-lg bg-white",
-      )}>
-        {task.title}
-      </h3>
-      
-      {/* Task Description - Using our reusable component */}
-      <div className="mt-14 mb-14">
-        <TaskCardDetails 
-          task={task} 
-          isActive={task.status === 'active'} 
-        />
-      </div>
-      
-      {/* Task Actions and Timer Controls */}
-      <div className="absolute bottom-3 w-full pr-8 left-0 px-4 flex justify-between items-center">
-        {/* Timer controls - bottom left */}
-        <div className="flex items-center space-x-2">
-          {task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.ARCHIVED && (
-            <TimerControls 
-              taskId={task.id} 
-              compact={true}
-              onTimerStateChange={onTimerStateChange}
-            />
-          )}
-        </div>
-        
-        {/* Action buttons - bottom right */}
-        <TaskActions 
-          taskId={task.id}
-          status={task.status}
-          updateTaskStatus={handleStatusChange}
-        />
       </div>
     </div>
   );

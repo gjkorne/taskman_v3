@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import { RefreshCw, Plus } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { TaskEditForm } from './TaskEditForm';
 import { FilterPanel } from './FilterPanel';
 import { TaskContainer } from './TaskContainer';
@@ -107,15 +107,6 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
         onDelete={openDeleteModal}
         onTimerStateChange={onTimerStateChange}
       />
-      
-      {/* Floating action button for quick task creation */}
-      <button
-        onClick={() => setIsNewTaskModalOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg flex items-center justify-center z-10 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-        aria-label="Create new task"
-      >
-        <Plus size={24} />
-      </button>
       
       {/* Task edit modal */}
       {isEditModalOpen && editTaskId && (

@@ -8,9 +8,15 @@ interface TaskCardDetailsProps {
   task: Task;
   isActive?: boolean;
   className?: string;
+  hideCreatedDate?: boolean;
 }
 
-export function TaskCardDetails({ task, isActive = false, className }: TaskCardDetailsProps) {
+export function TaskCardDetails({ 
+  task, 
+  isActive = false, 
+  className,
+  hideCreatedDate = false
+}: TaskCardDetailsProps) {
   return (
     <div className={cn("text-gray-600 text-sm", className)}>
       {task.description ? 
@@ -20,7 +26,7 @@ export function TaskCardDetails({ task, isActive = false, className }: TaskCardD
       
       {/* Estimated Time Display */}
       {task.estimated_time && (
-        <div className="mt-3 space-y-1">
+        <div className="mt-2 space-y-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Clock className="h-3 w-3 mr-1 text-gray-400" />
@@ -47,10 +53,12 @@ export function TaskCardDetails({ task, isActive = false, className }: TaskCardD
         </div>
       )}
       
-      {/* Created Date - can be placed wherever needed by parent component */}
-      <div className="text-xs text-gray-500 mt-2">
-        <span>Created: {format(new Date(task.created_at), 'MMM d, yyyy')}</span>
-      </div>
+      {/* Created Date - conditionally rendered based on the hideCreatedDate prop */}
+      {!hideCreatedDate && (
+        <div className="text-xs text-gray-500 mt-1">
+          <span>Created: {format(new Date(task.created_at), 'MMM d, yyyy')}</span>
+        </div>
+      )}
     </div>
   );
 }
