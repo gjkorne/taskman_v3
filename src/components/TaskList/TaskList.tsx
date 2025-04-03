@@ -52,7 +52,6 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
   if (isLoading && !isRefreshing) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Tasks</h1>
         <TaskContainer 
           isLoading={true}
           tasks={[]}
@@ -65,7 +64,6 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-        <h1 className="text-2xl font-bold">Tasks</h1>
         <div className="flex items-center mt-2 sm:mt-0">
           <button
             onClick={() => refreshTasks()}

@@ -15,6 +15,7 @@ import { TimerControls } from '../Timer/TimerControls';
 import { useTimer } from '../../contexts/TimerContext';
 import { useTaskActions } from '../../hooks/useTaskActions';
 import { useCategories } from '../../contexts/CategoryContext';
+import { useTaskContext } from '../../contexts/TaskContext';
 
 interface TaskCardProps {
   task: Task;
@@ -27,7 +28,9 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { categories } = useCategories();
   const { timerState, stopTimer } = useTimer();
+  const { refreshTasks } = useTaskContext();
   const { updateTaskStatus } = useTaskActions({
+    refreshTasks,
     onSuccess: () => {
       // If we wanted to show a success message or trigger side effects
     },
@@ -97,7 +100,10 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
     }
     
     // Call the hook's updateTaskStatus with the properly converted enum
-    updateTaskStatus(taskId, statusEnum);
+    await updateTaskStatus(taskId, statusEnum);
+    
+    // Force a refresh of the task list
+    await refreshTasks();
   };
 
   // Handle task editing
@@ -123,9 +129,14 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
         "hover:shadow-md mb-2 border border-gray-200 bg-white"
       )}
     >
-      {/* Due Date - top right */}
+      {/* Created Date - top right */}
+      <div className="absolute right-2 top-2 z-20 text-xs text-gray-500">
+        <span>Created: {format(new Date(task.created_at), 'MMM d, yyyy')}</span>
+      </div>
+      
+      {/* Due Date - below created date */}
       {task.due_date && (
-        <div className="absolute right-2 top-2 z-20">
+        <div className="absolute right-2 top-6 z-20">
           <span className={cn(getDueDateStyling(task.due_date).className, "text-xs flex items-center")}>
             Due: {format(new Date(task.due_date), 'MMM d')}
             {getDueDateStyling(task.due_date).urgencyText && (
@@ -183,17 +194,10 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
         />
       </div>
       
-      {/* Task Actions and Date */}
+      {/* Task Actions and Timer Controls */}
       <div className="absolute bottom-3 w-full pr-8 left-0 px-4 flex justify-between items-center">
+        {/* Timer controls - bottom left */}
         <div className="flex items-center space-x-2">
-          {/* Action buttons - bottom left */}
-          <TaskActions 
-            taskId={task.id}
-            status={task.status}
-            updateTaskStatus={handleStatusChange}
-          />
-          
-          {/* Timer controls - next to action buttons */}
           {task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.ARCHIVED && (
             <TimerControls 
               taskId={task.id} 
@@ -203,10 +207,12 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
           )}
         </div>
         
-        {/* Date information - bottom right */}
-        <div className="text-xs text-gray-500 flex flex-col items-end">
-          <span>Created: {format(new Date(task.created_at), 'MMM d, yyyy')}</span>
-        </div>
+        {/* Action buttons - bottom right */}
+        <TaskActions 
+          taskId={task.id}
+          status={task.status}
+          updateTaskStatus={handleStatusChange}
+        />
       </div>
     </div>
   );

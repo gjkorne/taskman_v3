@@ -1,5 +1,5 @@
 // Import icons and utility function
-import { CheckCircle, PlayCircle, PauseCircle, ArchiveIcon } from 'lucide-react';
+import { CheckCircle, PlayCircle, ArchiveIcon } from 'lucide-react';
 import { Button } from '../UI/Button';
 import { TaskStatus, TaskStatusType } from '../../types/task';
 
@@ -39,33 +39,7 @@ export function TaskActions({ taskId, status, updateTaskStatus }: TaskActionsPro
           icon={<CheckCircle size={14} />}
           title="Mark task as complete"
         >
-          Complete
-        </Button>
-      )}
-
-      {/* Start button - for pending tasks */}
-      {status === TaskStatus.PENDING && (
-        <Button 
-          onClick={() => handleStatusUpdate(TaskStatus.ACTIVE)}
-          variant="primary"
-          size="xs"
-          icon={<PlayCircle size={14} />}
-          title="Start task"
-        >
-          Start
-        </Button>
-      )}
-
-      {/* Pause button - for active tasks */}
-      {status === TaskStatus.ACTIVE && (
-        <Button 
-          onClick={() => handleStatusUpdate(TaskStatus.IN_PROGRESS)}
-          variant="warning"
-          size="xs"
-          icon={<PauseCircle size={14} />}
-          title="Pause task"
-        >
-          Pause
+          {status === TaskStatus.ACTIVE ? "Complete" : "Mark as Complete"}
         </Button>
       )}
 
