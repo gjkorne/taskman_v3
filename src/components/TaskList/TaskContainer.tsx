@@ -3,6 +3,16 @@ import { TaskFilter } from './FilterPanel';
 import { TaskCard } from './TaskCard';
 import { useTimer } from '../../contexts/TimerContext';
 
+// Define section styles configuration for consistent UI
+const SECTION_STYLES = {
+  activeNow: { title: 'Active Now', bgColor: 'bg-blue-50' },
+  paused: { title: 'Paused', bgColor: 'bg-amber-50' },
+  inProgress: { title: 'In Progress', bgColor: 'bg-indigo-50' },
+  todo: { title: 'Todo', bgColor: 'bg-white' },
+  completed: { title: 'Completed', bgColor: 'bg-green-50' },
+  archived: { title: 'Archived', bgColor: 'bg-gray-50' }
+};
+
 interface TaskContainerProps {
   tasks: Task[];
   isLoading: boolean;
@@ -20,6 +30,10 @@ export function TaskContainer({
   onDelete,
   onTimerStateChange
 }: TaskContainerProps) {
+  // Get the current timer state to accurately identify the active task
+  const { timerState } = useTimer();
+
+  // Loading state indicator
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -31,23 +45,13 @@ export function TaskContainer({
     );
   }
 
+  // Empty state indicator
   if (tasks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="bg-gray-100 p-6 rounded-full mb-4">
-          <svg 
-            className="h-12 w-12 text-gray-400" 
-            xmlns="http://www.w3.org/2000/svg" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
-            />
+      <div className="flex flex-col items-center justify-center h-64 text-center px-4">
+        <div className="rounded-full bg-gray-100 p-3 mb-3">
+          <svg className="h-8 w-8 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
         </div>
         <h3 className="text-lg font-medium text-gray-900">No tasks found</h3>
@@ -56,50 +60,72 @@ export function TaskContainer({
     );
   }
 
-  // Get the current timer state to accurately identify the active task
-  const { timerState } = useTimer();
-
-  // FIXED: Improved active task filtering to ensure categories are mutually exclusive
-  // ACTIVE TASKS: Tasks that are currently being TIMED (timer running)
-  const activeTasks = tasks.filter(task => {
-    return timerState.taskId === task.id && timerState.status === 'running';
-  });
+  // Utility function to categorize tasks
+  const categorizeTasks = (tasks: Task[]) => {
+    // ACTIVE TASKS: Tasks that are currently being TIMED (timer running)
+    const activeTasks = tasks.filter(task => 
+      timerState.taskId === task.id && timerState.status === 'running'
+    );
+    
+    // PAUSED TASKS: Tasks with paused timers BUT NOT in completed/archived status
+    const pausedTasks = tasks.filter(task => {
+      const isPaused = timerState.taskId === task.id && timerState.status === 'paused';
+      const isCompletedOrArchived = 
+        task.status === TaskStatus.COMPLETED || 
+        task.status === TaskStatus.ARCHIVED;
+      
+      // Only show in paused section if timer is paused AND task isn't completed/archived
+      return isPaused && !isCompletedOrArchived;
+    });
   
-  // PAUSED TASKS: Tasks with paused timers BUT NOT in completed/archived status
-  const pausedTasks = tasks.filter(task => {
-    const isPaused = timerState.taskId === task.id && timerState.status === 'paused';
-    const isCompletedOrArchived = 
-      task.status === TaskStatus.COMPLETED || 
-      task.status === TaskStatus.ARCHIVED;
-    
-    // Only show in paused section if timer is paused AND task isn't completed/archived
-    return isPaused && !isCompletedOrArchived;
-  });
+    // PROGRESS TASKS: Tasks with in_progress status but NOT currently being timed or paused
+    const inProgressTasks = tasks.filter(task => {
+      const isBeingTimed = timerState.taskId === task.id && 
+                         (timerState.status === 'running' || timerState.status === 'paused');
+      const hasInProgressStatus = task.status === TaskStatus.IN_PROGRESS;
+      
+      // Only show in this section if it has in_progress status but no active timer
+      return hasInProgressStatus && !isBeingTimed;
+    });
+  
+    // OTHER TASKS: Everything else (not being timed, not paused, not in progress)
+    const otherTasks = tasks.filter(task => {
+      // Not being timed
+      const isBeingTimed = timerState.taskId === task.id && 
+                         (timerState.status === 'running' || timerState.status === 'paused');
+      
+      // Not in progress
+      const hasInProgressStatus = task.status === TaskStatus.IN_PROGRESS;
+      
+      // A task should be in Other Tasks only if it's not in any other section
+      return !isBeingTimed && !hasInProgressStatus;
+    });
 
-  // PROGRESS TASKS: Tasks with in_progress status but NOT currently being timed or paused
-  const inProgressTasks = tasks.filter(task => {
-    const isBeingTimed = timerState.taskId === task.id && 
-                        (timerState.status === 'running' || timerState.status === 'paused');
-    const hasInProgressStatus = task.status === TaskStatus.IN_PROGRESS;
-    
-    // Only show in this section if it has in_progress status but no active timer
-    return hasInProgressStatus && !isBeingTimed;
-  });
+    const todoTasks = otherTasks.filter(t => t.status === TaskStatus.PENDING);
+    const completedTasks = otherTasks.filter(t => t.status === TaskStatus.COMPLETED);
+    const archivedTasks = otherTasks.filter(t => t.status === TaskStatus.ARCHIVED);
 
-  // OTHER TASKS: Everything else (not being timed, not paused, not in progress)
-  const otherTasks = tasks.filter(task => {
-    // Not being timed
-    const isBeingTimed = timerState.taskId === task.id && 
-                        (timerState.status === 'running' || timerState.status === 'paused');
-    
-    // Not in progress
-    const hasInProgressStatus = task.status === TaskStatus.IN_PROGRESS;
-    
-    // A task should be in Other Tasks only if it's not in any other section
-    return !isBeingTimed && !hasInProgressStatus;
-  });
+    return {
+      activeTasks,
+      pausedTasks,
+      inProgressTasks,
+      todoTasks,
+      completedTasks,
+      archivedTasks
+    };
+  };
 
-  // Render tasks in their respective sections
+  // Categorize the tasks
+  const {
+    activeTasks,
+    pausedTasks,
+    inProgressTasks,
+    todoTasks,
+    completedTasks,
+    archivedTasks
+  } = categorizeTasks(tasks);
+
+  // Helper function to render a single task card
   const renderTaskCard = (task: Task, index: number) => (
     <TaskCard
       key={task.id}
@@ -111,16 +137,19 @@ export function TaskContainer({
     />
   );
 
-  // Helper function to render task section with heading
-  const renderTaskSection = (tasks: Task[], title: string, bgColor: string = 'bg-white') => {
+  // Helper function to render task section with consistent heading style
+  const renderTaskSection = (tasks: Task[], sectionKey: keyof typeof SECTION_STYLES) => {
     if (tasks.length === 0) return null;
     
+    const { title, bgColor } = SECTION_STYLES[sectionKey];
+    
     return (
-      <div className={`mb-8 pb-6 ${bgColor} rounded-lg shadow-sm border border-gray-100`}>
-        <div className="border-b border-gray-200 mb-4 px-4 py-3">
-          <h2 className="text-lg font-medium text-gray-800 flex items-center">
+      <div className="mb-6" key={title}>
+        {/* Section header with count and styled background */}
+        <div className={`flex items-center px-3 py-1.5 rounded-t-md ${bgColor} mb-1`}>
+          <h2 className="text-sm font-semibold">
             {title}
-            <span className="ml-2 bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">
+            <span className="ml-2 px-1.5 py-0.5 bg-white bg-opacity-90 rounded-full text-xs">
               {tasks.length}
             </span>
           </h2>
@@ -132,45 +161,50 @@ export function TaskContainer({
     );
   };
 
-  // Decide on the layout based on viewMode
+  // Render in list view (vertically stacked sections)
   if (viewMode === 'list') {
     return (
       <div className="space-y-6">
-        {renderTaskSection(activeTasks, 'Active Now', 'bg-blue-50')}
-        {renderTaskSection(pausedTasks, 'Paused', 'bg-amber-50')}
-        {renderTaskSection(inProgressTasks, 'In Progress', 'bg-indigo-50')}
-
-        {/* Split other tasks by status */}
-        {renderTaskSection(otherTasks.filter(t => t.status === TaskStatus.PENDING), 'Todo', 'bg-white')}
-        {renderTaskSection(otherTasks.filter(t => t.status === TaskStatus.COMPLETED), 'Completed', 'bg-green-50')}
-        {renderTaskSection(otherTasks.filter(t => t.status === TaskStatus.ARCHIVED), 'Archived', 'bg-gray-50')}
+        {renderTaskSection(activeTasks, 'activeNow')}
+        {renderTaskSection(pausedTasks, 'paused')}
+        {renderTaskSection(inProgressTasks, 'inProgress')}
+        {renderTaskSection(todoTasks, 'todo')}
+        {renderTaskSection(completedTasks, 'completed')}
+        {renderTaskSection(archivedTasks, 'archived')}
       </div>
     );
-  } else {
-    // Grid view layout
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="space-y-6">
-          <h2 className="text-lg font-medium px-2">Active & In Progress</h2>
+  } 
+  
+  // Render in board view (horizontally arranged columns)
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Column 1: Active tasks */}
+      <div className="space-y-6">
+        <h2 className="text-lg font-medium px-2">Active & In Progress</h2>
+        {/* Section for active tasks */}
+        <div className="px-2">
           {activeTasks.map((task, index) => renderTaskCard(task, index))}
           {pausedTasks.map((task, index) => renderTaskCard(task, index))}
           {inProgressTasks.map((task, index) => renderTaskCard(task, index))}
         </div>
-        
-        <div className="space-y-6">
-          <h2 className="text-lg font-medium px-2">Todo</h2>
-          {otherTasks
-            .filter(t => t.status === TaskStatus.PENDING)
-            .map((task, index) => renderTaskCard(task, index))}
-        </div>
-        
-        <div className="space-y-6">
-          <h2 className="text-lg font-medium px-2">Completed</h2>
-          {otherTasks
-            .filter(t => t.status === TaskStatus.COMPLETED || t.status === TaskStatus.ARCHIVED)
-            .map((task, index) => renderTaskCard(task, index))}
+      </div>
+      
+      {/* Column 2: Pending tasks */}
+      <div className="space-y-6">
+        <h2 className="text-lg font-medium px-2">Todo</h2>
+        <div className="px-2">
+          {todoTasks.map((task, index) => renderTaskCard(task, index))}
         </div>
       </div>
-    );
-  }
+      
+      {/* Column 3: Completed & Archived tasks */}
+      <div className="space-y-6">
+        <h2 className="text-lg font-medium px-2">Completed & Archived</h2>
+        <div className="px-2">
+          {completedTasks.map((task, index) => renderTaskCard(task, index))}
+          {archivedTasks.map((task, index) => renderTaskCard(task, index))}
+        </div>
+      </div>
+    </div>
+  );
 }
