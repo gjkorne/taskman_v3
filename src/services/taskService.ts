@@ -1,6 +1,7 @@
 import { Task, TaskStatus } from '../types/task';
 import { TaskCreateDTO, TaskUpdateDTO, taskRepository } from '../repositories/taskRepository';
 import { EventEmitter } from '../utils/eventEmitter';
+import { ITaskService, TaskServiceEvents } from './interfaces/ITaskService';
 
 /**
  * Improved TaskService that uses the repository pattern
@@ -8,15 +9,11 @@ import { EventEmitter } from '../utils/eventEmitter';
  * This service contains business logic for task operations while
  * delegating data access to the repository layer.
  */
-export class TaskService {
-  private taskEvents = new EventEmitter<{
-    'task-created': Task;
-    'task-updated': Task;
-    'task-deleted': string;
-    'tasks-changed': void;
-    'tasks-loaded': Task[];
-    'error': Error;
-  }>();
+export class TaskService implements ITaskService {
+  private taskEvents = new EventEmitter<TaskServiceEvents>();
+  private lastError: Error | null = null;
+  private refreshInProgress = false;
+  private syncInProgress = false;
 
   /**
    * Get all tasks for the current user
@@ -123,83 +120,140 @@ export class TaskService {
   }
 
   /**
-   * Complete a task
-   */
-  async completeTask(id: string): Promise<Task | null> {
-    return this.updateTaskStatus(id, TaskStatus.COMPLETED);
-  }
-
-  /**
-   * Start a task (set to active)
+   * Start a task (set status to ACTIVE)
    */
   async startTask(id: string): Promise<Task | null> {
     return this.updateTaskStatus(id, TaskStatus.ACTIVE);
   }
 
   /**
-   * Archive a task
+   * Complete a task (set status to COMPLETED)
    */
-  async archiveTask(id: string): Promise<Task | null> {
-    return this.updateTaskStatus(id, TaskStatus.ARCHIVED);
+  async completeTask(id: string): Promise<Task | null> {
+    return this.updateTaskStatus(id, TaskStatus.COMPLETED);
   }
 
   /**
-   * Sync tasks with the server
+   * Force refresh tasks from the remote source
    */
-  async syncTasks(): Promise<void> {
+  async refreshTasks(): Promise<Task[]> {
+    if (this.refreshInProgress) {
+      console.warn('TaskService: Refresh already in progress');
+      return [];
+    }
+    
+    this.refreshInProgress = true;
+    
     try {
-      await taskRepository.sync();
-      // Refresh local tasks after sync
-      const tasks = await taskRepository.getAll();
-      this.taskEvents.emit('tasks-loaded', tasks);
-      this.taskEvents.emit('tasks-changed');
+      await taskRepository.forceRefresh();
+      const tasks = await this.getTasks();
+      return tasks;
     } catch (error) {
-      this.handleError('Error syncing tasks', error);
+      this.handleError('Error refreshing tasks', error);
+      return [];
+    } finally {
+      this.refreshInProgress = false;
     }
   }
 
   /**
-   * Check if there are unsynchronized changes
+   * Check if there are any pending changes that need to be synced
    */
   async hasUnsyncedChanges(): Promise<boolean> {
     try {
       return await taskRepository.hasPendingChanges();
     } catch (error) {
-      this.handleError('Error checking for unsynced changes', error);
+      console.error('Error checking for unsynced changes:', error);
       return false;
     }
   }
 
   /**
-   * Force a refresh from the server
+   * Sync tasks between local and remote storage
+   */
+  async sync(): Promise<void> {
+    if (this.syncInProgress) {
+      console.warn('TaskService: Sync already in progress');
+      return;
+    }
+    
+    this.syncInProgress = true;
+    
+    try {
+      await taskRepository.sync();
+      // Refresh task list after sync
+      await this.getTasks();
+    } catch (error) {
+      this.handleError('Error syncing tasks', error);
+    } finally {
+      this.syncInProgress = false;
+    }
+  }
+
+  /**
+   * Force refresh from remote storage
    */
   async forceRefresh(): Promise<void> {
     try {
       await taskRepository.forceRefresh();
-      const tasks = await taskRepository.getAll();
-      this.taskEvents.emit('tasks-loaded', tasks);
-      this.taskEvents.emit('tasks-changed');
+      // Refresh tasks after the force refresh
+      await this.getTasks();
     } catch (error) {
-      this.handleError('Error force refreshing tasks', error);
+      this.handleError('Error refreshing tasks from remote', error);
     }
+  }
+
+  /**
+   * Get the latest error for telemetry/logging purposes
+   */
+  getLastError(): Error | null {
+    return this.lastError;
+  }
+
+  /**
+   * Standard error handling for all service methods
+   */
+  private handleError(message: string, error: any): void {
+    console.error(`TaskService: ${message}`, error);
+    
+    // Create a standardized error object
+    const errorObj = error instanceof Error ? error : new Error(`${message}: ${JSON.stringify(error)}`);
+    
+    // Store the last error for debugging/telemetry
+    this.lastError = errorObj;
+    
+    // Emit the error event
+    this.taskEvents.emit('error', errorObj);
   }
 
   /**
    * Subscribe to task events
    */
-  on<K extends keyof typeof this.taskEvents.events>(
-    event: K,
-    handler: (data: typeof this.taskEvents.events[K]) => void
+  on<K extends keyof TaskServiceEvents>(
+    event: K, 
+    callback: (data: TaskServiceEvents[K]) => void
   ): () => void {
-    return this.taskEvents.on(event, handler);
+    return this.taskEvents.on(event, callback);
   }
 
   /**
-   * Handle and log errors
+   * Unsubscribe from task events
    */
-  private handleError(message: string, error: any): void {
-    console.error(message, error);
-    this.taskEvents.emit('error', new Error(`${message}: ${error.message || error}`));
+  off<K extends keyof TaskServiceEvents>(
+    event: K, 
+    callback: (data: TaskServiceEvents[K]) => void
+  ): void {
+    this.taskEvents.off(event, callback);
+  }
+
+  /**
+   * Emit a task event
+   */
+  emit<K extends keyof TaskServiceEvents>(
+    event: K, 
+    data?: TaskServiceEvents[K]
+  ): void {
+    this.taskEvents.emit(event, data);
   }
 }
 

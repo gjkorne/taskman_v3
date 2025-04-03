@@ -11,7 +11,6 @@ export interface TimeSession {
   end_time: string | null;
   duration: string | null; // PostgreSQL interval as string
   created_at: string;
-  status?: string;
   notes?: string;
   // Add task information from joined queries
   tasks?: {

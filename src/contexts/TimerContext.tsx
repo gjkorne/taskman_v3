@@ -121,8 +121,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         .insert({
           task_id: taskId,
           user_id: currentUser.id,
-          start_time: new Date().toISOString(),
-          status: 'active'
+          start_time: new Date().toISOString()
         })
         .select('id')
         .single();
