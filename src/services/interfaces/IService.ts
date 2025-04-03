@@ -10,7 +10,7 @@ export interface IService<TEvents extends Record<string, any>> {
   off<K extends keyof TEvents>(event: K, callback: (data: TEvents[K]) => void): void;
   
   /** Emit an event with data */
-  emit<K extends keyof TEvents>(event: K, data: TEvents[K]): void;
+  emit<K extends keyof TEvents>(event: K, data?: TEvents[K]): void;
 }
 
 /**
