@@ -145,7 +145,7 @@ export function Layout({ children, activeView, onViewChange, onTaskCreated, onTi
       {/* Floating Action Button - New Task */}
       <button
         onClick={() => setShowTaskForm(true)}
-        className="fixed bottom-8 right-8 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg flex items-center justify-center hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150 z-40 group"
+        className="fixed top-8 right-8 w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg flex items-center justify-center hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-150 z-40 group"
         aria-label="Create new task"
       >
         <Plus className="h-6 w-6" />

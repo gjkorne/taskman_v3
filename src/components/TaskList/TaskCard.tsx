@@ -115,24 +115,28 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
   return (
     <div 
       className={cn(
-        "group relative flex items-center py-1.5 px-2 border-b border-gray-100 hover:bg-gray-50 transition-colors",
+        "group relative flex flex-col sm:flex-row py-2 px-3 border-b border-gray-100 hover:bg-gray-50 transition-colors",
         `border-l-2 ${priorityColor}`  // Thin priority indicator
       )}
     >
-      {/* Left: Priority indicator + Title */}
-      <div className="flex-grow flex items-center min-w-0">
-        {/* Title with truncation */}
-        <h3 className="font-medium text-sm truncate mr-2 max-w-[40%]">
-          {task.title}
-        </h3>
-        
-        {/* Tags and metadata - only visible on larger screens or hover */}
-        <div className="hidden sm:flex items-center space-x-2 text-xs text-gray-500">
-          {/* Category if available */}
-          {categoryName && (
-            <span className="px-1.5 py-0.5 rounded-full bg-gray-100">{categoryName}</span>
-          )}
+      {/* Left Section: Title and Metadata */}
+      <div className="flex-grow min-w-0 mb-1 sm:mb-0">
+        {/* Title and Category Row */}
+        <div className="flex items-center mb-1">
+          <h3 className="font-bold text-base truncate mr-2 max-w-[70%]">
+            {task.title}
+          </h3>
           
+          {/* Category tag */}
+          {categoryName && (
+            <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-xs text-gray-700 flex-shrink-0">
+              {categoryName}
+            </span>
+          )}
+        </div>
+        
+        {/* Metadata Row */}
+        <div className="flex items-center space-x-2 text-xs text-gray-500">
           {/* Estimated time if available */}
           {task.estimated_time && (
             <span className="flex items-center">
@@ -153,9 +157,9 @@ export function TaskCard({ task, onEdit, onDelete, onTimerStateChange }: TaskCar
         </div>
       </div>
       
-      {/* Right: Actions section */}
-      <div className="flex items-center space-x-1">
-        {/* Timer controls - compact */}
+      {/* Right Section: All Actions */}
+      <div className="flex items-center justify-end space-x-2 ml-auto">
+        {/* Timer control */}
         {task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.ARCHIVED && (
           <div className="flex-shrink-0">
             <TimerControls 
