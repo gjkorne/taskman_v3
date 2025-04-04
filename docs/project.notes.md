@@ -156,10 +156,10 @@ Design Review
     Looking at the PersonalCRM dashboard image, I can see you want to transform your TaskMan app into a more comprehensive dashboard-based UI with metrics, categorized tasks, and activity tracking. This is a significant UI/UX change that would benefit from proper planning.
 
     1. Pre-Implementation Cleanup
-    + ~~Complete Service Layer Standardization~~:
-        + ~~We've standardized TimeSessionsService and TaskService~~
-        + ~~Continue with UserService, AuthService, and others for consistency~~
-        +~~ This will make integrating dashboard metrics more reliable~~
+    + Complete Service Layer Standardization:
+        + We've standardized TimeSessionsService and TaskService
+        + Continue with UserService, AuthService, and others for consistency
+        + This will make integrating dashboard metrics more reliable
     + State Management Consolidation:
         + Review your contexts and ensure they're properly optimized
         + Clear separation between UI state and data state

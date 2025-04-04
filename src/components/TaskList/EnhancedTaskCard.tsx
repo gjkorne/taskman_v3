@@ -14,7 +14,7 @@ import { TimerControls } from '../Timer/TimerControls';
 import { useTimer } from '../../contexts/TimerContext';
 import { useTaskActions } from '../../hooks/useTaskActions';
 import { useCategories } from '../../contexts/CategoryContext';
-import { useTaskContext } from '../../contexts/TaskContext';
+import { useTaskData } from '../../contexts/task';
 import StatusBadge from '../Common/StatusBadge';
 import TaskStatusSelector from '../Common/TaskStatusSelector';
 
@@ -35,7 +35,7 @@ export function EnhancedTaskCard({ task, index, onEdit, onDelete, onTimerStateCh
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { categories } = useCategories();
   const { timerState, stopTimer } = useTimer();
-  const { refreshTasks } = useTaskContext();
+  const { refreshTasks } = useTaskData();
   const { updateTaskStatus } = useTaskActions({
     refreshTasks,
     onSuccess: () => {

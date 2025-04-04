@@ -1,5 +1,5 @@
 import { Search, RefreshCw, ChevronDown } from 'lucide-react';
-import { useTaskContext } from '../../contexts/TaskContext';
+import { useTaskData } from '../../contexts/task';
 
 /**
  * SearchPanel component that includes search input and filters
@@ -11,7 +11,7 @@ export function SearchPanel() {
     setSearchQuery, 
     refreshTasks, 
     isRefreshing
-  } = useTaskContext();
+  } = useTaskData();
 
   return (
     <div className="flex flex-wrap gap-2 items-center relative">

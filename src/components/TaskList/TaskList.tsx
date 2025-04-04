@@ -1,7 +1,6 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { TaskContainer } from './TaskContainer';
-import { useTaskContext } from '../../contexts/TaskContext';
-import { useTaskModal } from '../../hooks/useTaskModal';
+import { useTaskData, useTaskUI } from '../../contexts/task';
 import { QuickTaskEntry, TaskForm } from '../TaskForm';
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react'; // Import icons for the dropdown
 
@@ -15,7 +14,7 @@ interface TaskListProps {
 }
 
 export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerStateChange }, ref) => {
-  // Get everything we need from the task context
+  // Get data management from the task data context
   const { 
     filteredTasks,
     isLoading, 
@@ -24,9 +23,9 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
     refreshTasks,
     filters,
     setFilters
-  } = useTaskContext();
+  } = useTaskData();
   
-  // Use our task modal hook
+  // Get UI management from the task UI context
   const { 
     isEditModalOpen,
     editTaskId,
@@ -35,14 +34,24 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
     isDeleteModalOpen,
     openDeleteModal,
     closeDeleteModal,
-    confirmDelete
-  } = useTaskModal();
+    viewMode
+  } = useTaskUI();
 
   // State for new task modal
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
   
   // State for mobile filters dropdown
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  
+  // Delete task handler that uses the data context
+  const confirmDelete = async (taskId: string) => {
+    try {
+      await useTaskData().deleteTask(taskId);
+      closeDeleteModal();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
+  };
 
   // Expose methods to parent components via ref
   useImperativeHandle(ref, () => ({
@@ -56,7 +65,7 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
         <TaskContainer 
           isLoading={true}
           tasks={[]}
-          viewMode={filters.viewMode}
+          viewMode={viewMode}
         />
       </div>
     );
@@ -305,7 +314,7 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
       <TaskContainer 
         tasks={filteredTasks}
         isLoading={isRefreshing}
-        viewMode={filters.viewMode}
+        viewMode={viewMode}
         onEdit={openEditModal}
         onDelete={openDeleteModal}
         onTimerStateChange={onTimerStateChange}
@@ -365,7 +374,7 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
                   Cancel
                 </button>
                 <button
-                  onClick={() => confirmDelete()}
+                  onClick={() => editTaskId && confirmDelete(editTaskId)}
                   className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700"
                 >
                   Delete

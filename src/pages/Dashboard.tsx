@@ -1,0 +1,49 @@
+import { useEffect } from 'react';
+import DashboardLayout from '../components/Dashboard/DashboardLayout';
+import TaskOverviewWidget from '../components/Dashboard/TaskOverviewWidget';
+import TimeTrackingWidget from '../components/Dashboard/TimeTrackingWidget';
+import ProjectProgressWidget from '../components/Dashboard/ProjectProgressWidget';
+import { useTaskData } from '../contexts/task';
+import { useTimeSessionData } from '../contexts/timeSession';
+
+/**
+ * Dashboard page component that uses our new context pattern
+ * This demonstrates how to leverage the separation of data and UI concerns
+ */
+export function Dashboard() {
+  // Get task and time session data functions from our contexts
+  const { fetchTasks, isLoading: isTasksLoading } = useTaskData();
+  const { fetchSessions, isLoading: isSessionsLoading } = useTimeSessionData();
+  
+  // Fetch initial data on mount
+  useEffect(() => {
+    fetchTasks();
+    fetchSessions();
+  }, [fetchTasks, fetchSessions]);
+  
+  // Show loading state while data is being fetched
+  if (isTasksLoading && isSessionsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+  
+  return (
+    <DashboardLayout>
+      {/* Task overview widget - spans 2 columns on larger screens */}
+      <TaskOverviewWidget />
+      
+      {/* Time tracking widget - spans 1 column and 2 rows */}
+      <TimeTrackingWidget />
+      
+      {/* Project progress widget - spans 2 columns */}
+      <ProjectProgressWidget />
+      
+      {/* This is where we would add more widgets as needed */}
+    </DashboardLayout>
+  );
+}
+
+export default Dashboard;

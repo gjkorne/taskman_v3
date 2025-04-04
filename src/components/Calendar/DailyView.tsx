@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { format, addDays, subDays, parseISO, differenceInMinutes, startOfDay, endOfDay, isWithinInterval, isToday } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock, Calendar, Info } from 'lucide-react';
-import { useTaskContext } from '../../contexts/TaskContext';
+import { useTaskData } from '../../contexts/task';
 import { TimeSession } from '../../services/api/timeSessionsService';
 import { timeSessionsService } from '../../services/api/timeSessionsService';
 import { TaskFormModal } from '../TaskForm/TaskFormModal';
@@ -129,7 +129,7 @@ export function DailyView({ date }: DailyViewProps) {
   }, [date]);
   
   // Get tasks from context
-  const { tasks } = useTaskContext();
+  const { tasks } = useTaskData();
   
   // Create a lookup map for tasks by ID for easier access
   const tasksById = useMemo(() => {
@@ -396,7 +396,6 @@ export function DailyView({ date }: DailyViewProps) {
           isOpen={isTaskModalOpen}
           onClose={() => setIsTaskModalOpen(false)}
           onTaskCreated={() => setIsTaskModalOpen(false)}
-          title="Add Task"
           initialDate={selectedDate}
         />
       )}

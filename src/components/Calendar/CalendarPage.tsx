@@ -1,12 +1,24 @@
-import { useState, useMemo } from 'react';
-import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, addMonths, parseISO, isToday } from 'date-fns';
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  startOfWeek, 
+  endOfWeek, 
+  addDays, 
+  isSameMonth, 
+  isSameDay, 
+  addMonths, 
+  parseISO, 
+  isToday, 
+  getDay, 
+  getWeeksInMonth 
+} from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock } from 'lucide-react';
-import { useTaskContext } from '../../contexts/TaskContext';
+import { useTaskData } from '../../contexts/task';
 import { TaskFormModal } from '../TaskForm/TaskFormModal';
 import { Task } from '../../types/task';
-import { DailyView } from './DailyView';
-
-type CalendarViewMode = 'month' | 'day';
+import DailyView from './DailyView';
 
 /**
  * CalendarPage component
@@ -16,22 +28,22 @@ export function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'day'>('month');
   
   // Get tasks from context
-  const { filteredTasks, refreshTasks } = useTaskContext();
+  const { tasks, refreshTasks } = useTaskData();
   
   // Group tasks by due date for efficient lookup
   const tasksByDate = useMemo(() => {
-    return filteredTasks.reduce((acc: Record<string, Task[]>, task: Task) => {
+    return tasks.reduce((acc: Record<string, Task[]>, task: Task) => {
       if (task.due_date) {
-        const dateKey = format(parseISO(task.due_date), 'yyyy-MM-dd');
+        const dateKey = format(new Date(task.due_date), 'yyyy-MM-dd');
         if (!acc[dateKey]) acc[dateKey] = [];
         acc[dateKey].push(task);
       }
       return acc;
     }, {});
-  }, [filteredTasks]);
+  }, [tasks]);
   
   // Handle day selection
   const handleDateClick = (day: Date) => {
@@ -60,7 +72,7 @@ export function CalendarPage() {
   };
   
   // Toggle between month and day views
-  const toggleViewMode = (mode: CalendarViewMode) => {
+  const toggleViewMode = (mode: 'month' | 'day') => {
     setViewMode(mode);
   };
   
@@ -77,7 +89,7 @@ export function CalendarPage() {
           </h2>
           <div className="flex space-x-1 sm:space-x-2">
             <button
-              onClick={() => viewMode === 'month' ? prevMonth() : setSelectedDate(prev => addDays(prev, -1))}
+              onClick={() => viewMode === 'month' ? prevMonth() : setSelectedDate(prev => new Date(prev.setDate(prev.getDate() - 1)))}
               className="p-1 sm:p-2 border border-gray-300 rounded-md hover:bg-gray-100 touch-manipulation"
               aria-label={viewMode === 'month' ? "Previous month" : "Previous day"}
             >
@@ -90,7 +102,7 @@ export function CalendarPage() {
               Today
             </button>
             <button
-              onClick={() => viewMode === 'month' ? nextMonth() : setSelectedDate(prev => addDays(prev, 1))}
+              onClick={() => viewMode === 'month' ? nextMonth() : setSelectedDate(prev => new Date(prev.setDate(prev.getDate() + 1)))}
               className="p-1 sm:p-2 border border-gray-300 rounded-md hover:bg-gray-100 touch-manipulation"
               aria-label={viewMode === 'month' ? "Next month" : "Next day"}
             >
@@ -172,9 +184,9 @@ export function CalendarPage() {
   // Render calendar cells
   const renderCells = () => {
     const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(monthStart);
+    const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
     const startDate = startOfWeek(monthStart);
-    const endDate = endOfWeek(monthEnd);
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 6);
     
     const rows = [];
     let days = [];
@@ -186,7 +198,7 @@ export function CalendarPage() {
         const tasksForDay = tasksByDate[dateKey] || [];
         const isCurrentMonth = isSameMonth(day, monthStart);
         const isSelected = isSameDay(day, selectedDate);
-        const isTodayDate = isToday(day);
+        const isTodayDate = isSameDay(day, new Date());
         
         days.push(
           <div
@@ -249,7 +261,7 @@ export function CalendarPage() {
           </div>
         );
         
-        day = addDays(day, 1);
+        day = new Date(day.setDate(day.getDate() + 1));
       }
       
       rows.push(
@@ -298,11 +310,7 @@ export function CalendarPage() {
         <TaskFormModal
           isOpen={isTaskModalOpen}
           onClose={() => setIsTaskModalOpen(false)}
-          onTaskCreated={() => {
-            setIsTaskModalOpen(false);
-            refreshTasks();
-          }}
-          title="Add Task"
+          onTaskCreated={() => setIsTaskModalOpen(false)}
           initialDate={selectedDate}
         />
       )}

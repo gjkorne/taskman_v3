@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTimer } from '../../contexts/TimerContext';
-import { useTaskContext } from '../../contexts/TaskContext';
+import { useTaskData } from '../../contexts/task';
 import { TaskStatus } from '../../types/task';
 import { Icon } from '../UI/Icon';
 
@@ -10,7 +10,7 @@ interface ActiveSessionProps {
 
 export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime } = useTimer();
-  const { tasks } = useTaskContext();
+  const { tasks } = useTaskData();
   const [isExpanded, setIsExpanded] = useState(true);
   
   // Get the task that is currently being timed

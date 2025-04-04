@@ -16,7 +16,7 @@ import { CalendarPage } from './components/Calendar/CalendarPage';
 import { useAuth } from './lib/auth';
 import { TimerProvider } from './contexts/TimerContext';
 import { SettingsProvider } from './contexts/SettingsContext';
-import { TaskProvider } from './contexts/TaskContext';
+import { TaskProvider } from './contexts/task';
 import { ToastProvider } from './components/Toast';
 import { CategoryProvider } from './contexts/CategoryContext';
 import { ErrorProvider } from './contexts/ErrorContext';

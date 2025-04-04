@@ -14,7 +14,7 @@ import { TimerControls } from '../Timer/TimerControls';
 import { useTimer } from '../../contexts/TimerContext';
 import { useTaskActions } from '../../hooks/useTaskActions';
 import { useCategories } from '../../contexts/CategoryContext';
-import { useTaskContext } from '../../contexts/TaskContext';
+import { useTaskData } from '../../contexts/task';
 import NotesViewer from '../TaskNotes/NotesViewer';
 
 interface TaskCardProps {
@@ -29,7 +29,7 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { categories } = useCategories();
   const { timerState, stopTimer } = useTimer();
-  const { refreshTasks } = useTaskContext();
+  const { refreshTasks } = useTaskData();
   const { updateTaskStatus } = useTaskActions({
     refreshTasks,
     onSuccess: () => {
