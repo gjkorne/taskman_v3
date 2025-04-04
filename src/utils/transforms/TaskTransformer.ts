@@ -35,6 +35,11 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
       // Array and object fields
       tags,
       
+      // Notes and checklist fields - required by TaskModel interface
+      notes: apiData.notes || null,
+      checklistItems: apiData.checklist_items || null,
+      noteType: apiData.note_type || null,
+      
       // Metadata fields
       createdBy: apiData.created_by,
       isDeleted,
@@ -81,6 +86,11 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
       // Array and object fields
       tags: model.tags,
       
+      // Notes and checklist fields
+      notes: model.notes,
+      checklist_items: model.checklistItems,
+      note_type: model.noteType,
+      
       // Metadata fields
       created_by: model.createdBy || null,
       is_deleted: model.isDeleted,
@@ -106,15 +116,25 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
       status: input.status || 'pending',
       priority: input.priority || 'medium',
       due_date: input.dueDate ? input.dueDate.toISOString() : null,
-      estimated_time: this.minutesToIntervalString(input.estimatedTimeMinutes),
+      estimated_time: this.minutesToIntervalString(input.estimatedTimeMinutes || null),
       actual_time: null,
       tags: input.tags || [],
       created_by: userId || null,
       is_deleted: false,
       list_id: input.listId || null,
       category_name: input.categoryName || null,
+      
+      // NLP fields required by CreateTaskApiDto
+      nlp_tokens: null,
+      extracted_entities: null,
+      embedding_data: null,
       confidence_score: null,
       processing_metadata: null,
+      
+      // Notes and checklist fields
+      notes: null,
+      checklist_items: null,
+      note_type: null
     };
   }
   
@@ -159,8 +179,8 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
       status: model.status || 'pending',
       priority: model.priority || 'medium',
       due_date: model.dueDate ? model.dueDate.toISOString() : null,
-      estimated_time: this.minutesToIntervalString(model.estimatedTimeMinutes ?? null),
-      actual_time: this.minutesToIntervalString(model.actualTimeMinutes ?? null),
+      estimated_time: this.minutesToIntervalString(model.estimatedTimeMinutes === null ? null : model.estimatedTimeMinutes),
+      actual_time: this.minutesToIntervalString(model.actualTimeMinutes === null ? null : model.actualTimeMinutes),
       tags: model.tags || [],
       category_name: model.categoryName || null,
       created_by: model.createdBy || null,
@@ -172,7 +192,12 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
       extracted_entities: model.extractedEntities || null,
       embedding_data: model.embeddingData || null,
       confidence_score: model.confidenceScore || null,
-      processing_metadata: model.processingMetadata || null
+      processing_metadata: model.processingMetadata || null,
+      
+      // Notes and checklist fields
+      notes: model.notes || null,
+      checklist_items: model.checklistItems || null,
+      note_type: model.noteType || null
     };
   }
   
@@ -188,8 +213,8 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
     if (model.status !== undefined) updateDto.status = model.status;
     if (model.priority !== undefined) updateDto.priority = model.priority;
     if (model.dueDate !== undefined) updateDto.due_date = model.dueDate ? model.dueDate.toISOString() : null;
-    if (model.estimatedTimeMinutes !== undefined) updateDto.estimated_time = this.minutesToIntervalString(model.estimatedTimeMinutes ?? null);
-    if (model.actualTimeMinutes !== undefined) updateDto.actual_time = this.minutesToIntervalString(model.actualTimeMinutes ?? null);
+    if (model.estimatedTimeMinutes !== undefined) updateDto.estimated_time = this.minutesToIntervalString(model.estimatedTimeMinutes === null ? null : model.estimatedTimeMinutes);
+    if (model.actualTimeMinutes !== undefined) updateDto.actual_time = this.minutesToIntervalString(model.actualTimeMinutes === null ? null : model.actualTimeMinutes);
     if (model.tags !== undefined) updateDto.tags = model.tags;
     if (model.isDeleted !== undefined) updateDto.is_deleted = model.isDeleted;
     if (model.listId !== undefined) updateDto.list_id = model.listId;
@@ -201,6 +226,9 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
     if (model.nlpTokens !== undefined) updateDto.nlp_tokens = model.nlpTokens;
     if (model.extractedEntities !== undefined) updateDto.extracted_entities = model.extractedEntities;
     if (model.embeddingData !== undefined) updateDto.embedding_data = model.embeddingData;
+    if (model.notes !== undefined) updateDto.notes = model.notes;
+    if (model.checklistItems !== undefined) updateDto.checklist_items = model.checklistItems;
+    if (model.noteType !== undefined) updateDto.note_type = model.noteType;
     
     // Always update the updated_at field to track when changes occurred
     updateDto.updated_at = new Date().toISOString();
@@ -232,68 +260,48 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
       extracted_entities: model.extractedEntities || null,
       embedding_data: model.embeddingData || null,
       confidence_score: model.confidenceScore || null,
-      processing_metadata: model.processingMetadata || null
+      processing_metadata: model.processingMetadata || null,
+      
+      // Notes and checklist fields
+      notes: model.notes,
+      checklist_items: model.checklistItems,
+      note_type: model.noteType
     };
   }
   
   /**
-   * Parse a Postgres interval string to minutes
-   * Handles formats like '01:30:00' (1 hour 30 minutes) or '1 day 2 hours 30 minutes'
+   * Convert minutes to Postgres interval format
+   * @private
    */
-  private parseIntervalToMinutes(interval: string | null): number | null {
-    if (!interval) return null;
-    
-    // Common interval formats from Postgres
-    
-    // Format: HH:MM:SS
-    const timeRegex = /^(\d{2}):(\d{2}):(\d{2})$/;
-    if (timeRegex.test(interval)) {
-      const matches = interval.match(timeRegex);
-      if (matches) {
-        const hours = parseInt(matches[1], 10);
-        const minutes = parseInt(matches[2], 10);
-        return hours * 60 + minutes;
-      }
-    }
-    
-    // Format: X days HH:MM:SS
-    const dayTimeRegex = /^(\d+) days? (\d{2}):(\d{2}):(\d{2})$/;
-    if (dayTimeRegex.test(interval)) {
-      const matches = interval.match(dayTimeRegex);
-      if (matches) {
-        const days = parseInt(matches[1], 10);
-        const hours = parseInt(matches[2], 10);
-        const minutes = parseInt(matches[3], 10);
-        return days * 24 * 60 + hours * 60 + minutes;
-      }
-    }
-    
-    // Format: X hours Y minutes Z seconds
-    const verbalRegex = /(?:(\d+) hours?)?(?:[ ,]?(\d+) minutes?)?(?:[ ,]?(\d+) seconds?)?/;
-    const verbalMatches = interval.match(verbalRegex);
-    if (verbalMatches) {
-      const hours = verbalMatches[1] ? parseInt(verbalMatches[1], 10) : 0;
-      const minutes = verbalMatches[2] ? parseInt(verbalMatches[2], 10) : 0;
-      return hours * 60 + minutes;
-    }
-    
-    // If we can't parse it, log and return null
-    console.warn(`Could not parse interval format: ${interval}`);
-    return null;
+  minutesToIntervalString(minutes: number | null): string | null {
+    if (minutes === null || minutes === undefined) return null;
+    return `${minutes * 60} seconds`;
   }
   
   /**
-   * Convert minutes to a Postgres interval string
+   * Parse Postgres interval string to minutes
+   * @private
    */
-  private minutesToIntervalString(minutes: number | null): string | null {
-    if (minutes === null || minutes === undefined || isNaN(Number(minutes))) return null;
+  parseIntervalToMinutes(interval: string | null): number | null {
+    if (!interval) return null;
     
-    const numericMinutes = Number(minutes);
-    const hours = Math.floor(numericMinutes / 60);
-    const mins = numericMinutes % 60;
+    // Assuming intervals are in the format '10 minutes' or '600 seconds'
+    const match = interval.match(/(\d+)\s+(seconds|minutes|hours)/i);
+    if (!match) return null;
     
-    // Format as 'HH:MM:00' for Postgres
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:00`;
+    const value = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
+    
+    switch (unit) {
+      case 'seconds':
+        return Math.round(value / 60);
+      case 'minutes':
+        return value;
+      case 'hours':
+        return value * 60;
+      default:
+        return value;
+    }
   }
 }
 

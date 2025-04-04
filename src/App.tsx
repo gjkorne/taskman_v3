@@ -149,6 +149,8 @@ function App() {
                               <Routes>
                                 <Route path="/login" element={<LoginForm />} />
                                 <Route path="/register" element={<RegisterForm />} />
+                                {/* Add redirect for /tasks to the main route */}
+                                <Route path="/tasks" element={<Navigate to="/" replace />} />
                                 <Route
                                   path="/"
                                   element={

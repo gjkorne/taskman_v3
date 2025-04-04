@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { Task, TaskStatus, TaskStatusType } from '../types/task';
+import { Task, TaskStatusType } from '../types/task';
 import { TaskFilter, defaultFilters } from '../components/TaskList/FilterPanel';
 import { filterTasks } from '../lib/taskUtils';
 import { useToast } from '../components/Toast';
@@ -200,8 +200,8 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   // Update task status
   const updateTaskStatus = useCallback(async (taskId: string, newStatus: TaskStatusType) => {
     try {
-      // Convert TaskStatusType to TaskStatus if necessary
-      await taskService.updateTaskStatus(taskId, newStatus as TaskStatus);
+      // Pass TaskStatusType directly without casting to enum
+      await taskService.updateTaskStatus(taskId, newStatus);
       addToast(`Task status updated to ${newStatus}`, "success");
     } catch (error) {
       const appError = AppError.from(error);

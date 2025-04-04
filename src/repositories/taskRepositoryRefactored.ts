@@ -1,11 +1,10 @@
-import { Task, TaskStatus, TaskStatusType } from '../types/task';
+import { Task, TaskStatusType, TaskPriorityType } from '../types/task';
 import { TaskSubmitData } from '../components/TaskForm/schema';
 import { SupabaseAdapter } from './storage/supabaseAdapter';
 import { IndexedDBAdapter } from './storage/indexedDBAdapter';
 import { NetworkStatusService } from '../services/networkStatusService';
 import { TaskApiDto } from '../types/api/taskDto';
 import { BaseRepository, ISyncableEntity } from './baseRepository';
-import { transformerFactory } from '../utils/transforms/TransformerFactory';
 
 /**
  * Type definitions for task data transfer objects
@@ -16,7 +15,16 @@ export type TaskUpdateDTO = Partial<TaskSubmitData>;
 /**
  * Extended Task type with offline sync properties
  */
-interface OfflineTask extends Task, ISyncableEntity {}
+interface OfflineTask extends Task, ISyncableEntity {
+  notes: any;
+  checklist_items: any;
+  note_type: any;
+  nlp_tokens: any;
+  extracted_entities: any;
+  embedding_data: any;
+  confidence_score: any;
+  processing_metadata: any;
+}
 
 /**
  * TaskRepository - provides unified access to task data across local and remote storage
@@ -27,8 +35,6 @@ interface OfflineTask extends Task, ISyncableEntity {}
  * - Changes made while offline are synced when connectivity is restored
  */
 export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, TaskUpdateDTO, TaskApiDto> {
-  private taskTransformer = transformerFactory.getTaskTransformer();
-  
   constructor(networkStatus?: NetworkStatusService) {
     // Initialize network status service
     const networkStatusService = networkStatus || new NetworkStatusService();
@@ -66,44 +72,116 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
    * Transform API DTO to domain model
    */
   protected apiToDomain(dto: TaskApiDto): OfflineTask {
-    // Use the existing transformer to convert API to model
-    const taskModel = this.taskTransformer.apiToModel(dto);
-    
-    // Add offline sync properties
-    return {
-      ...taskModel,
+    // Convert TaskModel to OfflineTask format and add offline sync properties
+    const offlineTask: OfflineTask = {
+      // Copy original fields from API DTO
+      id: dto.id,
+      title: dto.title,
+      description: dto.description || '',
+      status: dto.status as TaskStatusType,
+      priority: dto.priority as TaskPriorityType,
+      due_date: dto.due_date,
+      estimated_time: dto.estimated_time,
+      actual_time: dto.actual_time,
+      tags: dto.tags || [],
+      created_at: dto.created_at,
+      updated_at: dto.updated_at,
+      created_by: dto.created_by,
+      is_deleted: dto.is_deleted || false,
+      list_id: dto.list_id,
+      category_name: dto.category_name,
+      
+      // Notes and checklist fields required by TaskModel
+      notes: dto.notes,
+      checklist_items: dto.checklist_items,
+      note_type: dto.note_type,
+      
+      // NLP fields
+      nlp_tokens: dto.nlp_tokens,
+      extracted_entities: dto.extracted_entities,
+      embedding_data: dto.embedding_data,
+      confidence_score: dto.confidence_score,
+      processing_metadata: dto.processing_metadata,
+      
+      // Add sync properties
       _pendingSync: false,
       _lastUpdated: new Date().toISOString(),
       _sync_error: undefined
-    } as OfflineTask;
+    };
+    
+    return offlineTask;
   }
   
   /**
    * Transform domain model to API DTO
    */
   protected domainToApi(model: OfflineTask): Omit<TaskApiDto, 'id'> {
-    // Use the existing transformer to convert model to API
-    return this.taskTransformer.modelToApi(model);
+    // Create API DTO directly from OfflineTask
+    return {
+      title: model.title,
+      description: model.description,
+      status: model.status,
+      priority: model.priority,
+      due_date: model.due_date,
+      estimated_time: model.estimated_time,
+      actual_time: model.actual_time,
+      tags: model.tags,
+      created_at: model.created_at,
+      updated_at: model.updated_at,
+      created_by: model.created_by,
+      is_deleted: model.is_deleted,
+      list_id: model.list_id,
+      category_name: model.category_name,
+      
+      // Add missing properties required by TaskApiDto
+      notes: model.notes,
+      checklist_items: model.checklist_items,
+      note_type: model.note_type,
+      nlp_tokens: model.nlp_tokens,
+      extracted_entities: model.extracted_entities,
+      embedding_data: model.embedding_data,
+      confidence_score: model.confidence_score,
+      processing_metadata: model.processing_metadata
+    };
   }
   
   /**
-   * Transform creation DTO to domain model
+   * Convert creation DTO to domain model
    */
   protected createDtoToDomain(dto: TaskCreateDTO): Omit<OfflineTask, 'id'> {
     // Convert form submission to task model
     return {
       title: dto.title,
       description: dto.description || '',
-      status: dto.status as TaskStatusType || TaskStatus.PENDING,
+      status: dto.status as TaskStatusType || 'pending',
       priority: dto.priority || 'medium',
       due_date: dto.dueDate ? new Date(dto.dueDate).toISOString() : null,
-      estimated_time: this.formatTimeInput(dto.estimatedTime),
+      estimated_time: this.formatTimeInput(dto.estimatedTime ? Number(dto.estimatedTime) : null),
       actual_time: null,
       tags: dto.tags || [],
       category_name: dto.category || 'uncategorized',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      is_deleted: false
+      is_deleted: false,
+      list_id: null,
+      created_by: null,
+      
+      // Notes and checklist fields
+      notes: null,
+      checklist_items: null,
+      note_type: null,
+      
+      // NLP fields
+      nlp_tokens: null,
+      extracted_entities: null,
+      embedding_data: null,
+      confidence_score: null,
+      processing_metadata: null,
+      
+      // Add sync properties
+      _pendingSync: true,
+      _lastUpdated: new Date().toISOString(),
+      _sync_error: undefined
     } as Omit<OfflineTask, 'id'>;
   }
   
@@ -121,7 +199,7 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
     if (dto.status !== undefined) updates.status = dto.status as TaskStatusType;
     if (dto.priority !== undefined) updates.priority = dto.priority;
     if (dto.dueDate !== undefined) updates.due_date = dto.dueDate ? new Date(dto.dueDate).toISOString() : null;
-    if (dto.estimatedTime !== undefined) updates.estimated_time = this.formatTimeInput(dto.estimatedTime);
+    if (dto.estimatedTime !== undefined) updates.estimated_time = this.formatTimeInput(dto.estimatedTime ? Number(dto.estimatedTime) : null);
     if (dto.tags !== undefined) updates.tags = dto.tags;
     if (dto.category !== undefined) updates.category_name = dto.category;
     
@@ -143,8 +221,8 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
    * Format time input from minutes to interval format
    * @private
    */
-  private formatTimeInput(timeInMinutes?: number | null): string | null {
-    if (!timeInMinutes) return null;
+  private formatTimeInput(timeInMinutes: number | null): string | null {
+    if (timeInMinutes === null) return null;
     return `${timeInMinutes * 60} seconds`;
   }
   

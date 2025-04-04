@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Task, TaskStatusType } from '../../types/task';
 import { ServiceRegistry } from '../../services/ServiceRegistry';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/Toast/ToastContext';
 import { filterTasks } from '../../lib/taskUtils';
 import { TaskFilter, defaultFilters } from '../../components/TaskList/FilterPanel';
 
@@ -85,11 +85,7 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
       
       taskService.on('error', (error) => {
         setError(error.message);
-        addToast({
-          type: 'error',
-          title: 'Task operation failed',
-          message: error.message
-        });
+        addToast(error.message, 'error');
       })
     ];
     
@@ -133,11 +129,7 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error fetching tasks');
       setError(error.message);
-      addToast({
-        type: 'error',
-        title: 'Error loading tasks',
-        message: error.message
-      });
+      addToast(error.message, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -150,19 +142,11 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
       setError(null);
       
       await taskService.refreshTasks();
-      addToast({
-        type: 'success',
-        title: 'Tasks refreshed',
-        message: 'Task list has been updated with the latest data'
-      });
+      addToast('Task list has been updated with the latest data', 'success');
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error refreshing tasks');
       setError(error.message);
-      addToast({
-        type: 'error',
-        title: 'Error refreshing tasks',
-        message: error.message
-      });
+      addToast(error.message, 'error');
     } finally {
       setIsRefreshing(false);
     }
@@ -179,19 +163,11 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
       await taskService.sync();
       setHasPendingChanges(false);
       
-      addToast({
-        type: 'success',
-        title: 'Sync completed',
-        message: 'Tasks have been synced with the server'
-      });
+      addToast('Tasks have been synced with the server', 'success');
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error syncing tasks');
       setError(error.message);
-      addToast({
-        type: 'error',
-        title: 'Sync failed',
-        message: error.message
-      });
+      addToast(error.message, 'error');
     } finally {
       setIsSyncing(false);
     }
@@ -201,17 +177,14 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
   const updateTaskStatus = useCallback(async (taskId: string, newStatus: TaskStatusType) => {
     try {
       setError(null);
-      await taskService.updateTaskStatus(taskId, newStatus);
+      // Explicitly cast the newStatus to match what the service expects
+      await taskService.updateTaskStatus(taskId, newStatus as any);
       
       // No need to update local state, it will be updated via the event listener
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error updating task status');
       setError(error.message);
-      addToast({
-        type: 'error',
-        title: 'Status update failed',
-        message: error.message
-      });
+      addToast(error.message, 'error');
     }
   }, [taskService, addToast]);
   
@@ -222,21 +195,13 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
       
       await taskService.deleteTask(taskId);
       
-      addToast({
-        type: 'success',
-        title: 'Task deleted',
-        message: 'The task has been removed'
-      });
+      addToast('The task has been removed', 'success');
       
       // No need to update local state, it will be updated via the event listener
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error deleting task');
       setError(error.message);
-      addToast({
-        type: 'error',
-        title: 'Delete failed',
-        message: error.message
-      });
+      addToast(error.message, 'error');
     }
   }, [taskService, addToast]);
   

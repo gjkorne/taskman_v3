@@ -2,7 +2,6 @@ import { Task } from '../types/task';
 import { TaskCreateDTO, TaskUpdateDTO, taskRepository } from '../repositories/taskRepository';
 import { ITaskService, TaskServiceEvents } from './interfaces/ITaskService';
 import { BaseService, ServiceError } from './BaseService';
-import { TaskStatus } from '../components/TaskForm/schema';
 
 /**
  * Improved TaskService that uses the repository pattern
@@ -135,7 +134,7 @@ export class TaskService extends BaseService<TaskServiceEvents> implements ITask
   /**
    * Update a task's status
    */
-  async updateTaskStatus(id: string, status: TaskStatus): Promise<Task | null> {
+  async updateTaskStatus(id: string, status: string): Promise<Task | null> {
     try {
       return await this.updateTask(id, { status });
     } catch (error) {
@@ -166,6 +165,19 @@ export class TaskService extends BaseService<TaskServiceEvents> implements ITask
       return await this.updateTaskStatus(id, 'completed');
     } catch (error) {
       const serviceError: ServiceError = this.processError(error, 'task_service.complete_task_error');
+      this.emit('error', serviceError);
+      return null;
+    }
+  }
+
+  /**
+   * Pause a task (change status to PAUSED)
+   */
+  async pauseTask(id: string): Promise<Task | null> {
+    try {
+      return await this.updateTaskStatus(id, 'paused');
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'task_service.pause_task_error');
       this.emit('error', serviceError);
       return null;
     }

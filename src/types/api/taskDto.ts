@@ -15,6 +15,11 @@ export interface TaskApiDto {
   actual_time: string | null; // Database uses interval type
   tags: string[] | null;
   
+  // Notes and checklist fields
+  notes: any | null;              // JSONB in database - stores rich text content
+  checklist_items: any[] | null;  // JSONB array - stores checklist items
+  note_type: 'text' | 'checklist' | 'both' | null; // Primary display type
+  
   // Metadata fields
   created_at: string;
   updated_at: string | null;

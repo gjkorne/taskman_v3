@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
-import { Category, categoryService } from '../../services/api/categoryService';
+import { categoryService } from '../../services/api/categoryService';
+import { Category } from '../../services/interfaces/ICategoryService';
 import { CATEGORIES } from '../../types/categories';
 import { useToast } from '../../components/Toast';
+import { useAuth } from '../../lib/auth';
 
 // Helper to check for development environment
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -38,16 +40,38 @@ export function CategoryDataProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Get authentication state
+  const { user, loading: authLoading } = useAuth();
+  
   // Get toast notifications
   const { addToast } = useToast();
 
-  // Fetch categories on mount
+  // Fetch categories when user is authenticated
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    // Don't attempt to fetch categories until authentication state is resolved
+    if (authLoading) return;
+    
+    // If user is authenticated, fetch their categories
+    if (user) {
+      fetchCategories();
+    } else {
+      // If not authenticated, set default built-in categories
+      // and mark as not loading
+      setCategories([]);
+      setDefaultCategories([]);
+      setIsLoading(false);
+    }
+  }, [user, authLoading]);
 
   // Fetch all categories
   const fetchCategories = async () => {
+    // Only proceed if user is authenticated
+    if (!user) {
+      setCategories([]);
+      setIsLoading(false);
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     
@@ -72,6 +96,11 @@ export function CategoryDataProvider({ children }: { children: ReactNode }) {
       }
       
       setError(errorMessage);
+      
+      // Don't show authentication errors to the user as toast messages
+      if (!err.message?.includes('must be logged in')) {
+        addToast(errorMessage, 'error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +108,11 @@ export function CategoryDataProvider({ children }: { children: ReactNode }) {
 
   // Refresh categories (for when data changes)
   const refreshCategories = async () => {
-    return fetchCategories();
+    // Only refresh if user is authenticated
+    if (user) {
+      return fetchCategories();
+    }
+    return Promise.resolve();
   };
   
   // Create a new category
@@ -90,6 +123,12 @@ export function CategoryDataProvider({ children }: { children: ReactNode }) {
     icon?: string,
     isDefault?: boolean
   ): Promise<Category | null> => {
+    // Check for authentication
+    if (!user) {
+      addToast('You must be logged in to create categories', 'error');
+      return null;
+    }
+    
     try {
       const { data, error: createError } = await categoryService.createCategory({
         name,
@@ -101,27 +140,23 @@ export function CategoryDataProvider({ children }: { children: ReactNode }) {
       
       if (createError) throw createError;
       
+      // Update local state
       if (data) {
-        // Update local state
         setCategories(prev => [...prev, data]);
         
-        // Show success message
-        addToast(`Category "${name}" created successfully`, 'success');
+        // Update default categories if needed
+        if (isDefault) {
+          setDefaultCategories(prev => [...prev, data]);
+        }
         
-        return data;
+        addToast(`Category ${name} created successfully`, 'success');
       }
       
-      return null;
+      return data;
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to create category';
-      
-      if (isDevelopment) {
-        console.error('Error creating category:', err);
-      }
-      
-      // Show error message
+      setError(errorMessage);
       addToast(errorMessage, 'error');
-      
       return null;
     }
   };
@@ -131,6 +166,12 @@ export function CategoryDataProvider({ children }: { children: ReactNode }) {
     id: string,
     data: { name?: string; subcategories?: string[]; color?: string; icon?: string; isDefault?: boolean }
   ): Promise<Category | null> => {
+    // Check for authentication
+    if (!user) {
+      addToast('You must be logged in to update categories', 'error');
+      return null;
+    }
+    
     try {
       // Convert from client-side field names to server-side
       const serverData = {
@@ -165,15 +206,20 @@ export function CategoryDataProvider({ children }: { children: ReactNode }) {
         console.error('Error updating category:', err);
       }
       
-      // Show error message
+      setError(errorMessage);
       addToast(errorMessage, 'error');
-      
       return null;
     }
   };
   
   // Delete a category
   const deleteCategory = async (id: string): Promise<boolean> => {
+    // Check for authentication
+    if (!user) {
+      addToast('You must be logged in to delete categories', 'error');
+      return false;
+    }
+    
     try {
       const { error: deleteError } = await categoryService.deleteCategory(id);
       
@@ -193,15 +239,20 @@ export function CategoryDataProvider({ children }: { children: ReactNode }) {
         console.error('Error deleting category:', err);
       }
       
-      // Show error message
+      setError(errorMessage);
       addToast(errorMessage, 'error');
-      
       return false;
     }
   };
   
   // Set a category as default
   const setDefaultCategory = async (id: string): Promise<boolean> => {
+    // Check for authentication
+    if (!user) {
+      addToast('You must be logged in to set default categories', 'error');
+      return false;
+    }
+    
     try {
       const { error: updateError } = await categoryService.setDefaultCategory(id);
       
@@ -221,9 +272,8 @@ export function CategoryDataProvider({ children }: { children: ReactNode }) {
         console.error('Error setting default category:', err);
       }
       
-      // Show error message
+      setError(errorMessage);
       addToast(errorMessage, 'error');
-      
       return false;
     }
   };

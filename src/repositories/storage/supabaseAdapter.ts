@@ -35,19 +35,16 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
    */
   async getAll(): Promise<T[]> {
     try {
-      console.log(`SupabaseAdapter.getAll: Fetching from ${this.tableName} table`);
-      
       // Check authentication status
-      const { data: authData, error: authError } = await supabase.auth.getSession();
-      if (authError) {
-        console.error('SupabaseAdapter: Authentication error:', authError);
-        throw authError;
-      }
+      const { data: authData } = await supabase.auth.getSession();
       
+      // If not authenticated and this table requires auth, return empty results
       if (!authData.session) {
-        console.warn('SupabaseAdapter: No authenticated session found');
-      } else {
-        console.log('SupabaseAdapter: Authenticated as user:', authData.session.user.id);
+        // Log at debug level instead of warning to avoid console noise
+        if (isDevelopment()) {
+          console.debug(`SupabaseAdapter: No authenticated session for ${this.tableName} access, returning empty results`);
+        }
+        return [];
       }
       
       let query = supabase.from(this.tableName).select(this.options.select || '*');
@@ -59,7 +56,6 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
         });
       }
       
-      console.log(`SupabaseAdapter.getAll: Executing query on ${this.tableName}`);
       const { data, error } = await query;
       
       if (error) {
@@ -67,7 +63,9 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
         throw error;
       }
       
-      console.log(`SupabaseAdapter.getAll: Successfully fetched from ${this.tableName}:`, data ? data.length : 0, 'items');
+      if (isDevelopment()) {
+        console.debug(`SupabaseAdapter.getAll: Successfully fetched from ${this.tableName}:`, data ? data.length : 0, 'items');
+      }
       
       // Transform rows if transformer is provided
       if (this.options.transformRow && data) {
@@ -86,6 +84,17 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
    */
   async getById(id: string): Promise<T | null> {
     try {
+      // Check authentication status
+      const { data: authData } = await supabase.auth.getSession();
+      
+      // If not authenticated and this table requires auth, return null
+      if (!authData.session) {
+        if (isDevelopment()) {
+          console.debug(`SupabaseAdapter: No authenticated session for ${this.tableName} access, returning null for ID ${id}`);
+        }
+        return null;
+      }
+      
       const { data, error } = await supabase
         .from(this.tableName)
         .select(this.options.select || '*')
@@ -113,11 +122,19 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
   }
 
   /**
-   * Create new item
+   * Create a new item
    */
   async create(data: Partial<T>): Promise<T> {
     try {
-      // Prepare data for insertion if prepareData is provided
+      // Check authentication status
+      const { data: authData } = await supabase.auth.getSession();
+      
+      // If not authenticated, throw error as creation requires auth
+      if (!authData.session) {
+        throw new Error('Authentication required to create data');
+      }
+      
+      // Prepare data for insertion if a transformer is provided
       const preparedData = this.options.prepareData 
         ? this.options.prepareData(data) 
         : data;
@@ -125,29 +142,39 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
       const { data: created, error } = await supabase
         .from(this.tableName)
         .insert(preparedData)
-        .select(this.options.select || '*')
+        .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
       // Transform row if transformer is provided
-      if (this.options.transformRow && created) {
+      if (this.options.transformRow) {
         return this.options.transformRow(created);
       }
       
       return created as T;
     } catch (error) {
-      console.error(`Error creating ${this.tableName}:`, error);
+      console.error(`SupabaseAdapter.create: Error creating in ${this.tableName}:`, error);
       throw error;
     }
   }
 
   /**
-   * Update existing item
+   * Update an existing item
    */
   async update(id: string, data: Partial<T>): Promise<T> {
     try {
-      // Prepare data for update if prepareData is provided
+      // Check authentication status
+      const { data: authData } = await supabase.auth.getSession();
+      
+      // If not authenticated, throw error as updates require auth
+      if (!authData.session) {
+        throw new Error('Authentication required to update data');
+      }
+      
+      // Prepare data for update if a transformer is provided
       const preparedData = this.options.prepareData 
         ? this.options.prepareData(data) 
         : data;
@@ -156,28 +183,42 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
         .from(this.tableName)
         .update(preparedData)
         .eq('id', id)
-        .select(this.options.select || '*')
+        .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+      
+      if (!updated) {
+        throw new Error(`Record with ID ${id} not found`);
+      }
       
       // Transform row if transformer is provided
-      if (this.options.transformRow && updated) {
+      if (this.options.transformRow) {
         return this.options.transformRow(updated);
       }
       
       return updated as T;
     } catch (error) {
-      console.error(`Error updating ${this.tableName}:`, error);
+      console.error(`SupabaseAdapter.update: Error updating in ${this.tableName}:`, error);
       throw error;
     }
   }
 
   /**
-   * Delete item by ID
+   * Delete an item
    */
   async delete(id: string): Promise<boolean> {
     try {
+      // Check authentication status
+      const { data: authData } = await supabase.auth.getSession();
+      
+      // If not authenticated, throw error as deletion requires auth
+      if (!authData.session) {
+        throw new Error('Authentication required to delete data');
+      }
+      
       const { error } = await supabase
         .from(this.tableName)
         .delete()
@@ -207,4 +248,9 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
       throw error;
     }
   }
+}
+
+// Helper function to check if running in development mode
+function isDevelopment(): boolean {
+  return process.env.NODE_ENV !== 'production';
 }
