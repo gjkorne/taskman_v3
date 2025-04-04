@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Timer Synchronization feature enables TaskMan to maintain consistent timer state across multiple devices. It addresses the issue where starting a task timer on one device wouldn't reflect on another device, causing confusion and potential data inconsistency.
+The Timer Synchronization feature enables TassKman to maintain consistent timer state across multiple devices. It addresses the issue where starting a task timer on one device wouldn't reflect on another device, causing confusion and potential data inconsistency.
 
 ## Architecture
 
