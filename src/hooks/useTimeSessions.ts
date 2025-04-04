@@ -182,34 +182,34 @@ export function useTimeSessions(taskId?: string) {
     try {
       console.log('Attempting to delete session:', sessionId);
       
-      // First update the UI optimistically by removing the session from state
-      setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionId));
-      
-      // Remove from active sessions if present
-      if (activeSessions.current.includes(sessionId)) {
-        activeSessions.current = activeSessions.current.filter(id => id !== sessionId);
-      }
-      
-      // Then perform the actual delete operation
+      // First, perform the soft-delete operation
       const success = await timeSessionsService.deleteSession(sessionId);
       
       if (success) {
-        console.log('Session successfully deleted');
+        console.log('Session successfully soft-deleted');
+        
+        // Now update UI by filtering out the soft-deleted session
+        setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionId));
+        
+        // Remove from active sessions if present
+        if (activeSessions.current.includes(sessionId)) {
+          activeSessions.current = activeSessions.current.filter(id => id !== sessionId);
+        }
+        
         // Recalculate total time without the deleted session
         const updatedSessions = sessions.filter(s => s.id !== sessionId);
         setTotalTime(calculateTotalTime(updatedSessions));
+        
+        // No need to fetch again since we've updated the UI state correctly
+        console.log('UI updated to reflect deleted session');
+        
         return true;
       } else {
-        // If deletion failed, revert the optimistic update
-        console.error('Failed to delete session, reverting UI');
-        refreshSessions();
+        console.error('Failed to delete session');
         return false;
       }
     } catch (err) {
       console.error('Error deleting session:', err);
-      // If there was an error, revert the optimistic update and refresh
-      refreshSessions();
-      setError(err instanceof Error ? err : new Error('Failed to delete session'));
       return false;
     }
   };

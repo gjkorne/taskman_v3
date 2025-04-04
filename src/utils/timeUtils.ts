@@ -18,11 +18,15 @@ export function parseDurationToSeconds(durationStr: string | null): number {
   // Special case for null/undefined/empty
   if (!durationStr.trim()) return 0;
   
+  const originalInput = durationStr; // Store for debugging
+  let result = 0;
+  
   // Try to parse "X seconds" format
   const secondsMatch = durationStr.match(/^(\d+) seconds?$/);
   if (secondsMatch) {
     const seconds = parseInt(secondsMatch[1], 10);
     if (!isNaN(seconds)) {
+      console.log(`Parsed duration "${originalInput}" as ${seconds} seconds (direct seconds format)`);
       return seconds;
     }
   }
@@ -31,7 +35,9 @@ export function parseDurationToSeconds(durationStr: string | null): number {
   const timeMatch = durationStr.match(/^(\d{1,2}):(\d{1,2}):(\d{1,2})(?:\.\d+)?$/);
   if (timeMatch) {
     const [, hours, minutes, seconds] = timeMatch;
-    return parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
+    result = parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
+    console.log(`Parsed duration "${originalInput}" as ${result} seconds (HH:MM:SS format)`);
+    return result;
   }
   
   // Try to parse PostgreSQL ISO 8601 format: P0Y0M0DT0H30M0S
@@ -45,43 +51,73 @@ export function parseDurationToSeconds(durationStr: string | null): number {
     if (hours) totalSeconds += parseInt(hours, 10) * 3600;
     if (minutes) totalSeconds += parseInt(minutes, 10) * 60;
     if (seconds) totalSeconds += parseInt(seconds, 10);
+    console.log(`Parsed duration "${originalInput}" as ${totalSeconds} seconds (ISO format)`);
     return totalSeconds;
   }
   
   // Try to parse PostgreSQL verbose format
   let totalSeconds = 0;
+  let matched = false;
   
   // Extract hours
   const hoursMatch = durationStr.match(/(\d+)\s+hour[s]?/);
   if (hoursMatch) {
     totalSeconds += parseInt(hoursMatch[1], 10) * 3600;
+    matched = true;
   }
   
   // Extract minutes
   const minsMatch = durationStr.match(/(\d+)\s+min[s]?/);
   if (minsMatch) {
     totalSeconds += parseInt(minsMatch[1], 10) * 60;
+    matched = true;
   }
   
   // Extract seconds
   const secsMatch = durationStr.match(/(\d+(?:\.\d+)?)\s+sec[s]?/);
   if (secsMatch) {
     totalSeconds += Math.floor(parseFloat(secsMatch[1]));
+    matched = true;
   }
   
-  // If we still couldn't parse it, try one more format: "X days HH:MM:SS"
-  if (totalSeconds === 0) {
-    const daysTimeMatch = durationStr.match(/(?:(\d+)\s+days?\s+)?(\d{1,2}):(\d{2}):(\d{2})/);
-    if (daysTimeMatch) {
-      const [, days, hours, minutes, seconds] = daysTimeMatch;
-      if (days) totalSeconds += parseInt(days, 10) * 24 * 3600;
-      totalSeconds += parseInt(hours, 10) * 3600;
-      totalSeconds += parseInt(minutes, 10) * 60;
-      totalSeconds += parseInt(seconds, 10);
-    }
+  if (matched) {
+    console.log(`Parsed duration "${originalInput}" as ${totalSeconds} seconds (verbose format)`);
+    return totalSeconds;
   }
   
-  return totalSeconds;
+  // Try to parse "X days HH:MM:SS" format
+  const daysTimeMatch = durationStr.match(/(?:(\d+)\s+days?\s+)?(\d{1,2}):(\d{2}):(\d{2})/);
+  if (daysTimeMatch) {
+    const [, days, hours, minutes, seconds] = daysTimeMatch;
+    if (days) totalSeconds += parseInt(days, 10) * 24 * 3600;
+    totalSeconds += parseInt(hours, 10) * 3600;
+    totalSeconds += parseInt(minutes, 10) * 60;
+    totalSeconds += parseInt(seconds, 10);
+    console.log(`Parsed duration "${originalInput}" as ${totalSeconds} seconds (days + HH:MM:SS format)`);
+    return totalSeconds;
+  }
+  
+  // Try to parse PostgreSQL interval notation: e.g., "00:15:00"
+  const pgIntervalMatch = durationStr.match(/^(\d{2}):(\d{2}):(\d{2})$/);
+  if (pgIntervalMatch) {
+    const [, hours, minutes, seconds] = pgIntervalMatch;
+    result = parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
+    console.log(`Parsed duration "${originalInput}" as ${result} seconds (PostgreSQL interval notation)`);
+    return result;
+  }
+  
+  // Try to parse microseconds format (e.g. "15:00:00.123456")
+  const microsecondsMatch = durationStr.match(/^(\d{2}):(\d{2}):(\d{2})\.(\d{1,6})$/);
+  if (microsecondsMatch) {
+    const [, hours, minutes, seconds] = microsecondsMatch;
+    result = parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
+    console.log(`Parsed duration "${originalInput}" as ${result} seconds (microseconds format)`);
+    return result;
+  }
+  
+  // If we still couldn't parse, log it and return 0
+  console.warn(`Failed to parse duration format: "${originalInput}"`);
+  return 0;
 }
 
 //=========================================================
@@ -117,23 +153,40 @@ export function formatMillisecondsToTime(totalMs: number): string {
 
 /**
  * Format duration in a human-readable way (e.g. "2h 30m")
+ * @param duration Duration as string or number of seconds
  */
-export function formatDurationHumanReadable(durationStr: string | null): string {
-  if (!durationStr) return '0m';
+export function formatDurationHumanReadable(duration: string | number | null): string {
+  if (duration === null || duration === undefined || duration === '') return '0m';
   
-  const totalSeconds = parseDurationToSeconds(durationStr);
+  // If duration is already a number, assume it's in seconds
+  let totalSeconds: number;
+  if (typeof duration === 'number') {
+    totalSeconds = duration;
+    console.log(`formatDurationHumanReadable: using number input directly: ${totalSeconds}s`);
+  } else {
+    totalSeconds = parseDurationToSeconds(duration);
+    console.log(`formatDurationHumanReadable: parsed from string: "${duration}" → ${totalSeconds}s`);
+  }
+  
   if (totalSeconds === 0) return '0m';
   
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = Math.floor(totalSeconds % 60);
   
-  if (hours === 0) {
-    return `${minutes}m`;
-  } else if (minutes === 0) {
-    return `${hours}h`;
-  } else {
-    return `${hours}h ${minutes}m`;
+  let result = '';
+  if (hours > 0) {
+    result += `${hours}h `;
   }
+  
+  if (minutes > 0 || (hours > 0 && seconds > 0)) {
+    result += `${minutes}m`;
+  } else if (hours === 0 && minutes === 0) {
+    // If less than a minute, show seconds
+    result = `${seconds}s`;
+  }
+  
+  return result.trim();
 }
 
 /**

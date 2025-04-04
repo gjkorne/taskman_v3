@@ -12,12 +12,14 @@ export interface TimeSession {
   duration: string | null; // PostgreSQL interval as string
   created_at: string;
   notes?: string;
+  is_deleted?: boolean; // Add is_deleted field for soft deletion
   // Add task information from joined queries
   tasks?: {
     title?: string;
     status?: string;
     priority?: string;
     category_name?: string;
+    is_deleted?: boolean;
   };
 }
 
@@ -56,8 +58,9 @@ export class TimeSessionsService {
     
     const { data, error } = await supabase
       .from('time_sessions')
-      .select('*, tasks(title, status, priority, category_name)')
+      .select('*, tasks(title, status, priority, category_name, is_deleted)')
       .eq('user_id', userData.user.id)
+      .eq('is_deleted', false) // Filter out soft-deleted sessions
       .order('start_time', { ascending: false });
       
     if (error) {
@@ -65,7 +68,10 @@ export class TimeSessionsService {
       throw error;
     }
     
-    return data;
+    // Filter out sessions for deleted tasks
+    const filteredData = data?.filter(session => !session.tasks?.is_deleted);
+    
+    return filteredData;
   }
 
   /**
@@ -81,8 +87,9 @@ export class TimeSessionsService {
     
     const { data, error } = await supabase
       .from('time_sessions')
-      .select('*, tasks(title, status, priority, category_name)')
+      .select('*, tasks(title, status, priority, category_name, is_deleted)')
       .eq('user_id', userData.user.id)
+      .eq('is_deleted', false) // Filter out soft-deleted sessions
       .gte('start_time', startDate.toISOString())
       .lte('start_time', endDate.toISOString())
       .order('start_time', { ascending: false });
@@ -92,7 +99,10 @@ export class TimeSessionsService {
       throw error;
     }
     
-    return data;
+    // Filter out sessions for deleted tasks
+    const filteredData = data?.filter(session => !session.tasks?.is_deleted);
+    
+    return filteredData;
   }
   
   /**
@@ -126,7 +136,7 @@ export class TimeSessionsService {
    * Delete a time session by ID
    */
   async deleteSession(sessionId: string) {
-    console.log(`Attempting to delete session with ID: ${sessionId}`);
+    console.log(`Attempting to soft delete session with ID: ${sessionId}`);
     
     if (!sessionId) {
       console.error('Invalid session ID for deletion');
@@ -134,21 +144,21 @@ export class TimeSessionsService {
     }
     
     try {
+      // Implement soft delete by updating is_deleted flag instead of physically deleting
       const { error } = await supabase
         .from('time_sessions')
-        .delete()
+        .update({ is_deleted: true })
         .eq('id', sessionId);
         
       if (error) {
-        console.error('Error deleting time session:', error);
+        console.error('Error soft-deleting time session:', error);
         throw error;
       }
       
-      console.log(`Successfully deleted session: ${sessionId}`);
+      console.log(`Successfully soft-deleted session: ${sessionId}`);
       return true;
     } catch (error) {
       console.error('Exception during session deletion:', error);
-      // Re-throw the error so the caller can handle it
       throw error;
     }
   }
@@ -186,6 +196,7 @@ export class TimeSessionsService {
         )
       `)
       .eq('user_id', targetUserId)
+      .eq('is_deleted', false) // Filter out soft-deleted sessions
       .gte('start_time', startDate.toISOString());
       
     if (error) {

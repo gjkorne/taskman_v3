@@ -11,6 +11,7 @@ interface TimeSessionsListProps {
   limit?: number;
   className?: string;
   onSessionsLoaded?: (totalTime: string) => void;
+  onSessionDeleted?: () => void;
 }
 
 /**
@@ -21,7 +22,8 @@ export function TimeSessionsList({
   compact = false,
   limit,
   className,
-  onSessionsLoaded
+  onSessionsLoaded,
+  onSessionDeleted
 }: TimeSessionsListProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -82,6 +84,11 @@ export function TimeSessionsList({
             delete newState[sessionId];
             return newState;
           });
+          
+          // Notify parent component about deletion
+          if (onSessionDeleted) {
+            onSessionDeleted();
+          }
         } else {
           console.error('Failed to delete session');
           alert('Failed to delete the session. Please try again.');

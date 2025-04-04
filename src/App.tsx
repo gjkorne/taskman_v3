@@ -7,7 +7,7 @@ import { RegisterForm } from './components/Auth/RegisterForm';
 import { Layout } from './components/Layout';
 import { TaskList, TaskListRefType } from './components/TaskList';
 import { Timer } from './components/Timer';
-import { Reports } from './components/Reports';
+import { ReportsPage } from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
 import { TaskDetailsPage } from './pages/TaskDetailsPage';
@@ -159,7 +159,7 @@ function App() {
                                       />
                                     )}
                                     {activeView === 'timer' && <Timer />}
-                                    {activeView === 'reports' && <Reports />}
+                                    {activeView === 'reports' && <ReportsPage />}
                                     {activeView === 'settings' && <SettingsPage />}
                                     {activeView === 'admin' && <AdminPage />}
                                     {activeView === 'time-sessions' && <TimeSessionsPage />}
