@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { taskFormSchema, TaskFormData } from '../components/TaskForm/schema';
 import { getSubcategoryFromTags, updateSubcategoryInTags } from '../types/categories';
-import { useTaskContext } from '../contexts/TaskContext';
+import { useTaskContext } from '../contexts/TaskCompat';
 import { taskService } from '../services/api';
 import { TaskStatusValues, TaskPriority, Task } from '../types/task';
 

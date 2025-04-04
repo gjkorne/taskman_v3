@@ -14,7 +14,7 @@ import {
 } from '../../types/list';
 import ListEditor from './ListEditor';
 import { ListChecks, FileText, Layers } from 'lucide-react';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useSettings } from '../../contexts/SettingsCompat';
 
 interface NotesEditorProps {
   value: string | null;

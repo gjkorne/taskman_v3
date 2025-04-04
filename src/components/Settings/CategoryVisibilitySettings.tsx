@@ -1,5 +1,5 @@
 import { useCategories } from '../../contexts/CategoryCompat';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useSettings } from '../../contexts/SettingsCompat';
 import { Icon } from '../UI/Icon';
 
 export function CategoryVisibilitySettings() {

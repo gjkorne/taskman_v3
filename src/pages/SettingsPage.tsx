@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/SettingsCompat';
 import { CategorySettings } from '../components/Settings/CategorySettings';
 
 interface SettingsPageProps {

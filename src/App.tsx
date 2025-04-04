@@ -31,6 +31,10 @@ if (process.env.NODE_ENV === 'development') {
   import('./utils/debugTools');
 }
 
+// Import the new providers
+import { SettingsDataProvider } from './contexts/settings/SettingsDataContext';
+import { SettingsUIProvider } from './contexts/settings/SettingsUIContext';
+
 const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -136,51 +140,55 @@ function App() {
             <ErrorProvider>
               <NetworkStatusProvider>
                 <SettingsProvider>
-                  <TimeSessionProvider>
-                    <TaskProvider>
-                      <CategoryProvider>
-                        <BrowserRouter>
-                          <Routes>
-                            <Route path="/login" element={<LoginForm />} />
-                            <Route path="/register" element={<RegisterForm />} />
-                            <Route
-                              path="/"
-                              element={
-                                <ProtectedRoute>
-                                  <Layout 
-                                    activeView={activeView} 
-                                    onViewChange={setActiveView}
-                                    onTaskCreated={handleTaskCreated}
-                                    onTimerStateChange={handleTimerStateChange}
-                                  >
-                                    {activeView === 'tasks' && (
-                                      <TaskList 
-                                        ref={taskListRef} 
-                                      />
-                                    )}
-                                    {activeView === 'timer' && <Timer />}
-                                    {activeView === 'reports' && <ReportsPage />}
-                                    {activeView === 'settings' && <SettingsPage />}
-                                    {activeView === 'admin' && <AdminPage />}
-                                    {activeView === 'time-sessions' && <TimeSessionsPage />}
-                                    {activeView === 'calendar' && <CalendarPage />}
-                                  </Layout>
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route 
-                              path="/tasks/:taskId" 
-                              element={
-                                <ProtectedRoute>
-                                  <TaskDetailsPage />
-                                </ProtectedRoute>
-                              } 
-                            />
-                          </Routes>
-                        </BrowserRouter>
-                      </CategoryProvider>
-                    </TaskProvider>
-                  </TimeSessionProvider>
+                  <SettingsDataProvider>
+                    <SettingsUIProvider>
+                      <TimeSessionProvider>
+                        <TaskProvider>
+                          <CategoryProvider>
+                            <BrowserRouter>
+                              <Routes>
+                                <Route path="/login" element={<LoginForm />} />
+                                <Route path="/register" element={<RegisterForm />} />
+                                <Route
+                                  path="/"
+                                  element={
+                                    <ProtectedRoute>
+                                      <Layout 
+                                        activeView={activeView} 
+                                        onViewChange={setActiveView}
+                                        onTaskCreated={handleTaskCreated}
+                                        onTimerStateChange={handleTimerStateChange}
+                                      >
+                                        {activeView === 'tasks' && (
+                                          <TaskList 
+                                            ref={taskListRef} 
+                                          />
+                                        )}
+                                        {activeView === 'timer' && <Timer />}
+                                        {activeView === 'reports' && <ReportsPage />}
+                                        {activeView === 'settings' && <SettingsPage />}
+                                        {activeView === 'admin' && <AdminPage />}
+                                        {activeView === 'time-sessions' && <TimeSessionsPage />}
+                                        {activeView === 'calendar' && <CalendarPage />}
+                                      </Layout>
+                                    </ProtectedRoute>
+                                  }
+                                />
+                                <Route 
+                                  path="/tasks/:taskId" 
+                                  element={
+                                    <ProtectedRoute>
+                                      <TaskDetailsPage />
+                                    </ProtectedRoute>
+                                  } 
+                                />
+                              </Routes>
+                            </BrowserRouter>
+                          </CategoryProvider>
+                        </TaskProvider>
+                      </TimeSessionProvider>
+                    </SettingsUIProvider>
+                  </SettingsDataProvider>
                 </SettingsProvider>
               </NetworkStatusProvider>
             </ErrorProvider>

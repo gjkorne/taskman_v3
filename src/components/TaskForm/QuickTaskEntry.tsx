@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTaskActions } from '../../hooks/useTaskActions';
 import { TaskStatus } from '../../types/task';
 import { Icon } from '../UI/Icon';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useSettings } from '../../contexts/SettingsCompat';
 import { useCategories } from '../../contexts/CategoryCompat';
 
 /**
