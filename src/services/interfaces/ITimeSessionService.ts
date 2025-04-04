@@ -1,5 +1,6 @@
 import { IService } from './IService';
 import { TimeSession } from '../api/timeSessionsService';
+import { ServiceError } from '../BaseService';
 
 /**
  * Event types that can be emitted by the TimeSessionService
@@ -12,7 +13,7 @@ export interface TimeSessionEvents {
   'session-paused': TimeSession;
   'session-stopped': TimeSession;
   'sessions-loaded': TimeSession[];
-  'error': Error;
+  'error': ServiceError;
 }
 
 /**
@@ -38,6 +39,11 @@ export interface ITimeSessionService extends IService<TimeSessionEvents> {
    * Get a specific time session by ID
    */
   getSessionById(id: string): Promise<TimeSession | null>;
+  
+  /**
+   * Get the currently active time session (has start_time but no end_time)
+   */
+  getActiveSession(): Promise<TimeSession | null>;
   
   /**
    * Create a new time session

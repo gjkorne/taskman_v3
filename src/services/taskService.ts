@@ -1,19 +1,24 @@
-import { Task, TaskStatus } from '../types/task';
+import { Task } from '../types/task';
 import { TaskCreateDTO, TaskUpdateDTO, taskRepository } from '../repositories/taskRepository';
-import { EventEmitter } from '../utils/eventEmitter';
 import { ITaskService, TaskServiceEvents } from './interfaces/ITaskService';
+import { BaseService, ServiceError } from './BaseService';
+import { TaskStatus } from '../components/TaskForm/schema';
 
 /**
  * Improved TaskService that uses the repository pattern
  * 
  * This service contains business logic for task operations while
  * delegating data access to the repository layer.
+ * Extends BaseService for standardized error handling and event management.
  */
-export class TaskService implements ITaskService {
-  private taskEvents = new EventEmitter<TaskServiceEvents>();
-  private lastError: Error | null = null;
+export class TaskService extends BaseService<TaskServiceEvents> implements ITaskService {
   private refreshInProgress = false;
   private syncInProgress = false;
+
+  constructor() {
+    super();
+    this.markReady();
+  }
 
   /**
    * Get all tasks for the current user
@@ -23,19 +28,17 @@ export class TaskService implements ITaskService {
       console.log('TaskService: Getting all tasks from repository');
       // Ensure we're initializing the repository properly
       if (!taskRepository) {
-        console.error('TaskService: taskRepository is not initialized!');
         throw new Error('Task repository is not initialized');
       }
       
       const tasks = await taskRepository.getAll();
       console.log('TaskService: Successfully retrieved tasks:', tasks.length);
       
-      // Emit the tasks-loaded event with the tasks array
-      this.taskEvents.emit('tasks-loaded', tasks);
+      this.emit('tasks-loaded', tasks);
       return tasks;
     } catch (error) {
-      console.error('TaskService: Error fetching tasks:', error);
-      this.handleError('Error fetching tasks', error);
+      const serviceError: ServiceError = this.processError(error, 'task_service.get_tasks_error');
+      this.emit('error', serviceError);
       return [];
     }
   }
@@ -45,9 +48,15 @@ export class TaskService implements ITaskService {
    */
   async getTaskById(id: string): Promise<Task | null> {
     try {
-      return await taskRepository.getById(id);
+      if (!taskRepository) {
+        throw new Error('Task repository is not initialized');
+      }
+      
+      const task = await taskRepository.getById(id);
+      return task;
     } catch (error) {
-      this.handleError(`Error fetching task ${id}`, error);
+      const serviceError: ServiceError = this.processError(error, 'task_service.get_task_by_id_error');
+      this.emit('error', serviceError);
       return null;
     }
   }
@@ -57,12 +66,20 @@ export class TaskService implements ITaskService {
    */
   async createTask(taskData: TaskCreateDTO): Promise<Task | null> {
     try {
+      if (!taskRepository) {
+        throw new Error('Task repository is not initialized');
+      }
+      
       const task = await taskRepository.create(taskData);
-      this.taskEvents.emit('task-created', task);
-      this.taskEvents.emit('tasks-changed');
+      
+      // Emit event
+      this.emit('task-created', task);
+      this.emit('tasks-changed');
+      
       return task;
     } catch (error) {
-      this.handleError('Error creating task', error);
+      const serviceError: ServiceError = this.processError(error, 'task_service.create_task_error');
+      this.emit('error', serviceError);
       return null;
     }
   }
@@ -72,12 +89,20 @@ export class TaskService implements ITaskService {
    */
   async updateTask(id: string, taskData: TaskUpdateDTO): Promise<Task | null> {
     try {
+      if (!taskRepository) {
+        throw new Error('Task repository is not initialized');
+      }
+      
       const task = await taskRepository.update(id, taskData);
-      this.taskEvents.emit('task-updated', task);
-      this.taskEvents.emit('tasks-changed');
+      
+      // Emit event
+      this.emit('task-updated', task);
+      this.emit('tasks-changed');
+      
       return task;
     } catch (error) {
-      this.handleError(`Error updating task ${id}`, error);
+      const serviceError: ServiceError = this.processError(error, 'task_service.update_task_error');
+      this.emit('error', serviceError);
       return null;
     }
   }
@@ -87,14 +112,22 @@ export class TaskService implements ITaskService {
    */
   async deleteTask(id: string): Promise<boolean> {
     try {
-      const success = await taskRepository.delete(id);
-      if (success) {
-        this.taskEvents.emit('task-deleted', id);
-        this.taskEvents.emit('tasks-changed');
+      if (!taskRepository) {
+        throw new Error('Task repository is not initialized');
       }
+      
+      const success = await taskRepository.delete(id);
+      
+      if (success) {
+        // Emit event
+        this.emit('task-deleted', id);
+        this.emit('tasks-changed');
+      }
+      
       return success;
     } catch (error) {
-      this.handleError(`Error deleting task ${id}`, error);
+      const serviceError: ServiceError = this.processError(error, 'task_service.delete_task_error');
+      this.emit('error', serviceError);
       return false;
     }
   }
@@ -104,89 +137,66 @@ export class TaskService implements ITaskService {
    */
   async updateTaskStatus(id: string, status: TaskStatus): Promise<Task | null> {
     try {
-      console.log(`TaskService: Updating task ${id} status to ${status}`);
-      const task = await taskRepository.updateStatus(id, status);
-      
-      if (task) {
-        this.taskEvents.emit('task-updated', task);
-        this.taskEvents.emit('tasks-changed');
-      }
-      
-      return task;
+      return await this.updateTask(id, { status });
     } catch (error) {
-      this.handleError(`Error updating task status for ${id}`, error);
+      const serviceError: ServiceError = this.processError(error, 'task_service.update_status_error');
+      this.emit('error', serviceError);
       return null;
     }
   }
 
   /**
-   * Start a task (set status to ACTIVE)
+   * Start a task (change status to ACTIVE)
    */
   async startTask(id: string): Promise<Task | null> {
-    return this.updateTaskStatus(id, TaskStatus.ACTIVE);
+    try {
+      return await this.updateTaskStatus(id, 'active');
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'task_service.start_task_error');
+      this.emit('error', serviceError);
+      return null;
+    }
   }
 
   /**
-   * Complete a task (set status to COMPLETED)
+   * Complete a task (change status to COMPLETED)
    */
   async completeTask(id: string): Promise<Task | null> {
-    return this.updateTaskStatus(id, TaskStatus.COMPLETED);
+    try {
+      return await this.updateTaskStatus(id, 'completed');
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'task_service.complete_task_error');
+      this.emit('error', serviceError);
+      return null;
+    }
   }
 
   /**
-   * Force refresh tasks from the remote source
+   * Refresh all tasks from the data source
    */
   async refreshTasks(): Promise<Task[]> {
     if (this.refreshInProgress) {
-      console.warn('TaskService: Refresh already in progress');
+      console.log('TaskService: Refresh already in progress, skipping');
       return [];
     }
     
-    this.refreshInProgress = true;
-    
     try {
-      await taskRepository.forceRefresh();
-      const tasks = await this.getTasks();
+      this.refreshInProgress = true;
+      
+      if (!taskRepository) {
+        throw new Error('Task repository is not initialized');
+      }
+      
+      const tasks = await taskRepository.getAll();
+      
+      this.emit('tasks-loaded', tasks);
       return tasks;
     } catch (error) {
-      this.handleError('Error refreshing tasks', error);
+      const serviceError: ServiceError = this.processError(error, 'task_service.refresh_tasks_error');
+      this.emit('error', serviceError);
       return [];
     } finally {
       this.refreshInProgress = false;
-    }
-  }
-
-  /**
-   * Check if there are any pending changes that need to be synced
-   */
-  async hasUnsyncedChanges(): Promise<boolean> {
-    try {
-      return await taskRepository.hasPendingChanges();
-    } catch (error) {
-      console.error('Error checking for unsynced changes:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Sync tasks between local and remote storage
-   */
-  async sync(): Promise<void> {
-    if (this.syncInProgress) {
-      console.warn('TaskService: Sync already in progress');
-      return;
-    }
-    
-    this.syncInProgress = true;
-    
-    try {
-      await taskRepository.sync();
-      // Refresh task list after sync
-      await this.getTasks();
-    } catch (error) {
-      this.handleError('Error syncing tasks', error);
-    } finally {
-      this.syncInProgress = false;
     }
   }
 
@@ -195,65 +205,66 @@ export class TaskService implements ITaskService {
    */
   async forceRefresh(): Promise<void> {
     try {
+      if (!taskRepository) {
+        throw new Error('Task repository is not initialized');
+      }
+      
       await taskRepository.forceRefresh();
-      // Refresh tasks after the force refresh
-      await this.getTasks();
+      
+      // Refresh task list after force refresh
+      const tasks = await this.getTasks();
+      this.emit('tasks-loaded', tasks);
     } catch (error) {
-      this.handleError('Error refreshing tasks from remote', error);
+      const serviceError: ServiceError = this.processError(error, 'task_service.force_refresh_error');
+      this.emit('error', serviceError);
     }
   }
 
   /**
-   * Get the latest error for telemetry/logging purposes
+   * Check if there are unsynchronized changes
    */
-  getLastError(): Error | null {
-    return this.lastError;
+  async hasUnsyncedChanges(): Promise<boolean> {
+    try {
+      if (!taskRepository) {
+        throw new Error('Task repository is not initialized');
+      }
+      
+      return await taskRepository.hasPendingChanges();
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'task_service.check_unsynced_error');
+      this.emit('error', serviceError);
+      return false;
+    }
   }
 
   /**
-   * Standard error handling for all service methods
+   * Synchronize local data with remote storage
    */
-  private handleError(message: string, error: any): void {
-    console.error(`TaskService: ${message}`, error);
+  async sync(): Promise<void> {
+    if (this.syncInProgress) {
+      console.log('TaskService: Sync already in progress, skipping');
+      return;
+    }
     
-    // Create a standardized error object
-    const errorObj = error instanceof Error ? error : new Error(`${message}: ${JSON.stringify(error)}`);
-    
-    // Store the last error for debugging/telemetry
-    this.lastError = errorObj;
-    
-    // Emit the error event
-    this.taskEvents.emit('error', errorObj);
-  }
-
-  /**
-   * Subscribe to task events
-   */
-  on<K extends keyof TaskServiceEvents>(
-    event: K, 
-    callback: (data: TaskServiceEvents[K]) => void
-  ): () => void {
-    return this.taskEvents.on(event, callback);
-  }
-
-  /**
-   * Unsubscribe from task events
-   */
-  off<K extends keyof TaskServiceEvents>(
-    event: K, 
-    callback: (data: TaskServiceEvents[K]) => void
-  ): void {
-    this.taskEvents.off(event, callback);
-  }
-
-  /**
-   * Emit a task event
-   */
-  emit<K extends keyof TaskServiceEvents>(
-    event: K, 
-    data?: TaskServiceEvents[K]
-  ): void {
-    this.taskEvents.emit(event, data);
+    try {
+      this.syncInProgress = true;
+      
+      if (!taskRepository) {
+        throw new Error('Task repository is not initialized');
+      }
+      
+      // Start the sync process
+      await taskRepository.sync();
+      
+      // Refresh the task list after sync
+      const tasks = await this.refreshTasks();
+      this.emit('tasks-loaded', tasks);
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'task_service.sync_error');
+      this.emit('error', serviceError);
+    } finally {
+      this.syncInProgress = false;
+    }
   }
 }
 

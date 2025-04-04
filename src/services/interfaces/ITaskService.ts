@@ -1,6 +1,8 @@
-import { Task, TaskStatus } from '../../types/task';
+import { Task } from '../../types/task';
 import { TaskCreateDTO, TaskUpdateDTO } from '../../repositories/taskRepository';
 import { IOfflineCapableService } from './IService';
+import { ServiceError } from '../BaseService';
+import { TaskStatus } from '../../components/TaskForm/schema';
 
 /**
  * Event types that can be emitted by the TaskService
@@ -11,7 +13,7 @@ export interface TaskServiceEvents {
   'task-deleted': string;
   'tasks-changed': void;
   'tasks-loaded': Task[];
-  'error': Error;
+  'error': ServiceError;
 }
 
 /**

@@ -1,4 +1,6 @@
 import { supabase } from '../../lib/supabase';
+import { BaseService, ServiceError } from '../BaseService';
+import { ITimeSessionService, TimeSessionEvents } from '../interfaces/ITimeSessionService';
 
 /**
  * Time session interface matching the Supabase database schema
@@ -25,241 +27,348 @@ export interface TimeSession {
 
 /**
  * Service for managing time sessions
+ * Implements the ITimeSessionService interface and extends BaseService
+ * for standardized error handling and event management
  */
-export class TimeSessionsService {
+export class TimeSessionsService extends BaseService<TimeSessionEvents> implements ITimeSessionService {
+  constructor() {
+    super();
+    this.markReady();
+  }
+
   /**
    * Get all time sessions for a specific task
    */
-  async getSessionsByTaskId(taskId: string) {
-    const { data, error } = await supabase
-      .from('time_sessions')
-      .select('*')
-      .eq('task_id', taskId)
-      .order('start_time', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching time sessions:', error);
-      throw error;
+  async getSessionsByTaskId(taskId: string): Promise<TimeSession[]> {
+    try {
+      const { data, error } = await supabase
+        .from('time_sessions')
+        .select('*')
+        .eq('task_id', taskId)
+        .eq('is_deleted', false)
+        .order('start_time', { ascending: false });
+      
+      if (error) throw error;
+      
+      this.emit('sessions-loaded', data as TimeSession[]);
+      return data as TimeSession[];
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.fetch_error');
+      this.emit('error', serviceError);
+      return [];
     }
-    
-    return data as TimeSession[];
   }
 
   /**
    * Get all time sessions for the current user
    */
-  async getUserSessions() {
-    const { data: userData } = await supabase.auth.getUser();
-    
-    if (!userData.user) {
-      console.error('No authenticated user found');
-      throw new Error('Authentication required');
-    }
-    
-    const { data, error } = await supabase
-      .from('time_sessions')
-      .select('*, tasks(title, status, priority, category_name, is_deleted)')
-      .eq('user_id', userData.user.id)
-      .eq('is_deleted', false) // Filter out soft-deleted sessions
-      .order('start_time', { ascending: false });
+  async getUserSessions(): Promise<TimeSession[]> {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
       
-    if (error) {
-      console.error('Error fetching user time sessions:', error);
-      throw error;
+      if (!userData.user) {
+        throw new Error('Authentication required');
+      }
+      
+      const { data, error } = await supabase
+        .from('time_sessions')
+        .select('*, tasks(title, status, priority, category_name, is_deleted)')
+        .eq('user_id', userData.user.id)
+        .eq('is_deleted', false) // Filter out soft-deleted sessions
+        .order('start_time', { ascending: false });
+        
+      if (error) throw error;
+      
+      // Filter out sessions for deleted tasks
+      const filteredData = data?.filter(session => !session.tasks?.is_deleted) as TimeSession[];
+      
+      this.emit('sessions-loaded', filteredData);
+      return filteredData;
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.user_sessions_error');
+      this.emit('error', serviceError);
+      return [];
     }
-    
-    // Filter out sessions for deleted tasks
-    const filteredData = data?.filter(session => !session.tasks?.is_deleted);
-    
-    return filteredData;
   }
 
   /**
    * Get time sessions for a specific time period
    */
-  async getSessionsByDateRange(startDate: Date, endDate: Date) {
-    const { data: userData } = await supabase.auth.getUser();
-    
-    if (!userData.user) {
-      console.error('No authenticated user found');
-      throw new Error('Authentication required');
-    }
-    
-    const { data, error } = await supabase
-      .from('time_sessions')
-      .select('*, tasks(title, status, priority, category_name, is_deleted)')
-      .eq('user_id', userData.user.id)
-      .eq('is_deleted', false) // Filter out soft-deleted sessions
-      .gte('start_time', startDate.toISOString())
-      .lte('start_time', endDate.toISOString())
-      .order('start_time', { ascending: false });
+  async getSessionsByDateRange(startDate: Date, endDate: Date): Promise<TimeSession[]> {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
       
-    if (error) {
-      console.error('Error fetching time sessions by date range:', error);
-      throw error;
+      if (!userData.user) {
+        throw new Error('Authentication required');
+      }
+      
+      const { data, error } = await supabase
+        .from('time_sessions')
+        .select('*, tasks(title, status, priority, category_name, is_deleted)')
+        .eq('user_id', userData.user.id)
+        .eq('is_deleted', false) // Filter out soft-deleted sessions
+        .gte('start_time', startDate.toISOString())
+        .lte('start_time', endDate.toISOString())
+        .order('start_time', { ascending: false });
+        
+      if (error) throw error;
+      
+      // Filter out sessions for deleted tasks
+      const filteredData = data?.filter(session => !session.tasks?.is_deleted) as TimeSession[];
+      
+      this.emit('sessions-loaded', filteredData);
+      return filteredData;
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.date_range_error');
+      this.emit('error', serviceError);
+      return [];
     }
-    
-    // Filter out sessions for deleted tasks
-    const filteredData = data?.filter(session => !session.tasks?.is_deleted);
-    
-    return filteredData;
   }
   
   /**
    * Get a specific time session by ID
    */
-  async getSessionById(sessionId: string) {
-    const { data, error } = await supabase
-      .from('time_sessions')
-      .select('*')
-      .eq('id', sessionId)
-      .single();
-    
-    return { data, error };
-  }
-
-  /**
-   * Update an existing time session
-   */
-  async updateSession(sessionId: string, updates: Partial<TimeSession>) {
-    const { data, error } = await supabase
-      .from('time_sessions')
-      .update(updates)
-      .eq('id', sessionId)
-      .select()
-      .single();
-    
-    return { data, error };
-  }
-
-  /**
-   * Delete a time session by ID
-   */
-  async deleteSession(sessionId: string) {
-    console.log(`Attempting to soft delete session with ID: ${sessionId}`);
-    
-    if (!sessionId) {
-      console.error('Invalid session ID for deletion');
-      return false;
-    }
-    
+  async getSessionById(id: string): Promise<TimeSession | null> {
     try {
-      // Implement soft delete by updating is_deleted flag instead of physically deleting
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('time_sessions')
-        .update({ is_deleted: true })
-        .eq('id', sessionId);
-        
-      if (error) {
-        console.error('Error soft-deleting time session:', error);
-        throw error;
+        .select('*, tasks(title, status, priority, category_name, is_deleted)')
+        .eq('id', id)
+        .eq('is_deleted', false)
+        .single();
+      
+      if (error) throw error;
+      
+      const session = data as TimeSession;
+      return session;
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.fetch_error');
+      this.emit('error', serviceError);
+      return null;
+    }
+  }
+
+  /**
+   * Get the currently active time session (has start_time but no end_time)
+   */
+  async getActiveSession(): Promise<TimeSession | null> {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('time_sessions')
+        .select('*, tasks(title, status, priority, category_name, is_deleted)')
+        .eq('user_id', user.user.id)
+        .eq('is_deleted', false)
+        .is('end_time', null)  // Only sessions without an end_time (still active)
+        .order('start_time', { ascending: false })
+        .limit(1);  // Get the most recent active session
+      
+      if (error) throw error;
+      
+      // Return the first active session or null if none found
+      return (data && data.length > 0) ? data[0] as TimeSession : null;
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.fetch_active_error');
+      this.emit('error', serviceError);
+      return null;
+    }
+  }
+
+  /**
+   * Create a new time session
+   */
+  async createSession(taskId: string): Promise<TimeSession | null> {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData.user) {
+        throw new Error('Authentication required');
       }
       
-      console.log(`Successfully soft-deleted session: ${sessionId}`);
-      return true;
+      const newSession = {
+        task_id: taskId,
+        user_id: userData.user.id,
+        start_time: new Date().toISOString(),
+        end_time: null,
+        duration: null,
+        is_deleted: false
+      };
+      
+      const { data, error } = await supabase
+        .from('time_sessions')
+        .insert(newSession)
+        .select('*')
+        .single();
+        
+      if (error) throw error;
+      
+      const session = data as TimeSession;
+      this.emit('session-created', session);
+      this.emit('session-started', session);
+      
+      return session;
     } catch (error) {
-      console.error('Exception during session deletion:', error);
-      throw error;
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.create_error');
+      this.emit('error', serviceError);
+      return null;
     }
   }
   
   /**
-   * Get summary statistics for time sessions
+   * Update a time session
    */
-  async getTimeStats(userId?: string, days = 30) {
-    // Default to current user if no userId is provided
-    const { data: userData } = await supabase.auth.getUser();
-    const targetUserId = userId || userData.user?.id;
-    
-    if (!targetUserId) {
-      console.error('No user ID provided or authenticated');
-      throw new Error('User ID required');
-    }
-    
-    // Calculate the start date (default to last 30 days)
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    
-    const { data, error } = await supabase
-      .from('time_sessions')
-      .select(`
-        id,
-        duration,
-        start_time,
-        end_time,
-        tasks (
-          id,
-          title,
-          status,
-          priority,
-          category_name
-        )
-      `)
-      .eq('user_id', targetUserId)
-      .eq('is_deleted', false) // Filter out soft-deleted sessions
-      .gte('start_time', startDate.toISOString());
-      
-    if (error) {
-      console.error('Error fetching time statistics:', error);
-      throw error;
-    }
-    
-    return data;
-  }
-
-  /**
-   * Check for active sessions (no end_time) for the current user
-   * Returns the most recent active session if found
-   */
-  async getActiveSession() {
-    const { data: userData } = await supabase.auth.getUser();
-    
-    if (!userData.user) {
-      console.error('No authenticated user found');
-      throw new Error('Authentication required');
-    }
-    
+  async updateSession(id: string, data: Partial<TimeSession>): Promise<TimeSession | null> {
     try {
-      // First get the active session without joining tasks to avoid query errors
-      const { data, error } = await supabase
+      const { data: updatedData, error } = await supabase
+        .from('time_sessions')
+        .update(data)
+        .eq('id', id)
+        .select('*')
+        .single();
+        
+      if (error) throw error;
+      
+      const session = updatedData as TimeSession;
+      this.emit('session-updated', session);
+      
+      return session;
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.update_error');
+      this.emit('error', serviceError);
+      return null;
+    }
+  }
+  
+  /**
+   * Delete a time session (soft delete)
+   */
+  async deleteSession(id: string): Promise<boolean> {
+    try {
+      // Soft delete - update is_deleted flag instead of removing
+      const { error } = await supabase
+        .from('time_sessions')
+        .update({ is_deleted: true })
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      this.emit('session-deleted', id);
+      return true;
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.delete_error');
+      this.emit('error', serviceError);
+      return false;
+    }
+  }
+  
+  /**
+   * Stop a time session (set end_time and calculate duration)
+   */
+  async stopSession(id: string): Promise<TimeSession | null> {
+    try {
+      // First get the session to calculate duration
+      const { data: sessionData, error: fetchError } = await supabase
         .from('time_sessions')
         .select('*')
+        .eq('id', id)
+        .eq('is_deleted', false)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      const session = sessionData as TimeSession;
+      const startTime = new Date(session.start_time);
+      const endTime = new Date();
+      
+      // Calculate duration in seconds
+      const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+      
+      // Update the session with end time and duration
+      const updateData = {
+        end_time: endTime.toISOString(),
+        duration: `${durationSeconds} seconds`
+      };
+      
+      const { data: updatedData, error: updateError } = await supabase
+        .from('time_sessions')
+        .update(updateData)
+        .eq('id', id)
+        .select('*')
+        .single();
+        
+      if (updateError) throw updateError;
+      
+      const updatedSession = updatedData as TimeSession;
+      this.emit('session-stopped', updatedSession);
+      
+      return updatedSession;
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.stop_error');
+      this.emit('error', serviceError);
+      return null;
+    }
+  }
+  
+  /**
+   * Calculate total time spent on tasks in a given period
+   * @param taskIds Optional array of task IDs to filter by
+   * @param startDate Optional start date for the period
+   * @param endDate Optional end date for the period
+   * @returns Total time in minutes
+   */
+  async calculateTimeSpent(taskIds?: string[], startDate?: Date, endDate?: Date): Promise<number> {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData.user) {
+        throw new Error('Authentication required');
+      }
+      
+      let query = supabase
+        .from('time_sessions')
+        .select('duration')
         .eq('user_id', userData.user.id)
         .eq('is_deleted', false)
-        .is('end_time', null)
-        .order('start_time', { ascending: false })
-        .limit(1);
+        .not('duration', 'is', null);
         
-      if (error) {
-        console.error('Error fetching active session:', error);
-        throw error;
+      // Apply optional filters
+      if (taskIds && taskIds.length > 0) {
+        query = query.in('task_id', taskIds);
       }
       
-      // If no active session found, return null
-      if (!data || data.length === 0) {
-        return null;
+      if (startDate) {
+        query = query.gte('start_time', startDate.toISOString());
       }
       
-      // Get task details in a separate query
-      const activeSession = data[0];
-      if (activeSession.task_id) {
-        const { data: taskData, error: taskError } = await supabase
-          .from('tasks')
-          .select('title, status, priority, id')
-          .eq('id', activeSession.task_id)
-          .single();
-          
-        if (!taskError && taskData) {
-          // Attach task data to active session
-          activeSession.tasks = taskData;
+      if (endDate) {
+        query = query.lte('start_time', endDate.toISOString());
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      // Parse the durations and sum them up
+      let totalSeconds = 0;
+      
+      data.forEach(item => {
+        if (item.duration) {
+          // Parse PostgreSQL interval format "X seconds"
+          const match = item.duration.match(/^(\d+) seconds$/);
+          if (match && match[1]) {
+            totalSeconds += parseInt(match[1], 10);
+          }
         }
-      }
+      });
       
-      return activeSession;
+      // Convert seconds to minutes and return
+      return Math.round(totalSeconds / 60);
     } catch (error) {
-      console.error('Exception checking for active session:', error);
-      // Return null instead of throwing, as no active session is a valid state
-      return null;
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.calculate_time_error');
+      this.emit('error', serviceError);
+      return 0;
     }
   }
 }
