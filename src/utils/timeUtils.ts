@@ -8,6 +8,9 @@ import { differenceInSeconds, format, parseISO, isSameDay as dateFnsIsSameDay, i
 // DURATION PARSING FUNCTIONS
 //=========================================================
 
+// Debug flag - set to false to disable logging
+const DEBUG_DURATION_PARSING = false;
+
 /**
  * Parse PostgreSQL duration string to seconds
  * Handles various formats: "X seconds", "HH:MM:SS", "X hours Y mins Z secs"
@@ -26,7 +29,7 @@ export function parseDurationToSeconds(durationStr: string | null): number {
   if (secondsMatch) {
     const seconds = parseInt(secondsMatch[1], 10);
     if (!isNaN(seconds)) {
-      console.log(`Parsed duration "${originalInput}" as ${seconds} seconds (direct seconds format)`);
+      if (DEBUG_DURATION_PARSING) console.log(`Parsed duration "${originalInput}" as ${seconds} seconds (direct seconds format)`);
       return seconds;
     }
   }
@@ -36,7 +39,7 @@ export function parseDurationToSeconds(durationStr: string | null): number {
   if (timeMatch) {
     const [, hours, minutes, seconds] = timeMatch;
     result = parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
-    console.log(`Parsed duration "${originalInput}" as ${result} seconds (HH:MM:SS format)`);
+    if (DEBUG_DURATION_PARSING) console.log(`Parsed duration "${originalInput}" as ${result} seconds (HH:MM:SS format)`);
     return result;
   }
   
@@ -51,7 +54,7 @@ export function parseDurationToSeconds(durationStr: string | null): number {
     if (hours) totalSeconds += parseInt(hours, 10) * 3600;
     if (minutes) totalSeconds += parseInt(minutes, 10) * 60;
     if (seconds) totalSeconds += parseInt(seconds, 10);
-    console.log(`Parsed duration "${originalInput}" as ${totalSeconds} seconds (ISO format)`);
+    if (DEBUG_DURATION_PARSING) console.log(`Parsed duration "${originalInput}" as ${totalSeconds} seconds (ISO format)`);
     return totalSeconds;
   }
   
@@ -81,7 +84,7 @@ export function parseDurationToSeconds(durationStr: string | null): number {
   }
   
   if (matched) {
-    console.log(`Parsed duration "${originalInput}" as ${totalSeconds} seconds (verbose format)`);
+    if (DEBUG_DURATION_PARSING) console.log(`Parsed duration "${originalInput}" as ${totalSeconds} seconds (verbose format)`);
     return totalSeconds;
   }
   
@@ -93,7 +96,7 @@ export function parseDurationToSeconds(durationStr: string | null): number {
     totalSeconds += parseInt(hours, 10) * 3600;
     totalSeconds += parseInt(minutes, 10) * 60;
     totalSeconds += parseInt(seconds, 10);
-    console.log(`Parsed duration "${originalInput}" as ${totalSeconds} seconds (days + HH:MM:SS format)`);
+    if (DEBUG_DURATION_PARSING) console.log(`Parsed duration "${originalInput}" as ${totalSeconds} seconds (days + HH:MM:SS format)`);
     return totalSeconds;
   }
   
@@ -102,7 +105,7 @@ export function parseDurationToSeconds(durationStr: string | null): number {
   if (pgIntervalMatch) {
     const [, hours, minutes, seconds] = pgIntervalMatch;
     result = parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
-    console.log(`Parsed duration "${originalInput}" as ${result} seconds (PostgreSQL interval notation)`);
+    if (DEBUG_DURATION_PARSING) console.log(`Parsed duration "${originalInput}" as ${result} seconds (PostgreSQL interval notation)`);
     return result;
   }
   
@@ -111,12 +114,12 @@ export function parseDurationToSeconds(durationStr: string | null): number {
   if (microsecondsMatch) {
     const [, hours, minutes, seconds] = microsecondsMatch;
     result = parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
-    console.log(`Parsed duration "${originalInput}" as ${result} seconds (microseconds format)`);
+    if (DEBUG_DURATION_PARSING) console.log(`Parsed duration "${originalInput}" as ${result} seconds (microseconds format)`);
     return result;
   }
   
   // If we still couldn't parse, log it and return 0
-  console.warn(`Failed to parse duration format: "${originalInput}"`);
+  if (DEBUG_DURATION_PARSING) console.warn(`Failed to parse duration format: "${originalInput}"`);
   return 0;
 }
 
@@ -156,16 +159,15 @@ export function formatMillisecondsToTime(totalMs: number): string {
  * @param duration Duration as string or number of seconds
  */
 export function formatDurationHumanReadable(duration: string | number | null): string {
-  if (duration === null || duration === undefined || duration === '') return '0m';
+  if (duration === null) return '0m';
   
-  // If duration is already a number, assume it's in seconds
   let totalSeconds: number;
   if (typeof duration === 'number') {
     totalSeconds = duration;
-    console.log(`formatDurationHumanReadable: using number input directly: ${totalSeconds}s`);
+    if (DEBUG_DURATION_PARSING) console.log(`formatDurationHumanReadable: using number input directly: ${totalSeconds}s`);
   } else {
     totalSeconds = parseDurationToSeconds(duration);
-    console.log(`formatDurationHumanReadable: parsed from string: "${duration}" → ${totalSeconds}s`);
+    if (DEBUG_DURATION_PARSING) console.log(`formatDurationHumanReadable: parsed from string: "${duration}" → ${totalSeconds}s`);
   }
   
   if (totalSeconds === 0) return '0m';

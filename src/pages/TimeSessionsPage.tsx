@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { format, subDays, parseISO, differenceInSeconds } from 'date-fns';
 import { Calendar, Clock, Download, RefreshCw } from 'lucide-react';
 import { TimeSessionsList } from '../components/TimeSessions/TimeSessionsList';
-import { timeSessionsService } from '../services/api/timeSessionsService';
-import type { TimeSession } from '../services/api/timeSessionsService';
+import { timeSessionsService, TimeSession } from '../services/api/timeSessionsService';
 import { parseDurationToSeconds, formatSecondsToTime, isSameDay, isSameWeek, isSameMonth } from '../utils/timeUtils';
+import { createLogger } from '../utils/logging';
+
+const logger = createLogger('TimeSessionsPage');
 
 export function TimeSessionsPage() {
   const [dateRange, setDateRange] = useState({
@@ -40,7 +42,7 @@ export function TimeSessionsPage() {
       // Calculate time stats
       calculateTimeStats(data);
     } catch (error) {
-      console.error('Error fetching time sessions:', error);
+      logger.error('Error fetching time sessions:', error);
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +60,7 @@ export function TimeSessionsPage() {
 
   // Calculate time for different periods
   const calculateTimeStats = (sessions: TimeSession[]) => {
-    console.log('Calculating time stats with', sessions.length, 'sessions');
+    logger.log('Calculating time stats with', sessions.length, 'sessions');
     const now = new Date();
 
     // Calculate totals for each period
@@ -70,13 +72,13 @@ export function TimeSessionsPage() {
     const validSessions = sessions.filter(session => {
       // If the task is deleted or doesn't exist, skip this session
       if (!session.tasks || session.tasks.is_deleted) {
-        console.log('Skipping session for deleted/missing task:', session.id);
+        logger.log('Skipping session for deleted/missing task:', session.id);
         return false;
       }
       return true;
     });
 
-    console.log('After filtering, using', validSessions.length, 'valid sessions for calculations');
+    logger.log('After filtering, using', validSessions.length, 'valid sessions for calculations');
 
     validSessions.forEach(session => {
       const startTime = parseISO(session.start_time);
@@ -111,7 +113,7 @@ export function TimeSessionsPage() {
       }
     });
 
-    console.log('Time totals calculated:', {
+    logger.log('Time totals calculated:', {
       today: formatSecondsToTime(todaySeconds),
       week: formatSecondsToTime(weekSeconds),
       month: formatSecondsToTime(monthSeconds)
@@ -171,7 +173,7 @@ export function TimeSessionsPage() {
       document.body.removeChild(link);
 
     } catch (error) {
-      console.error('Error exporting sessions:', error);
+      logger.error('Error exporting sessions:', error);
       alert('Failed to export sessions. Please try again.');
     } finally {
       setIsExporting(false);
@@ -277,7 +279,7 @@ export function TimeSessionsPage() {
       <div className="mt-6">
         <TimeSessionsList 
           className="p-4 bg-white rounded-lg shadow" 
-          onSessionsLoaded={(time) => console.log('Sessions loaded with total time:', time)}
+          onSessionsLoaded={(time) => logger.log('Sessions loaded with total time:', time)}
           onSessionDeleted={handleRefresh} 
         />
       </div>
