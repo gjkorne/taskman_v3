@@ -171,8 +171,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         .from('time_sessions')
         .update({
           end_time: new Date().toISOString(),
-          duration: currentSessionDurationInterval,
-          status: 'paused'
+          duration: currentSessionDurationInterval
         })
         .eq('id', timerState.sessionId);
 
@@ -221,8 +220,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         .insert({
           task_id: timerState.taskId,
           user_id: currentUser?.id,
-          start_time: new Date().toISOString(),
-          status: 'active'
+          start_time: new Date().toISOString()
         })
         .select('id')
         .single();
