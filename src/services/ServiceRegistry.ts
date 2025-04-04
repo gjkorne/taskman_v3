@@ -1,5 +1,5 @@
 import { SERVICE_TOKENS, serviceContainer } from './ServiceContainer';
-import { TaskService, taskService } from './taskService';
+import { taskService } from './taskService';
 import { NetworkStatusService } from '../services/networkStatusService';
 import { timeSessionsService } from './api/timeSessionsService';
 import { ITaskService } from './interfaces/ITaskService';
