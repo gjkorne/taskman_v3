@@ -253,7 +253,7 @@ export function UnifiedTaskForm({
             </div>
             
             <div className={cn(!isNotesExpanded && 'hidden')}>
-              {/* Controller for handling form state */}
+              {/* Controller for handling both notes and checklist items in a unified way */}
               <Controller
                 name="description"
                 control={control}

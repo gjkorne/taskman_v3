@@ -1,5 +1,8 @@
 import { BarChart3, Calendar, Clock, List, Settings, AlertTriangle, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useEffect, useState } from 'react';
+import { authService } from '../../services/api/authService';
+import { User } from '@supabase/supabase-js';
 
 // Types
 export type ViewType = 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar';
@@ -37,6 +40,18 @@ export function Sidebar({
   isSidebarOpen, 
   onToggleSidebar
 }: SidebarProps) {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { user, error } = await authService.getUser();
+      if (user && !error) {
+        setUser(user);
+      }
+    };
+    fetchUser();
+  }, []);
+
   return (
     <>
       {/* Mobile overlay when sidebar is open */}
@@ -146,15 +161,19 @@ export function Sidebar({
           
           {/* User Section */}
           <div className="p-3 sm:p-4 border-t border-gray-200">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-blue-500 rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-white font-medium text-sm sm:text-base">
-                U
+            {user && (
+              <div className="flex items-center">
+                <div className="flex-shrink-0 bg-blue-500 rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-white font-medium text-sm sm:text-base">
+                  {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm sm:text-base font-medium text-gray-700">
+                    {user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500">{user.email || ''}</p>
+                </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm sm:text-base font-medium text-gray-700">User</p>
-                <p className="text-xs text-gray-500">user@example.com</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

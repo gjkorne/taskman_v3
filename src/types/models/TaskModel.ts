@@ -17,6 +17,11 @@ export interface TaskModel {
   actualTimeMinutes: number | null; // Converted from interval to minutes
   tags: string[];
   
+  // Notes and Checklist fields
+  notes: any | null;                     // JSONB in database - stores rich text content
+  checklistItems: any[] | null;          // JSONB array - stores checklist items
+  noteType: 'text' | 'checklist' | 'both' | null; // Primary display type
+  
   // Metadata fields
   createdAt: Date;
   updatedAt: Date | null;

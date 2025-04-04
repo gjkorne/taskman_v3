@@ -11,8 +11,8 @@ interface ActiveSessionProps {
 export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime } = useTimer();
   const { tasks } = useTaskContext();
-  const [isExpanded, setIsExpanded] = useState(false);
-
+  const [isExpanded, setIsExpanded] = useState(true);
+  
   // Get the task that is currently being timed
   const activeTask = tasks.find(task => task.id === timerState.taskId);
   

@@ -276,6 +276,21 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
               >
                 Other
               </button>
+              <button
+                onClick={() => {
+                  setFilters({
+                    ...filters, 
+                    showCompleted: !filters.showCompleted
+                  });
+                }}
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                  filters.showCompleted
+                    ? 'bg-teal-100 text-teal-700' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-teal-50 hover:text-teal-700'
+                }`}
+              >
+                Completed
+              </button>
             </div>
           </div>
         </div>

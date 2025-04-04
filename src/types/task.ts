@@ -73,17 +73,22 @@ export interface Task {
   list_id: string | null;
   category_name: string | null;
   
-  // Additional fields for NLP and AI features
+  // Notes and checklist fields - these can co-exist now
+  notes: any | null;              // JSONB in database - stores rich text notes
+  checklist_items: any[] | null;  // JSONB array in database - stores checklist items
+  note_type: 'text' | 'checklist' | 'both' | null; // Primary display type
+  
+  // NLP fields
   nlp_tokens?: any | null;
   extracted_entities?: any | null;
   embedding_data?: any | null;
   confidence_score?: number | null;
   processing_metadata?: any | null;
   
-  // UI helper fields (not stored in DB)
+  // Non-database fields for client-side use
   rawInput?: string;
   
-  // Offline sync fields (only used in local storage)
+  // Sync fields
   _is_synced?: boolean;
   _sync_status?: 'pending' | 'synced' | 'failed';
   _conflict_resolution?: string | null;
@@ -115,7 +120,10 @@ export const TaskColumns = {
   EXTRACTED_ENTITIES: 'extracted_entities',
   EMBEDDING_DATA: 'embedding_data',
   CONFIDENCE_SCORE: 'confidence_score',
-  PROCESSING_METADATA: 'processing_metadata'
+  PROCESSING_METADATA: 'processing_metadata',
+  NOTES: 'notes',
+  CHECKLIST_ITEMS: 'checklist_items',
+  NOTE_TYPE: 'note_type'
 } as const;
 
 // Export for backward compatibility

@@ -7,6 +7,7 @@ import { NetworkStatusService } from '../services/networkStatusService';
 import { TaskApiDto } from '../types/api/taskDto';
 import { TaskModel } from '../types/models/TaskModel';
 import { transformerFactory } from '../utils/transforms/TransformerFactory';
+import { parseNotes, stringifyNotes, notesToDatabaseFormat, databaseToNotesFormat } from '../types/list';
 
 /**
  * Type definitions for task data transfer objects
@@ -40,6 +41,9 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
   private taskTransformer = transformerFactory.getTaskTransformer();
 
   constructor(networkStatus?: NetworkStatusService) {
+    // Initialize network status service
+    this.networkStatus = networkStatus || new NetworkStatusService();
+    
     // Initialize storage adapters
     this.remoteAdapter = new SupabaseAdapter<TaskApiDto>('tasks', {
       select: '*',
@@ -59,9 +63,9 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
         transformRow: (row: any): OfflineTask => ({
           id: row.id,
           title: row.title,
-          description: row.description || '',
-          status: row.status || TaskStatus.PENDING,
-          priority: row.priority || 'medium',
+          description: row.description,
+          status: row.status,
+          priority: row.priority,
           due_date: row.due_date,
           estimated_time: row.estimated_time,
           actual_time: row.actual_time,
@@ -69,31 +73,37 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
           created_at: row.created_at,
           updated_at: row.updated_at,
           created_by: row.created_by,
-          is_deleted: row.is_deleted || false,
+          is_deleted: row.is_deleted === true,
           list_id: row.list_id,
-          category_name: row.category_name || '',
-          _pendingSync: row._pendingSync,
+          category_name: row.category_name,
+          
+          // These are offline sync fields
+          _pendingSync: row._pendingSync === true,
           _lastUpdated: row._lastUpdated,
-          _sync_error: row._sync_error // Update type to string
+          _sync_error: row._sync_error,
+          
+          // NLP fields
+          nlp_tokens: row.nlp_tokens,
+          extracted_entities: row.extracted_entities,
+          embedding_data: row.embedding_data,
+          confidence_score: row.confidence_score,
+          processing_metadata: row.processing_metadata,
+          
+          // Notes and checklist fields
+          notes: row.notes,
+          checklist_items: row.checklist_items,
+          note_type: row.note_type
         }),
         prepareData: (data: Partial<OfflineTask>): Record<string, any> => ({
           ...data
         })
       });
       
-      // Test IndexedDB availability
+      // Test if IndexedDB is available and working
       this.testIndexedDB();
     } catch (error) {
       console.error('Error initializing IndexedDB adapter:', error);
-      this.useLocalAsBackup = false;
-    }
-    
-    // Setup network status monitoring
-    if (networkStatus) {
-      this.networkStatus = networkStatus;
-    } else {
-      // Create a new instance of NetworkStatusService
-      this.networkStatus = new NetworkStatusService();
+      console.warn('Offline functionality will be limited');
     }
   }
   
@@ -111,6 +121,149 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
       console.error('IndexedDB test failed, offline functionality will be limited:', error);
       this.useLocalAsBackup = false;
     }
+  }
+
+  /**
+   * Convert TaskModel to Task (for application use)
+   */
+  private modelToLegacyTask(model: TaskModel): Task {
+    // Handle notes data conversion
+    let description = model.description || '';
+    
+    // Include notes data in description field for compatibility
+    if (model.notes || model.checklistItems) {
+      try {
+        const notesObj = databaseToNotesFormat(
+          model.notes, 
+          model.checklistItems || [], // Ensure we always pass an array, not null
+          model.noteType || 'text' // Ensure we always pass a non-null string
+        );
+        // Stringify the notes object to a JSON string
+        description = stringifyNotes(notesObj);
+      } catch (error) {
+        console.error('Error converting notes to string:', error);
+        // Fall back to plain description
+        description = model.description || '';
+      }
+    }
+    
+    return {
+      id: model.id,
+      title: model.title,
+      description: description,
+      status: model.status as TaskStatusType,
+      priority: model.priority,
+      due_date: model.dueDate ? model.dueDate.toISOString() : null,
+      estimated_time: model.estimatedTimeMinutes !== null ? String(model.estimatedTimeMinutes) : null,
+      actual_time: model.actualTimeMinutes !== null ? String(model.actualTimeMinutes) : null,
+      tags: model.tags || [],
+      created_at: model.createdAt.toISOString(),
+      updated_at: model.updatedAt ? model.updatedAt.toISOString() : null,
+      created_by: model.createdBy,
+      is_deleted: model.isDeleted,
+      list_id: model.listId,
+      category_name: model.categoryName,
+      
+      // Notes and checklist fields
+      notes: model.notes,
+      checklist_items: model.checklistItems,
+      note_type: model.noteType,
+      
+      // NLP fields
+      nlp_tokens: model.nlpTokens,
+      extracted_entities: model.extractedEntities,
+      embedding_data: model.embeddingData,
+      confidence_score: model.confidenceScore,
+      processing_metadata: model.processingMetadata,
+      
+      // Raw input for UI
+      rawInput: model.rawInput,
+      
+      // Offline sync metadata
+      _is_synced: model.isSynced,
+      _sync_status: model.syncStatus === 'none' ? undefined : model.syncStatus,
+      _conflict_resolution: model.conflictResolution,
+      _local_updated_at: model.localUpdatedAt ? model.localUpdatedAt.toISOString() : undefined,
+      _sync_error: model.syncError || undefined // Convert null to undefined to match Task interface
+    };
+  }
+
+  /**
+   * Convert Task to TaskModel (for API/storage)
+   */
+  private legacyTaskToModel(task: Task): TaskModel {
+    // Process description field to extract notes format if available
+    let notesData = null;
+    let checklistItems = null;
+    let noteType: 'text' | 'checklist' | 'both' = 'text';
+    
+    // Handle new notes structure if present
+    if (task.notes || task.checklist_items) {
+      notesData = task.notes;
+      checklistItems = task.checklist_items;
+      noteType = task.note_type as 'text' | 'checklist' | 'both';
+    } 
+    // Legacy: Try to parse description as a notes object
+    else if (task.description) {
+      try {
+        const parsedNotes = parseNotes(task.description);
+        const { notes, checklist_items, note_type } = notesToDatabaseFormat(parsedNotes);
+        notesData = notes;
+        checklistItems = checklist_items;
+        noteType = note_type as 'text' | 'checklist' | 'both';
+      } catch (error) {
+        // If parsing fails, treat as plain text
+        notesData = { format: 'text', content: task.description };
+        noteType = 'text';
+      }
+    }
+
+    // Convert string time values to numbers if present
+    const estimatedTimeMinutes = task.estimated_time ? parseInt(task.estimated_time, 10) : null;
+    const actualTimeMinutes = task.actual_time ? parseInt(task.actual_time, 10) : null;
+
+    // Make sure syncStatus is one of the allowed values
+    let syncStatus: 'pending' | 'synced' | 'failed' | undefined = undefined;
+    if (task._sync_status) {
+      if (['pending', 'synced', 'failed'].includes(task._sync_status)) {
+        syncStatus = task._sync_status as 'pending' | 'synced' | 'failed';
+      }
+    }
+
+    return {
+      id: task.id,
+      title: task.title,
+      description: task.description || null, // Keep for backwards compatibility
+      status: task.status as TaskStatusType,
+      priority: task.priority,
+      dueDate: task.due_date ? new Date(task.due_date) : null,
+      estimatedTimeMinutes: estimatedTimeMinutes,
+      actualTimeMinutes: actualTimeMinutes,
+      tags: task.tags || [],
+      createdAt: new Date(task.created_at),
+      updatedAt: task.updated_at ? new Date(task.updated_at) : null,
+      createdBy: task.created_by || null,
+      isDeleted: task.is_deleted === true,
+      listId: task.list_id || null,
+      categoryName: task.category_name || null,
+      
+      // Notes and Checklist fields
+      notes: notesData,
+      checklistItems: checklistItems,
+      noteType: noteType,
+      
+      nlpTokens: task.nlp_tokens,
+      extractedEntities: task.extracted_entities,
+      embeddingData: task.embedding_data,
+      confidenceScore: task.confidence_score,
+      processingMetadata: task.processing_metadata,
+      rawInput: task.rawInput,
+      isSynced: task._is_synced === true,
+      syncStatus: syncStatus || 'pending', // Ensure we never pass undefined to match TaskModel
+      conflictResolution: task._conflict_resolution || null,
+      localUpdatedAt: task._local_updated_at ? new Date(task._local_updated_at) : null,
+      syncError: task._sync_error || null // String or null
+    };
   }
 
   /**
@@ -167,7 +320,7 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
     console.warn('TaskRepository.getAll: Unable to fetch tasks from any source');
     return [];
   }
-
+  
   /**
    * Get a task by ID - try remote first, then local if offline
    */
@@ -207,7 +360,7 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
     // If both remote and local fail, return null
     return null;
   }
-
+  
   /**
    * Create a new task
    */
@@ -254,6 +407,12 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
       isDeleted: taskModel.isDeleted || false,
       listId: taskModel.listId || null,
       categoryName: taskModel.categoryName || null,
+      
+      // New fields for notes and checklists
+      notes: taskModel.notes || null,
+      checklistItems: taskModel.checklistItems || null,
+      noteType: taskModel.noteType || 'text',
+      
       nlpTokens: null,
       extractedEntities: null,
       embeddingData: null,
@@ -261,10 +420,10 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
       processingMetadata: null,
       rawInput: data.rawInput,
       isSynced: false,
-      syncStatus: 'pending',
+      syncStatus: 'pending' as const, // Explicitly type as a constant to match TaskModel
       conflictResolution: null,
       localUpdatedAt: new Date(),
-      syncError: null
+      syncError: null // Changed back to null to match TaskModel interface
     };
     
     // Convert the full TaskModel to API format
@@ -325,86 +484,6 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
     }
   }
   
-  /**
-   * Helper method to convert from new TaskModel to legacy Task type
-   * This will be removed once the entire app is migrated to the new model
-   */
-  private modelToLegacyTask(model: TaskModel): Task {
-    return {
-      id: model.id,
-      title: model.title,
-      description: model.description || '',
-      status: model.status,
-      priority: model.priority,
-      due_date: model.dueDate ? model.dueDate.toISOString() : null,
-      estimated_time: model.estimatedTimeMinutes?.toString() || null,
-      actual_time: model.actualTimeMinutes?.toString() || null,
-      tags: model.tags || [],
-      created_at: model.createdAt.toISOString(),
-      updated_at: model.updatedAt ? model.updatedAt.toISOString() : null,
-      created_by: model.createdBy || null,
-      is_deleted: model.isDeleted,
-      list_id: model.listId || null,
-      category_name: model.categoryName || '',
-      
-      // Legacy fields
-      rawInput: model.rawInput,
-      _is_synced: model.isSynced || false,
-      _sync_status: model.syncStatus === 'none' ? undefined : 
-                 (model.syncStatus === 'pending' || model.syncStatus === 'synced' || model.syncStatus === 'failed' ? 
-                 model.syncStatus : undefined),
-      _conflict_resolution: model.conflictResolution,
-      _local_updated_at: model.localUpdatedAt ? model.localUpdatedAt.toISOString() : undefined,
-      _sync_error: model.syncError || undefined,
-      
-      // NLP fields
-      nlp_tokens: model.nlpTokens || null,
-      extracted_entities: model.extractedEntities || null,
-      embedding_data: model.embeddingData || null,
-      confidence_score: model.confidenceScore || null,
-      processing_metadata: model.processingMetadata || null
-    };
-  }
-  
-  /**
-   * Helper method to convert from legacy Task type to new TaskModel
-   * This will be removed once the entire app is migrated to the new model
-   */
-  private legacyTaskToModel(task: Task): TaskModel {
-    return {
-      id: task.id,
-      title: task.title,
-      description: task.description || null,
-      status: task.status,
-      priority: task.priority,
-      dueDate: task.due_date ? new Date(task.due_date) : null,
-      estimatedTimeMinutes: task.estimated_time ? parseInt(task.estimated_time, 10) : null,
-      actualTimeMinutes: task.actual_time ? parseInt(task.actual_time, 10) : null,
-      tags: task.tags || [],
-      createdAt: new Date(task.created_at),
-      updatedAt: task.updated_at ? new Date(task.updated_at) : null,
-      createdBy: task.created_by || null,
-      isDeleted: task.is_deleted,
-      listId: task.list_id || null,
-      categoryName: task.category_name || null,
-      
-      // Map additional fields
-      rawInput: task.rawInput || undefined,
-      isSynced: task._is_synced || false,
-      syncStatus: task._sync_status || 'none',
-      conflictResolution: task._conflict_resolution || null,
-      localUpdatedAt: task._local_updated_at ? new Date(task._local_updated_at) : null,
-      syncError: task._sync_error || null,
-      
-      // NLP fields
-      nlpTokens: task.nlp_tokens || null,
-      extractedEntities: task.extracted_entities || null,
-      embeddingData: task.embedding_data || null,
-      confidenceScore: task.confidence_score || null,
-      processingMetadata: task.processing_metadata || null
-    };
-  }
-
   /**
    * Update an existing task
    */
@@ -516,91 +595,7 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
     
     throw new Error(`Cannot update task ${id}: both remote and local storage unavailable`);
   }
-
-  /**
-   * Update the status of a task
-   */
-  async updateStatus(taskId: string, status: TaskStatusType): Promise<Task | null> {
-    // If online, update remote directly
-    if (this.networkStatus.isOnline()) {
-      try {
-        // First get the current task to ensure we have a complete model
-        const currentTask = await this.getById(taskId);
-        if (!currentTask) {
-          throw new Error(`Task ${taskId} not found`);
-        }
-        
-        // Convert to TaskModel and update status
-        const currentModel = this.legacyTaskToModel(currentTask);
-        const updatedModel: TaskModel = {
-          ...currentModel,
-          status,
-          updatedAt: new Date()
-        };
-        
-        // Convert TaskModel to API DTO
-        const taskApiDto = this.taskTransformer.toApi(updatedModel);
-        
-        const updatedTaskDto = await this.remoteAdapter.update(taskId, taskApiDto);
-        
-        // Transform back to model, then to legacy Task
-        const updatedTask = this.modelToLegacyTask(this.taskTransformer.toModel(updatedTaskDto));
-        
-        // Update local cache if we're using it
-        if (this.useLocalAsBackup) {
-          await this.localAdapter.update(taskId, {
-            ...updatedTask,
-            _pendingSync: false,
-            _lastUpdated: new Date().toISOString()
-          });
-        }
-        
-        return updatedTask;
-      } catch (error) {
-        console.error(`Error updating task status ${taskId} in remote:`, error);
-        // Fall back to local storage
-        if (!this.useLocalAsBackup) {
-          throw error;
-        }
-      }
-    }
-    
-    // Update locally if offline or if remote update failed
-    if (this.useLocalAsBackup) {
-      try {
-        // Get local task
-        const localTask = await this.localAdapter.getById(taskId);
-        if (!localTask) {
-          throw new Error(`Task ${taskId} not found in local storage`);
-        }
-        
-        // Convert to TaskModel and update status
-        const currentModel = this.legacyTaskToModel(localTask);
-        const updatedModel: TaskModel = {
-          ...currentModel,
-          status,
-          updatedAt: new Date()
-        };
-        
-        // Convert TaskModel to legacy Task
-        const legacyTask = this.modelToLegacyTask(updatedModel);
-        
-        await this.localAdapter.update(taskId, {
-          ...legacyTask,
-          _pendingSync: true,
-          _lastUpdated: new Date().toISOString()
-        });
-        
-        return legacyTask;
-      } catch (localError) {
-        console.error(`Error updating task status ${taskId} in local storage:`, localError);
-        throw localError;
-      }
-    }
-    
-    throw new Error(`Cannot update task status: both remote and local storage unavailable`);
-  }
-
+  
   /**
    * Delete a task (soft delete)
    */
@@ -627,7 +622,7 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
         
         await this.remoteAdapter.update(id, taskApiDto);
         
-        // Update local cache if available
+        // Update local cache if we're using it
         if (this.useLocalAsBackup) {
           const task = await this.localAdapter.getById(id);
           if (task) {
@@ -674,7 +669,7 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
     
     throw new Error('Cannot delete task: both remote and local storage unavailable');
   }
-
+  
   /**
    * Cache tasks in local storage for offline use
    */
@@ -695,7 +690,7 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
       }
     }
   }
-
+  
   /**
    * Sync changes between local and remote storage
    */
@@ -792,7 +787,24 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
       this.syncInProgress = false;
     }
   }
-
+  
+  /**
+   * Checks if there are pending changes that need to be synced
+   */
+  async hasPendingChanges(): Promise<boolean> {
+    if (!this.useLocalAsBackup) {
+      return false;
+    }
+    
+    try {
+      const localTasks = await this.localAdapter.getAll();
+      return localTasks.some(task => task._pendingSync === true);
+    } catch (error) {
+      console.error('Error checking for pending changes:', error);
+      return false;
+    }
+  }
+  
   /**
    * Force reload data from remote storage
    */
@@ -856,24 +868,7 @@ export class TaskRepository implements IOfflineCapableRepository<Task, TaskCreat
       throw error;
     }
   }
-
-  /**
-   * Checks if there are pending changes that need to be synced
-   */
-  async hasPendingChanges(): Promise<boolean> {
-    if (!this.useLocalAsBackup) {
-      return false;
-    }
-    
-    try {
-      const localTasks = await this.localAdapter.getAll();
-      return localTasks.some(task => task._pendingSync === true);
-    } catch (error) {
-      console.error('Error checking for pending changes:', error);
-      return false;
-    }
-  }
-
+  
   /**
    * Get the current user ID
    * This is a helper method to get the user ID from wherever it's stored

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { userPreferencesService } from '../services/userPreferencesService';
 
 // Define the shape of our settings
+// This type is preserved for backwards compatibility with existing components
 export interface Settings {
   theme: 'light' | 'dark' | 'system';
   defaultView: 'list' | 'grid';
@@ -35,63 +37,13 @@ interface SettingsContextType {
   settings: Settings;
   updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
   saveAllSettings: () => void;
+  isLoading: boolean;
+  error: Error | null;
+  resetToDefaults: () => Promise<void>;
 }
 
 // Create the context
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
-
-/**
- * Load a boolean setting from localStorage
- */
-function loadBooleanSetting(key: string, defaultValue: boolean): boolean {
-  const storedValue = localStorage.getItem(key);
-  if (storedValue === null) return defaultValue;
-  return storedValue === 'true';
-}
-
-/**
- * Load a string setting from localStorage with validation against allowed values
- */
-function loadStringSetting<T extends string>(key: string, defaultValue: T, allowedValues?: readonly T[]): T {
-  const storedValue = localStorage.getItem(key);
-  if (storedValue === null) return defaultValue;
-  
-  // If we have allowed values, validate against them
-  if (allowedValues && allowedValues.length > 0) {
-    return allowedValues.includes(storedValue as T) ? (storedValue as T) : defaultValue;
-  }
-  
-  return storedValue as T;
-}
-
-/**
- * Load an array setting from localStorage
- */
-function loadArraySetting<T>(key: string, defaultValue: T[]): T[] {
-  const storedValue = localStorage.getItem(key);
-  if (storedValue === null) return defaultValue;
-  try {
-    return JSON.parse(storedValue) as T[];
-  } catch (error) {
-    return defaultValue;
-  }
-}
-
-/**
- * Save a setting to localStorage
- */
-function saveSetting(key: string, value: string | boolean | number | string[]): void {
-  try {
-    // Handle arrays by stringifying them
-    if (Array.isArray(value)) {
-      localStorage.setItem(key, JSON.stringify(value));
-    } else {
-      localStorage.setItem(key, String(value));
-    }
-  } catch (error) {
-    console.error(`Error saving setting ${key}:`, error);
-  }
-}
 
 // Provider component
 interface SettingsProviderProps {
@@ -100,58 +52,50 @@ interface SettingsProviderProps {
 
 export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Load settings from localStorage on initial render
+  // Load settings from database on initial render
   useEffect(() => {
-    const loadSettings = () => {
+    const loadSettings = async () => {
       try {
-        // Load settings with proper type safety
-        const theme = loadStringSetting('theme', defaultSettings.theme, ['light', 'dark', 'system'] as const);
-        const defaultView = loadStringSetting('defaultView', defaultSettings.defaultView, ['list', 'grid'] as const);
-        const defaultTaskSort = loadStringSetting(
-          'defaultTaskSort', 
-          defaultSettings.defaultTaskSort, 
-          ['due_date', 'priority', 'created_at'] as const
-        );
-        const notificationsEnabled = loadBooleanSetting('notificationsEnabled', defaultSettings.notificationsEnabled);
-        const autoSave = loadBooleanSetting('autoSave', defaultSettings.autoSave);
-        const allowTaskSwitching = loadBooleanSetting('allowTaskSwitching', defaultSettings.allowTaskSwitching);
-        const hiddenCategories = loadArraySetting('hiddenCategories', defaultSettings.hiddenCategories);
-        const hideDefaultCategories = loadBooleanSetting('hideDefaultCategories', defaultSettings.hideDefaultCategories);
-        const quickTaskCategories = loadArraySetting('quickTaskCategories', defaultSettings.quickTaskCategories);
-        const defaultQuickTaskCategory = loadStringSetting('defaultQuickTaskCategory', defaultSettings.defaultQuickTaskCategory, defaultSettings.quickTaskCategories);
-        const uiDensity = loadStringSetting('uiDensity', defaultSettings.uiDensity, ['default', 'compact'] as const);
-
-        setSettings({
-          theme,
-          defaultView,
-          defaultTaskSort,
-          notificationsEnabled,
-          autoSave,
-          allowTaskSwitching,
-          hiddenCategories,
-          hideDefaultCategories,
-          quickTaskCategories,
-          defaultQuickTaskCategory,
-          uiDensity
-        });
+        setIsLoading(true);
+        setError(null);
+        
+        // Get all preferences from the service
+        const userPrefs = await userPreferencesService.getUserPreferences();
+        
+        // Map from UserPreferences to our Settings type (they have the same shape)
+        setSettings(userPrefs as Settings);
       } catch (error) {
         console.error('Error loading settings:', error);
+        setError(error instanceof Error ? error : new Error('Failed to load settings'));
+        
         // Fall back to defaults
         setSettings(defaultSettings);
+      } finally {
+        setIsLoading(false);
       }
-      
-      setIsInitialized(true);
     };
 
     loadSettings();
+    
+    // Set up event listeners for preference changes from other sources
+    const unsubscribe = userPreferencesService.on('preferences-changed', (updatedPrefs) => {
+      setSettings(prevSettings => ({
+        ...prevSettings,
+        ...updatedPrefs
+      }));
+    });
+
+    return () => {
+      // Clean up event listener on unmount
+      unsubscribe();
+    };
   }, []);
 
   // Update theme when theme setting changes
   useEffect(() => {
-    if (!isInitialized) return;
-
     // Apply theme to document
     const applyTheme = () => {
       const html = document.documentElement;
@@ -174,26 +118,63 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
-  }, [settings.theme, isInitialized]);
+  }, [settings.theme]);
 
-  // Function to update a specific setting
-  const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    
-    // Save to localStorage immediately
-    saveSetting(key, value);
+  // Function to update a single setting
+  const updateSetting = async <K extends keyof Settings>(key: K, value: Settings[K]) => {
+    try {
+      // Update state immediately for responsive UI
+      setSettings(prevSettings => ({
+        ...prevSettings,
+        [key]: value
+      }));
+      
+      // Save to database through service
+      await userPreferencesService.setPreference(key, value);
+    } catch (error) {
+      console.error(`Error updating setting ${key}:`, error);
+      setError(error instanceof Error ? error : new Error(`Failed to update ${key}`));
+      
+      // Revert to previous value in case of error
+      userPreferencesService.getUserPreferences()
+        .then(prefs => setSettings(prefs as Settings))
+        .catch(err => console.error('Error reverting settings:', err));
+    }
   };
 
-  // Function to save all settings
-  const saveAllSettings = () => {
-    // Save all settings to localStorage
-    Object.entries(settings).forEach(([key, value]) => {
-      saveSetting(key, value);
-    });
+  // Function to save all settings at once
+  const saveAllSettings = async () => {
+    try {
+      await userPreferencesService.setPreferences(settings);
+    } catch (error) {
+      console.error('Error saving all settings:', error);
+      setError(error instanceof Error ? error : new Error('Failed to save settings'));
+    }
   };
+  
+  // Function to reset to default settings
+  const resetToDefaults = async () => {
+    try {
+      await userPreferencesService.resetToDefaults();
+      setSettings(defaultSettings);
+    } catch (error) {
+      console.error('Error resetting settings:', error);
+      setError(error instanceof Error ? error : new Error('Failed to reset settings'));
+    }
+  };
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = React.useMemo(() => ({
+    settings,
+    updateSetting,
+    saveAllSettings,
+    isLoading,
+    error,
+    resetToDefaults
+  }), [settings, isLoading, error]);
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSetting, saveAllSettings }}>
+    <SettingsContext.Provider value={contextValue}>
       {children}
     </SettingsContext.Provider>
   );
