@@ -1,4 +1,5 @@
 import { IService } from './IService';
+import { ServiceError } from '../BaseService';
 
 /**
  * Events that can be emitted by the UserPreferencesService
@@ -6,7 +7,7 @@ import { IService } from './IService';
 export interface UserPreferencesEvents {
   'preferences-changed': Record<string, any>;
   'preferences-loaded': Record<string, any>;
-  'preferences-error': Error;
+  'preferences-error': ServiceError;
   'theme-changed': string;
 }
 

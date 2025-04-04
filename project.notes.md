@@ -79,67 +79,133 @@ Design Review
 ***Refactoring Opportunities***
 - Based on our work so far and the refactoring plan in your notes, there are several additional refactoring opportunities to further enhance the scalability, modularity, and future-proofing of TaskMan:
 
-1. UI Component Layer Improvements
-Component Library Abstraction:
-Create a dedicated UI component library with standardized styling and behavior
-Implement atomic design principles (atoms, molecules, organisms) for better component composition
-Add documentation with Storybook to enable easier collaboration and reuse
-Form Handling Abstraction:
-Create a form management abstraction using a library like React Hook Form
-Implement a consistent validation pattern using Zod or Yup
-Decouple form rendering from validation logic for better testability
-2. State Management Enhancements
-Redux/Zustand Integration:
-Consider moving from React Context to a more robust state management solution
-Create specialized slices/stores for different domain concepts (tasks, time sessions, settings)
-Implement middleware for side effects handling like logging, analytics, and error reporting
-Feature Flags System:
-Implement a feature flag system to enable/disable features at runtime
-Support gradual rollouts and A/B testing of new functionality
-Add configuration system for environment-specific settings
-3. Data Layer Optimizations
-Query Caching Strategy:
-Implement more sophisticated caching using React Query or SWR
-Add cache invalidation strategies based on mutation operations
-Improve response time with optimistic updates and background refetching
-~~Data Transformation Layer:~~  
-~~Create data transformation utilities to convert between API and UI representations~~
-~~Implement consistent serialization/deserialization patterns~~
-~~Support schema versioning to handle API changes gracefully~~
-4. Performance and Optimization
-Code Splitting and Lazy Loading:
-Implement route-based code splitting to reduce initial bundle size
-Add lazy loading for heavy components that aren't immediately needed
-Implement virtualized lists for handling large data sets
-Performance Monitoring:
-Add performance metrics collection for key UI operations
-Implement React Profiler integration to identify rendering bottlenecks
-Create performance budgets and automated monitoring
-5. Testing Infrastructure
-Comprehensive Testing Strategy:
-Implement unit tests for business logic using Jest or Vitest
-Add component testing with Testing Library or Cypress Component Testing
-Create end-to-end tests for critical user journeys
-Mocking Infrastructure:
-Create a robust mocking system for services and API calls
-Implement a consistent test data generation strategy
-Add test coverage reporting and quality gates
-6. Project Structure Improvements
-Domain-Driven File Organization:
-Reorganize the codebase by domain features rather than technical role
-Co-locate related components, services, and tests
-Create clear boundaries between application domains
-Module Federation:
-For larger teams, consider splitting the application into micro-frontends
-Implement module federation to allow independent development and deployment
-Define clear contracts between application modules
-7. Developer Experience Enhancements
-Documentation System:
-Implement automated API documentation for services and components
-Create architectural decision records (ADRs) for key technical decisions
-Add developer guides for common tasks and patterns
-Tooling Improvements:
-Enhance linting and formatting rules for consistency
-Add pre-commit hooks for quality checks
-Implement automated code quality metrics
-Each of these areas would significantly contribute to the application's scalability, making it more maintainable as the application grows in features and complexity
+    1. UI Component Layer Improvements
+    Component Library Abstraction:
+    Create a dedicated UI component library with standardized styling and behavior
+    Implement atomic design principles (atoms, molecules, organisms) for better component composition
+    Add documentation with Storybook to enable easier collaboration and reuse
+    Form Handling Abstraction:
+    Create a form management abstraction using a library like React Hook Form
+    Implement a consistent validation pattern using Zod or Yup
+    Decouple form rendering from validation logic for better testability
+    2. State Management Enhancements
+    Redux/Zustand Integration:
+    Consider moving from React Context to a more robust state management solution
+    Create specialized slices/stores for different domain concepts (tasks, time sessions, settings)
+    Implement middleware for side effects handling like logging, analytics, and error reporting
+    Feature Flags System:
+    Implement a feature flag system to enable/disable features at runtime
+    Support gradual rollouts and A/B testing of new functionality
+    Add configuration system for environment-specific settings
+    3. Data Layer Optimizations
+    Query Caching Strategy:
+    Implement more sophisticated caching using React Query or SWR
+    Add cache invalidation strategies based on mutation operations
+    Improve response time with optimistic updates and background refetching
+    ~~Data Transformation Layer:~~  
+    ~~Create data transformation utilities to convert between API and UI representations~~
+    ~~Implement consistent serialization/deserialization patterns~~
+    ~~Support schema versioning to handle API changes gracefully~~
+    4. Performance and Optimization
+    Code Splitting and Lazy Loading:
+    Implement route-based code splitting to reduce initial bundle size
+    Add lazy loading for heavy components that aren't immediately needed
+    Implement virtualized lists for handling large data sets
+    Performance Monitoring:
+    Add performance metrics collection for key UI operations
+    Implement React Profiler integration to identify rendering bottlenecks
+    Create performance budgets and automated monitoring
+    5. Testing Infrastructure
+    Comprehensive Testing Strategy:
+    Implement unit tests for business logic using Jest or Vitest
+    Add component testing with Testing Library or Cypress Component Testing
+    Create end-to-end tests for critical user journeys
+    Mocking Infrastructure:
+    Create a robust mocking system for services and API calls
+    Implement a consistent test data generation strategy
+    Add test coverage reporting and quality gates
+    6. Project Structure Improvements
+    Domain-Driven File Organization:
+    Reorganize the codebase by domain features rather than technical role
+    Co-locate related components, services, and tests
+    Create clear boundaries between application domains
+    Module Federation:
+    For larger teams, consider splitting the application into micro-frontends
+    Implement module federation to allow independent development and deployment
+    Define clear contracts between application modules
+    7. Developer Experience Enhancements
+    Documentation System:
+    Implement automated API documentation for services and components
+    Create architectural decision records (ADRs) for key technical decisions
+    Add developer guides for common tasks and patterns
+    Tooling Improvements:
+        Enhance linting and formatting rules for consistency
+        Add pre-commit hooks for quality checks
+        Implement automated code quality metrics
+        Each of these areas would significantly contribute to the application's scalability, making it more maintainable as the application grows in features and complexity
+
+
+***Dashboard UI Redesign***
+- The user wants to redesign their app to look like the PersonalCRM dashboard shown in the image. This is a significant UI/UX change for their TaskMan v3 application. Let me analyze what I need to address:
+
+    Do we need to clean up anything before this change? - I need to determine if any architectural or code issues should be resolved first.
+    How should this be staged? - I need to provide a phased implementation plan.
+    The user has also mentioned they have various diagrams available (DFD, ERD, etc.) if helpful.
+
+    Dashboard UI Redesign Plan
+    Looking at the PersonalCRM dashboard image, I can see you want to transform your TaskMan app into a more comprehensive dashboard-based UI with metrics, categorized tasks, and activity tracking. This is a significant UI/UX change that would benefit from proper planning.
+
+    1. Pre-Implementation Cleanup
+    + ~~Complete Service Layer Standardization~~:
+        + ~~We've standardized TimeSessionsService and TaskService~~
+        + ~~Continue with UserService, AuthService, and others for consistency~~
+        +~~ This will make integrating dashboard metrics more reliable~~
+    + State Management Consolidation:
+        + Review your contexts and ensure they're properly optimized
+        + Clear separation between UI state and data state
+        + This will prevent performance issues when displaying multiple metrics
+    + Data Fetching Optimization:
+        + Implement proper caching for dashboard metrics
+        + Consider implementing query aggregation for dashboard widgets
+        + This prevents excessive API calls when loading multiple dashboard components
+    
+    2. Implementation Staging Plan
+    
+
+    - Phase 1: Core Dashboard Framework (2-3 weeks)
+        + Create base dashboard layout (navigation, content area, widgets grid)
+        + Implement task count metrics (tasks due today, open tasks by project)
+        + Add basic project status display
+        + Set up activity feed infrastructure
+    - Phase 2: Enhanced Metrics & Visualization (2-3 weeks)
+        + Implement time tracking widget with weekly summary
+        + Add project progress bars
+        + Create contacts/people widget
+        + Develop priority-based task categorization
+    - Phase 3: Activity Tracking & Refinement (1-2 weeks)
+        + Complete activity logging system
+        + Add filtering and customization options
+        + Implement dashboard preferences
+        + Polish UI/UX and animations
+    
+    3. Technical Considerations
+    Your architecture will need some extensions to support this dashboard:
+
+    New Repository & Service Layer Components:
+        + ActivityRepository to track user actions
+        + DashboardService to aggregate metrics from multiple sources
+        + ReportingService for time tracking summaries
+    UI Component Library Expansion:
+        + Card components for dashboard widgets
+        + Progress indicators and charts
+        + Activity timeline components
+    Data Requirements:
+        + New activity tracking table in Supabase
+        + Additional queries for metrics aggregation
+        + Timestamp tracking for "Recent Activity"
+    Your diagrams would be extremely helpful for planning this implementation, especially:
+
+    The Component Dependency Diagram to identify reusable components
+    The Data Flow Diagram to ensure efficient data loading for dashboard metrics
+    The ERD to determine if schema changes are needed for activity tracking
+    Would you like  
