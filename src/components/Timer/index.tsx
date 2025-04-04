@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, Play, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useTimer } from '../../contexts/TimerContext';
+import { useTimer } from '../../contexts/TimerCompat';
 import { Task } from '../../types/task';
 import { TimerControls } from './TimerControls';
 

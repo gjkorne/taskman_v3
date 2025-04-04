@@ -3,6 +3,7 @@ import DashboardLayout from '../components/Dashboard/DashboardLayout';
 import TaskOverviewWidget from '../components/Dashboard/TaskOverviewWidget';
 import TimeTrackingWidget from '../components/Dashboard/TimeTrackingWidget';
 import ProjectProgressWidget from '../components/Dashboard/ProjectProgressWidget';
+import ProductivityTrendsWidget from '../components/Dashboard/ProductivityTrendsWidget';
 import { useTaskData } from '../contexts/task';
 import { useTimeSessionData } from '../contexts/timeSession';
 
@@ -35,13 +36,14 @@ export function Dashboard() {
       {/* Task overview widget - spans 2 columns on larger screens */}
       <TaskOverviewWidget />
       
-      {/* Time tracking widget - spans 1 column and 2 rows */}
+      {/* Time tracking widget - spans 1 column */}
       <TimeTrackingWidget />
       
       {/* Project progress widget - spans 2 columns */}
       <ProjectProgressWidget />
       
-      {/* This is where we would add more widgets as needed */}
+      {/* Productivity trends widget - spans 2 columns and 2 rows */}
+      <ProductivityTrendsWidget />
     </DashboardLayout>
   );
 }

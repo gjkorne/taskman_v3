@@ -1,4 +1,4 @@
-import { useCategories } from '../../contexts/CategoryContext';
+import { useCategories } from '../../contexts/CategoryCompat';
 import { useSettings } from '../../contexts/SettingsContext';
 import { Icon } from '../UI/Icon';
 

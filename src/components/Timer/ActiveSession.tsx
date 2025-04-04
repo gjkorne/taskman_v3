@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useTimer } from '../../contexts/TimerContext';
+import { useTimer } from '../../contexts/TimerCompat';
 import { useTaskData } from '../../contexts/task';
-import { TaskStatus } from '../../types/task';
 import { Icon } from '../UI/Icon';
 
 interface ActiveSessionProps {
@@ -21,13 +20,11 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   }
   
   if (!activeTask) {
-    console.log('Active task not found in tasks array - refreshing tasks');
-    
     return (
       <div className="sticky top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
-        <div className="mx-auto px-6 py-2 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Icon name="Clock" size={20} />
+        <div className="mx-auto px-4 py-2">
+          <div className="animate-pulse flex items-center space-x-2">
+            <div className="rounded-full bg-indigo-600 h-4 w-4"></div>
             <div className="text-sm font-medium opacity-90">Loading timer...</div>
           </div>
           
@@ -39,7 +36,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
     );
   }
   
-  const isRunning = timerState.status === 'running';
+  const isRunning = timerState.isRunning;
   
   // Compact mode (default when collapsed)
   if (!isExpanded) {
@@ -94,7 +91,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
               
               <button
                 onClick={() => {
-                  stopTimer(TaskStatus.PENDING);
+                  stopTimer();
                   if (onTimerStateChange) onTimerStateChange();
                 }}
                 className="p-1.5 rounded-full bg-red-500 hover:bg-red-400 transition-colors"
@@ -164,7 +161,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
             
             <button
               onClick={() => {
-                stopTimer(TaskStatus.PENDING);
+                stopTimer();
                 if (onTimerStateChange) onTimerStateChange();
               }}
               className="p-3 rounded-full bg-red-500 hover:bg-red-400 transition-colors shadow-sm"

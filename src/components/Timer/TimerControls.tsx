@@ -1,6 +1,6 @@
 import { Play, Pause, Square, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useTimer } from '../../contexts/TimerContext';
+import { useTimer } from '../../contexts/TimerCompat';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useToast } from '../../components/Toast/ToastContext';
 

@@ -1,4 +1,4 @@
-import { createContext } from 'react';
+import { createContext, useContext } from 'react';
 import { useTimeSessionData } from './TimeSessionDataContext';
 import { useTimeSessionUI } from './TimeSessionUIContext';
 import { TimeSessionProvider } from './TimeSessionProvider';
@@ -47,15 +47,15 @@ export interface TimeSessionContextType {
 export const TimeSessionContext = createContext<TimeSessionContextType | undefined>(undefined);
 
 // Legacy hook that combines both contexts for backward compatibility
-export const useTimeSessionContext = (): TimeSessionContextType => {
-  const dataContext = useTimeSessionData();
-  const uiContext = useTimeSessionUI();
+export function useTimeSessionContext(): TimeSessionContextType {
+  const context = useContext(TimeSessionContext);
   
-  return {
-    ...dataContext,
-    ...uiContext
-  };
-};
+  if (context === undefined) {
+    throw new Error('useTimeSessionContext must be used within a TimeSessionProvider');
+  }
+  
+  return context;
+}
 
 // Named exports for the new pattern
 export { 
@@ -64,5 +64,5 @@ export {
   useTimeSessionUI
 };
 
-// Default export for backward compatibility
-export default TimeSessionContext;
+// Export default for easier importing
+export default TimeSessionProvider;

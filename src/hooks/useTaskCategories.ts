@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Task, TaskStatus } from '../types/task';
-import { useTimer } from '../contexts/TimerContext';
+import { useTimer } from '../contexts/TimerCompat';
 
 /**
  * Custom hook to categorize tasks based on their status and timer state

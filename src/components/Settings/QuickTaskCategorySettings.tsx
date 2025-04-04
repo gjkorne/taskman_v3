@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useCategories } from '../../contexts/CategoryContext';
+import { useCategories } from '../../contexts/CategoryCompat';
 import { useSettings } from '../../contexts/SettingsContext';
 import Switch from '../UI/Switch';
 import { Icon } from '../UI/Icon';

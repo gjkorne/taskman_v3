@@ -11,9 +11,9 @@ import {
 import { getPriorityBorderColor, getDueDateStyling, formatEstimatedTime } from '../../lib/taskUtils';
 import { Task, TaskStatus, TaskStatusType } from '../../types/task';
 import { TimerControls } from '../Timer/TimerControls';
-import { useTimer } from '../../contexts/TimerContext';
+import { useTimer } from '../../contexts/TimerCompat';
 import { useTaskActions } from '../../hooks/useTaskActions';
-import { useCategories } from '../../contexts/CategoryContext';
+import { useCategories } from '../../contexts/CategoryCompat';
 import { useTaskData } from '../../contexts/task';
 import StatusBadge from '../Common/StatusBadge';
 import TaskStatusSelector from '../Common/TaskStatusSelector';

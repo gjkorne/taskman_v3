@@ -14,11 +14,11 @@ import { TaskDetailsPage } from './pages/TaskDetailsPage';
 import { TimeSessionsPage } from './pages/TimeSessionsPage';
 import { CalendarPage } from './components/Calendar/CalendarPage';
 import { useAuth } from './lib/auth';
-import { TimerProvider } from './contexts/TimerContext';
+import { TimeSessionProvider } from './contexts/timeSession';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { TaskProvider } from './contexts/task';
 import { ToastProvider } from './components/Toast';
-import { CategoryProvider } from './contexts/CategoryContext';
+import { CategoryProvider } from './contexts/category';
 import { ErrorProvider } from './contexts/ErrorContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { NetworkStatusProvider } from './contexts/NetworkStatusContext';
@@ -136,7 +136,7 @@ function App() {
             <ErrorProvider>
               <NetworkStatusProvider>
                 <SettingsProvider>
-                  <TimerProvider>
+                  <TimeSessionProvider>
                     <TaskProvider>
                       <CategoryProvider>
                         <BrowserRouter>
@@ -180,7 +180,7 @@ function App() {
                         </BrowserRouter>
                       </CategoryProvider>
                     </TaskProvider>
-                  </TimerProvider>
+                  </TimeSessionProvider>
                 </SettingsProvider>
               </NetworkStatusProvider>
             </ErrorProvider>
