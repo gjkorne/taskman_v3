@@ -206,6 +206,62 @@ export class TimeSessionsService {
     
     return data;
   }
+
+  /**
+   * Check for active sessions (no end_time) for the current user
+   * Returns the most recent active session if found
+   */
+  async getActiveSession() {
+    const { data: userData } = await supabase.auth.getUser();
+    
+    if (!userData.user) {
+      console.error('No authenticated user found');
+      throw new Error('Authentication required');
+    }
+    
+    try {
+      // First get the active session without joining tasks to avoid query errors
+      const { data, error } = await supabase
+        .from('time_sessions')
+        .select('*')
+        .eq('user_id', userData.user.id)
+        .eq('is_deleted', false)
+        .is('end_time', null)
+        .order('start_time', { ascending: false })
+        .limit(1);
+        
+      if (error) {
+        console.error('Error fetching active session:', error);
+        throw error;
+      }
+      
+      // If no active session found, return null
+      if (!data || data.length === 0) {
+        return null;
+      }
+      
+      // Get task details in a separate query
+      const activeSession = data[0];
+      if (activeSession.task_id) {
+        const { data: taskData, error: taskError } = await supabase
+          .from('tasks')
+          .select('title, status, priority, id')
+          .eq('id', activeSession.task_id)
+          .single();
+          
+        if (!taskError && taskData) {
+          // Attach task data to active session
+          activeSession.tasks = taskData;
+        }
+      }
+      
+      return activeSession;
+    } catch (error) {
+      console.error('Exception checking for active session:', error);
+      // Return null instead of throwing, as no active session is a valid state
+      return null;
+    }
+  }
 }
 
 // Create singleton instance

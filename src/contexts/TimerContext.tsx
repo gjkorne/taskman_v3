@@ -26,10 +26,11 @@ const TimerContext = createContext<TimerContextType | undefined>(undefined);
 // Timer Provider component
 export const TimerProvider = ({ children }: { children: ReactNode }) => {
   // Use our new timer persistence hook
-  const { state: timerState, setState: setTimerState, clearTimerStorage } = useTimerPersistence();
+  const { state: timerState, setState: setTimerState, clearTimerStorage, syncWithRemote } = useTimerPersistence();
   
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Get task context to update UI after timer actions
   const taskContext = useContext(TaskContext);
@@ -56,6 +57,28 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  // Periodically check for active sessions from other devices
+  useEffect(() => {
+    // Initial sync when component mounts
+    syncWithRemote();
+    
+    // Set up an interval to check for remote timer sessions periodically
+    syncIntervalRef.current = setInterval(() => {
+      // Only sync if we're not currently timing something locally
+      // This avoids overriding our active local session with a remote one
+      if (timerState.status !== 'running') {
+        syncWithRemote();
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => {
+      if (syncIntervalRef.current) {
+        clearInterval(syncIntervalRef.current);
+        syncIntervalRef.current = null;
+      }
+    };
+  }, [syncWithRemote, timerState.status]);
 
   // Clean up interval on unmount
   useEffect(() => {
