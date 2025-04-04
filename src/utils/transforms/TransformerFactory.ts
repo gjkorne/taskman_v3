@@ -2,6 +2,9 @@ import { DataTransformer, TransformerFactory as ITransformerFactory } from './Da
 import { TaskApiDto } from '../../types/api/taskDto';
 import { TaskModel } from '../../types/models/TaskModel';
 import { taskTransformer } from './TaskTransformer';
+import { projectTransformer } from './ProjectTransformer';
+import { ProjectApiDto } from '../../types/api/projectDto';
+import { ProjectModel } from '../../types/models/ProjectModel';
 import { AppError, ErrorType } from '../errorHandling';
 
 /**
@@ -36,6 +39,9 @@ export class TransformerFactory implements ITransformerFactory {
   private registerDefaultTransformers(): void {
     // Register task transformer
     this.registerTransformer('task', taskTransformer);
+    
+    // Register project transformer
+    this.registerTransformer('project', projectTransformer);
     
     // Additional transformers will be added here as they are implemented
     // this.registerTransformer('timeSession', timeSessionTransformer);
@@ -73,7 +79,14 @@ export class TransformerFactory implements ITransformerFactory {
    * Get the task transformer
    */
   public getTaskTransformer(): DataTransformer<TaskApiDto, TaskModel> {
-    return this.getTransformer<TaskApiDto, TaskModel>('task');
+    return this.getTransformer('task');
+  }
+  
+  /**
+   * Get the project transformer
+   */
+  public getProjectTransformer(): DataTransformer<ProjectApiDto, ProjectModel> {
+    return this.getTransformer('project');
   }
 }
 

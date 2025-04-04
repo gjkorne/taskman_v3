@@ -16,11 +16,7 @@ export type TaskUpdateDTO = Partial<TaskSubmitData>;
 /**
  * Extended Task type with offline sync properties
  */
-interface OfflineTask extends Task, ISyncableEntity {
-  notes: string | null;
-  checklist_items: any[];
-  note_type: 'text' | 'checklist' | 'both' | null;
-}
+interface OfflineTask extends Task, ISyncableEntity {}
 
 /**
  * TaskRepository - provides unified access to task data across local and remote storage
@@ -70,89 +66,24 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
    * Transform API DTO to domain model
    */
   protected apiToDomain(dto: TaskApiDto): OfflineTask {
-    // First get the base task model from the transformer
-    const taskModel = this.taskTransformer.toModel(dto);
+    // Use the existing transformer to convert API to model
+    const taskModel = this.taskTransformer.apiToModel(dto);
     
-    // Map the TaskModel to our OfflineTask format
-    const offlineTask: OfflineTask = {
-      // Map core fields from model
-      id: taskModel.id,
-      title: taskModel.title,
-      description: taskModel.description || '',
-      status: taskModel.status,
-      priority: taskModel.priority,
-      
-      // Convert properly formatted dates from model to ISO strings for our repository
-      due_date: taskModel.dueDate ? taskModel.dueDate.toISOString() : null,
-      created_at: taskModel.createdAt.toISOString(),
-      updated_at: taskModel.updatedAt ? taskModel.updatedAt.toISOString() : null,
-      
-      // Convert time fields (model uses minutes, repository uses interval strings)
-      estimated_time: taskModel.estimatedTimeMinutes ? `${taskModel.estimatedTimeMinutes * 60} seconds` : null,
-      actual_time: taskModel.actualTimeMinutes ? `${taskModel.actualTimeMinutes * 60} seconds` : null,
-      
-      // Additional fields
-      tags: taskModel.tags || [],
-      created_by: taskModel.createdBy,
-      is_deleted: taskModel.isDeleted,
-      list_id: taskModel.listId,
-      category_name: taskModel.categoryName,
-      
-      // Required fields that might not be in the model but are required by Task interface
-      notes: null,
-      checklist_items: [],
-      note_type: null,
-      
-      // Sync fields
+    // Add offline sync properties
+    return {
+      ...taskModel,
       _pendingSync: false,
       _lastUpdated: new Date().toISOString(),
       _sync_error: undefined
-    };
-    
-    return offlineTask;
+    } as OfflineTask;
   }
   
   /**
    * Transform domain model to API DTO
    */
   protected domainToApi(model: OfflineTask): Omit<TaskApiDto, 'id'> {
-    // First convert our OfflineTask to a proper TaskModel
-    const taskModel: any = {
-      id: model.id,
-      title: model.title,
-      description: model.description,
-      status: model.status,
-      priority: model.priority,
-      
-      // Convert ISO date strings to Date objects
-      dueDate: model.due_date ? new Date(model.due_date) : null,
-      createdAt: new Date(model.created_at),
-      updatedAt: model.updated_at ? new Date(model.updated_at) : null,
-      
-      // Convert time intervals to minutes
-      estimatedTimeMinutes: this.parseIntervalToMinutes(model.estimated_time),
-      actualTimeMinutes: this.parseIntervalToMinutes(model.actual_time),
-      
-      // Additional fields
-      tags: model.tags,
-      createdBy: model.created_by,
-      isDeleted: model.is_deleted,
-      listId: model.list_id,
-      categoryName: model.category_name,
-      
-      // Default required fields by TaskModel that aren't in our OfflineTask
-      checklistItems: [],
-      pendingSync: model._pendingSync,
-      lastUpdated: model._lastUpdated ? new Date(model._lastUpdated) : null,
-      syncError: model._sync_error
-    };
-    
-    // Now convert TaskModel to API DTO using the transformer
-    const apiDto = this.taskTransformer.toApi(taskModel);
-    
-    // Return without id to match the BaseRepository interface
-    const { id, ...apiData } = apiDto;
-    return apiData;
+    // Use the existing transformer to convert model to API
+    return this.taskTransformer.modelToApi(model);
   }
   
   /**
@@ -160,30 +91,19 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
    */
   protected createDtoToDomain(dto: TaskCreateDTO): Omit<OfflineTask, 'id'> {
     // Convert form submission to task model
-    const estimatedTime = dto.estimatedTime !== undefined && dto.estimatedTime !== null 
-      ? (typeof dto.estimatedTime === 'string' ? parseInt(dto.estimatedTime, 10) : dto.estimatedTime)
-      : null;
-      
     return {
       title: dto.title,
       description: dto.description || '',
       status: dto.status as TaskStatusType || TaskStatus.PENDING,
       priority: dto.priority || 'medium',
       due_date: dto.dueDate ? new Date(dto.dueDate).toISOString() : null,
-      estimated_time: estimatedTime !== null ? `${estimatedTime * 60} seconds` : null,
+      estimated_time: this.formatTimeInput(dto.estimatedTime),
       actual_time: null,
       tags: dto.tags || [],
       category_name: dto.category || 'uncategorized',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      is_deleted: false,
-      created_by: null,
-      list_id: null,
-      
-      // Required fields for Task interface
-      notes: null,
-      checklist_items: [],
-      note_type: null
+      is_deleted: false
     } as Omit<OfflineTask, 'id'>;
   }
   
@@ -201,13 +121,7 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
     if (dto.status !== undefined) updates.status = dto.status as TaskStatusType;
     if (dto.priority !== undefined) updates.priority = dto.priority;
     if (dto.dueDate !== undefined) updates.due_date = dto.dueDate ? new Date(dto.dueDate).toISOString() : null;
-    if (dto.estimatedTime !== undefined) {
-      // Handle the estimatedTime correctly as it could be number or string
-      const timeValue = typeof dto.estimatedTime === 'string' 
-        ? parseInt(dto.estimatedTime, 10) 
-        : dto.estimatedTime;
-      updates.estimated_time = timeValue ? `${timeValue * 60} seconds` : null;
-    }
+    if (dto.estimatedTime !== undefined) updates.estimated_time = this.formatTimeInput(dto.estimatedTime);
     if (dto.tags !== undefined) updates.tags = dto.tags;
     if (dto.category !== undefined) updates.category_name = dto.category;
     
@@ -226,20 +140,12 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
   }
   
   /**
-   * Parse Postgres interval format (seconds) to minutes
+   * Format time input from minutes to interval format
    * @private
    */
-  private parseIntervalToMinutes(interval: string | null): number | null {
-    if (!interval) return null;
-    
-    // Parse PostgreSQL interval format
-    const match = interval.match(/^(\d+) seconds$/);
-    if (match && match[1]) {
-      const seconds = parseInt(match[1], 10);
-      return !isNaN(seconds) ? Math.round(seconds / 60) : null;
-    }
-    
-    return null;
+  private formatTimeInput(timeInMinutes?: number | null): string | null {
+    if (!timeInMinutes) return null;
+    return `${timeInMinutes * 60} seconds`;
   }
   
   /**
