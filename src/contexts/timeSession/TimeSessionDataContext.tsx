@@ -1,8 +1,25 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import { createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TimeSession } from '../../services/api/timeSessionsService';
 import { ServiceRegistry } from '../../services/ServiceRegistry';
 import { useToast } from '../../components/Toast';
-import { ServiceError } from '../../services/BaseService';
+
+// Cache keys for React Query
+export const TIME_SESSION_QUERY_KEYS = {
+  all: ['time-sessions'] as const,
+  lists: () => [...TIME_SESSION_QUERY_KEYS.all, 'list'] as const,
+  list: (filter?: string) => [...TIME_SESSION_QUERY_KEYS.lists(), filter] as const,
+  active: () => [...TIME_SESSION_QUERY_KEYS.all, 'active'] as const,
+  byTask: () => [...TIME_SESSION_QUERY_KEYS.all, 'by-task'] as const,
+  task: (taskId: string) => [...TIME_SESSION_QUERY_KEYS.byTask(), taskId] as const,
+  byDate: () => [...TIME_SESSION_QUERY_KEYS.all, 'by-date'] as const,
+  dateRange: (start: string, end: string) => [...TIME_SESSION_QUERY_KEYS.byDate(), start, end] as const,
+  details: () => [...TIME_SESSION_QUERY_KEYS.all, 'detail'] as const,
+  detail: (id: string) => [...TIME_SESSION_QUERY_KEYS.details(), id] as const,
+  metrics: () => [...TIME_SESSION_QUERY_KEYS.all, 'metrics'] as const,
+  today: () => [...TIME_SESSION_QUERY_KEYS.metrics(), 'today'] as const,
+  week: () => [...TIME_SESSION_QUERY_KEYS.metrics(), 'week'] as const,
+};
 
 // Types for the data context
 interface TimeSessionDataContextType {
@@ -36,200 +53,284 @@ export const TimeSessionDataProvider = ({ children }: { children: ReactNode }) =
   // Get the time session service from the service registry
   const timeSessionsService = ServiceRegistry.getTimeSessionService();
   
-  // Time session data state
-  const [sessions, setSessions] = useState<TimeSession[]>([]);
-  const [activeSession, setActiveSession] = useState<TimeSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // Get query client from React Query
+  const queryClient = useQueryClient();
   
   // Get toast notifications
   const { addToast } = useToast();
   
-  // Set up event listeners for time session changes
-  useEffect(() => {
-    // Subscribe to time session service events
-    const unsubs = [
-      timeSessionsService.on('sessions-loaded', (loadedSessions: TimeSession[]) => {
-        setSessions(loadedSessions);
-      }),
-      
-      timeSessionsService.on('session-created', (session: TimeSession) => {
-        setSessions(prev => [...prev, session]);
-        if (!session.end_time) {
-          setActiveSession(session);
+  // Main query for sessions
+  const { 
+    data: sessions = [], 
+    isLoading,
+    isRefetching: isRefreshing,
+    error: sessionsError,
+    refetch: refetchSessions
+  } = useQuery({
+    queryKey: TIME_SESSION_QUERY_KEYS.lists(),
+    queryFn: async () => {
+      try {
+        // This will trigger the 'sessions-loaded' event which is handled by the service
+        return await timeSessionsService.getUserSessions();
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
         }
-      }),
-      
-      timeSessionsService.on('session-updated', (updatedSession: TimeSession) => {
-        setSessions(prev => 
-          prev.map(session => session.id === updatedSession.id ? updatedSession : session)
-        );
-        
-        // Update active session if this is the one that was updated
-        if (activeSession?.id === updatedSession.id) {
-          setActiveSession(updatedSession.end_time ? null : updatedSession);
-        }
-      }),
-      
-      timeSessionsService.on('session-deleted', (sessionId: string) => {
-        setSessions(prev => prev.filter(session => session.id !== sessionId));
-        
-        // Clear active session if this was the active one
-        if (activeSession?.id === sessionId) {
-          setActiveSession(null);
-        }
-      }),
-      
-      timeSessionsService.on('session-stopped', (stoppedSession: TimeSession) => {
-        setSessions(prev => 
-          prev.map(session => session.id === stoppedSession.id ? stoppedSession : session)
-        );
-        
-        // Clear active session if this was the active one
-        if (activeSession?.id === stoppedSession.id) {
-          setActiveSession(null);
-        }
-      }),
-      
-      timeSessionsService.on('error', (error: ServiceError | Error) => {
-        setError(error.message);
-        addToast(`Time session operation failed: ${error.message}`, 'error');
-      })
-    ];
-    
-    // Check for active session on mount
-    checkForActiveSession();
-    
-    // Initial data load
-    fetchSessions();
-    
-    // Cleanup function
-    return () => {
-      unsubs.forEach(unsubscribe => unsubscribe());
-    };
-  }, [timeSessionsService]);
+        throw new Error('Failed to fetch time sessions');
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
   
-  // Check for any active session
-  const checkForActiveSession = useCallback(async () => {
-    try {
-      const active = await timeSessionsService.getActiveSession();
-      setActiveSession(active);
-    } catch (err) {
-      console.error('Error checking for active session:', err);
-    }
-  }, [timeSessionsService]);
+  // Query for active session
+  const { 
+    data: activeSession = null,
+  } = useQuery({
+    queryKey: TIME_SESSION_QUERY_KEYS.active(),
+    queryFn: async () => {
+      try {
+        return await timeSessionsService.getActiveSession();
+      } catch (error) {
+        console.error('Error checking for active session:', error);
+        return null;
+      }
+    },
+    staleTime: 60 * 1000, // 1 minute
+    refetchInterval: 60 * 1000, // Refresh every minute to keep track of active session
+    refetchOnWindowFocus: true,
+  });
   
-  // Function to fetch all sessions
-  const fetchSessions = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      setIsRefreshing(true);
+  // Error handling
+  const error = sessionsError instanceof Error ? sessionsError.message : null;
+  
+  // Create session mutation
+  const createSessionMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      return await timeSessionsService.createSession(taskId);
+    },
+    onSuccess: (newSession) => {
+      // Invalidate affected queries
+      queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.active() });
       
-      await timeSessionsService.getUserSessions();
+      if (newSession?.task_id) {
+        queryClient.invalidateQueries({ 
+          queryKey: TIME_SESSION_QUERY_KEYS.task(newSession.task_id) 
+        });
+      }
       
-      // Note: actual sessions will be set via the event listener
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error fetching sessions');
-      setError(error.message);
-      addToast(`Error loading time sessions: ${error.message}`, 'error');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      // Optimistically update cache
+      queryClient.setQueryData(
+        TIME_SESSION_QUERY_KEYS.detail(newSession?.id as string),
+        newSession
+      );
+      
+      addToast('Time session started', 'success');
+    },
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create time session';
+      addToast(`Error creating time session: ${errorMessage}`, 'error');
     }
-  }, [timeSessionsService, addToast]);
+  });
+  
+  // Update session mutation
+  const updateSessionMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<TimeSession> }) => {
+      return await timeSessionsService.updateSession(id, data);
+    },
+    onSuccess: (updatedSession) => {
+      if (!updatedSession) return;
+      
+      // Invalidate affected queries
+      queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.lists() });
+      
+      if (updatedSession.end_time) {
+        // If session ended, invalidate the active session query
+        queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.active() });
+      }
+      
+      if (updatedSession.task_id) {
+        queryClient.invalidateQueries({ 
+          queryKey: TIME_SESSION_QUERY_KEYS.task(updatedSession.task_id) 
+        });
+      }
+      
+      // Invalidate metrics
+      queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.metrics() });
+      
+      // Optimistically update cache
+      queryClient.setQueryData(
+        TIME_SESSION_QUERY_KEYS.detail(updatedSession.id),
+        updatedSession
+      );
+      
+      addToast('Time session updated', 'success');
+    },
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update time session';
+      addToast(`Error updating time session: ${errorMessage}`, 'error');
+    }
+  });
+  
+  // Delete session mutation
+  const deleteSessionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await timeSessionsService.deleteSession(id);
+      return { id, result };
+    },
+    onSuccess: ({ id, result }) => {
+      if (!result) return;
+      
+      // Invalidate affected queries
+      queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.active() });
+      queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.metrics() });
+      
+      // Remove from cache
+      queryClient.removeQueries({ queryKey: TIME_SESSION_QUERY_KEYS.detail(id) });
+      
+      addToast('The time session has been removed', 'success');
+    },
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete time session';
+      addToast(`Error deleting time session: ${errorMessage}`, 'error');
+    }
+  });
+  
+  // Stop session mutation
+  const stopSessionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await timeSessionsService.stopSession(id);
+    },
+    onSuccess: (stoppedSession) => {
+      if (!stoppedSession) return;
+      
+      // Invalidate affected queries
+      queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.active() });
+      
+      if (stoppedSession.task_id) {
+        queryClient.invalidateQueries({ 
+          queryKey: TIME_SESSION_QUERY_KEYS.task(stoppedSession.task_id) 
+        });
+      }
+      
+      // Invalidate metrics
+      queryClient.invalidateQueries({ queryKey: TIME_SESSION_QUERY_KEYS.metrics() });
+      
+      // Optimistically update cache
+      queryClient.setQueryData(
+        TIME_SESSION_QUERY_KEYS.detail(stoppedSession.id),
+        stoppedSession
+      );
+      
+      addToast('Time session stopped', 'success');
+    },
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to stop time session';
+      addToast(`Error stopping time session: ${errorMessage}`, 'error');
+    }
+  });
+  
+  // API handlers with a similar interface to the old implementation
+  const fetchSessions = useCallback(async (): Promise<void> => {
+    try {
+      await refetchSessions();
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    }
+  }, [refetchSessions]);
   
   // Function to get sessions for a specific task
   const getSessionsByTaskId = useCallback(async (taskId: string): Promise<TimeSession[]> => {
     try {
-      setError(null);
-      return await timeSessionsService.getSessionsByTaskId(taskId);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error fetching task sessions');
-      setError(error.message);
-      addToast(`Error loading task time sessions: ${error.message}`, 'error');
+      // Use the queryClient directly for this case
+      const result = await queryClient.fetchQuery({
+        queryKey: TIME_SESSION_QUERY_KEYS.task(taskId),
+        queryFn: async () => {
+          return await timeSessionsService.getSessionsByTaskId(taskId);
+        }
+      });
+      return result || [];
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch task sessions';
+      addToast(`Error loading task time sessions: ${errorMessage}`, 'error');
       return [];
     }
-  }, [timeSessionsService, addToast]);
+  }, [timeSessionsService, queryClient, addToast]);
   
   // Function to get sessions in a date range
   const getSessionsInDateRange = useCallback(async (startDate: Date, endDate: Date): Promise<TimeSession[]> => {
     try {
-      setError(null);
-      return await timeSessionsService.getSessionsByDateRange(startDate, endDate);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error fetching sessions by date');
-      setError(error.message);
-      addToast(`Error loading time sessions: ${error.message}`, 'error');
+      // Format dates as ISO strings for query keys
+      const startStr = startDate.toISOString();
+      const endStr = endDate.toISOString();
+      
+      const result = await queryClient.fetchQuery({
+        queryKey: TIME_SESSION_QUERY_KEYS.dateRange(startStr, endStr),
+        queryFn: async () => {
+          return await timeSessionsService.getSessionsByDateRange(startDate, endDate);
+        },
+        staleTime: 5 * 60 * 1000 // 5 minutes
+      });
+      return result || [];
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch sessions by date';
+      addToast(`Error loading time sessions: ${errorMessage}`, 'error');
       return [];
     }
-  }, [timeSessionsService, addToast]);
+  }, [timeSessionsService, queryClient, addToast]);
   
   // Function to create a new session
   const createSession = useCallback(async (taskId: string): Promise<TimeSession | null> => {
     try {
-      setError(null);
-      return await timeSessionsService.createSession(taskId);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error creating session');
-      setError(error.message);
-      addToast(`Error creating time session: ${error.message}`, 'error');
+      return await createSessionMutation.mutateAsync(taskId);
+    } catch (error) {
+      // Error handling is done in the mutation
       return null;
     }
-  }, [timeSessionsService, addToast]);
+  }, [createSessionMutation]);
   
   // Function to update a session
   const updateSession = useCallback(async (id: string, data: Partial<TimeSession>): Promise<TimeSession | null> => {
     try {
-      setError(null);
-      return await timeSessionsService.updateSession(id, data);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error updating session');
-      setError(error.message);
-      addToast(`Error updating time session: ${error.message}`, 'error');
+      return await updateSessionMutation.mutateAsync({ id, data });
+    } catch (error) {
+      // Error handling is done in the mutation
       return null;
     }
-  }, [timeSessionsService, addToast]);
+  }, [updateSessionMutation]);
   
   // Function to delete a session
   const deleteSession = useCallback(async (id: string): Promise<boolean> => {
     try {
-      setError(null);
-      const result = await timeSessionsService.deleteSession(id);
-      
-      if (result) {
-        addToast('The time session has been removed', 'success');
-      }
-      
+      const { result } = await deleteSessionMutation.mutateAsync(id);
       return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error deleting session');
-      setError(error.message);
-      addToast(`Error deleting time session: ${error.message}`, 'error');
+    } catch (error) {
+      // Error handling is done in the mutation
       return false;
     }
-  }, [timeSessionsService, addToast]);
+  }, [deleteSessionMutation]);
   
   // Function to stop a session
   const stopSession = useCallback(async (id: string): Promise<TimeSession | null> => {
     try {
-      setError(null);
-      return await timeSessionsService.stopSession(id);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error stopping session');
-      setError(error.message);
-      addToast(`Error stopping time session: ${error.message}`, 'error');
+      return await stopSessionMutation.mutateAsync(id);
+    } catch (error) {
+      // Error handling is done in the mutation
       return null;
     }
-  }, [timeSessionsService, addToast]);
+  }, [stopSessionMutation]);
   
   // Function to calculate time spent
   const calculateTimeSpent = useCallback(async (taskIds?: string[], startDate?: Date, endDate?: Date): Promise<number> => {
     try {
       return await timeSessionsService.calculateTimeSpent(taskIds, startDate, endDate);
-    } catch (err) {
-      console.error('Error calculating time spent:', err);
+    } catch (error) {
+      console.error('Error calculating time spent:', error);
       return 0;
     }
   }, [timeSessionsService]);
@@ -242,8 +343,18 @@ export const TimeSessionDataProvider = ({ children }: { children: ReactNode }) =
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
-    return calculateTimeSpent(undefined, today, tomorrow);
-  }, [calculateTimeSpent]);
+    try {
+      const result = await queryClient.fetchQuery({
+        queryKey: TIME_SESSION_QUERY_KEYS.today(),
+        queryFn: async () => calculateTimeSpent(undefined, today, tomorrow),
+        staleTime: 5 * 60 * 1000 // 5 minutes
+      });
+      return result;
+    } catch (error) {
+      console.error('Error calculating today time spent:', error);
+      return 0;
+    }
+  }, [calculateTimeSpent, queryClient]);
   
   // Calculate time spent this week
   const calculateWeekTimeSpent = useCallback(async (): Promise<number> => {
@@ -259,11 +370,21 @@ export const TimeSessionDataProvider = ({ children }: { children: ReactNode }) =
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
     
-    return calculateTimeSpent(undefined, startOfWeek, endOfWeek);
-  }, [calculateTimeSpent]);
+    try {
+      const result = await queryClient.fetchQuery({
+        queryKey: TIME_SESSION_QUERY_KEYS.week(),
+        queryFn: async () => calculateTimeSpent(undefined, startOfWeek, endOfWeek),
+        staleTime: 5 * 60 * 1000 // 5 minutes
+      });
+      return result;
+    } catch (error) {
+      console.error('Error calculating week time spent:', error);
+      return 0;
+    }
+  }, [calculateTimeSpent, queryClient]);
   
   // Context value - using useMemo to prevent unnecessary re-renders
-  const value = useMemo(() => ({
+  const value = useMemo<TimeSessionDataContextType>(() => ({
     // State
     sessions,
     activeSession,

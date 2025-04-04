@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './components/Auth/AuthProvider';
 import { LoginForm } from './components/Auth/LoginForm';
@@ -23,8 +22,10 @@ import { ErrorProvider } from './contexts/ErrorContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { NetworkStatusProvider } from './contexts/NetworkStatusContext';
 import { LoadingIndicator } from './components/UI/LoadingIndicator';
+import { OfflineIndicator } from './components/UI/OfflineIndicator';
 import { AppInitializer } from './services/AppInitializer';
 import { AppError } from './utils/errorHandling';
+import { QueryProvider } from './contexts/query/QueryProvider';
 
 // Import debug tools in development mode
 if (process.env.NODE_ENV === 'development') {
@@ -34,8 +35,6 @@ if (process.env.NODE_ENV === 'development') {
 // Import the new providers
 import { SettingsDataProvider } from './contexts/settings/SettingsDataContext';
 import { SettingsUIProvider } from './contexts/settings/SettingsUIContext';
-
-const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -133,19 +132,20 @@ function App() {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ToastProvider>
-          <LoadingProvider>
+    <NetworkStatusProvider>
+      <QueryProvider>
+        <LoadingProvider>
+          <ToastProvider>
             <ErrorProvider>
-              <NetworkStatusProvider>
-                <SettingsProvider>
-                  <SettingsDataProvider>
-                    <SettingsUIProvider>
-                      <TimeSessionProvider>
-                        <TaskProvider>
-                          <CategoryProvider>
-                            <BrowserRouter>
+              <AuthProvider>
+                <BrowserRouter>
+                  <SettingsProvider>
+                    <SettingsDataProvider>
+                      <SettingsUIProvider>
+                        <CategoryProvider>
+                          <TaskProvider>
+                            <TimeSessionProvider>
+                              <OfflineIndicator />
                               <Routes>
                                 <Route path="/login" element={<LoginForm />} />
                                 <Route path="/register" element={<RegisterForm />} />
@@ -185,19 +185,19 @@ function App() {
                                   } 
                                 />
                               </Routes>
-                            </BrowserRouter>
-                          </CategoryProvider>
-                        </TaskProvider>
-                      </TimeSessionProvider>
-                    </SettingsUIProvider>
-                  </SettingsDataProvider>
-                </SettingsProvider>
-              </NetworkStatusProvider>
+                            </TimeSessionProvider>
+                          </TaskProvider>
+                        </CategoryProvider>
+                      </SettingsUIProvider>
+                    </SettingsDataProvider>
+                  </SettingsProvider>
+                </BrowserRouter>
+              </AuthProvider>
             </ErrorProvider>
-          </LoadingProvider>
-        </ToastProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+          </ToastProvider>
+        </LoadingProvider>
+      </QueryProvider>
+    </NetworkStatusProvider>
   );
 }
 

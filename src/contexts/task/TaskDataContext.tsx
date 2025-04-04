@@ -1,9 +1,22 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Task, TaskStatusType } from '../../types/task';
+import { TaskStatus } from '../../components/TaskForm/schema';
 import { ServiceRegistry } from '../../services/ServiceRegistry';
 import { useToast } from '../../components/Toast/ToastContext';
 import { filterTasks } from '../../lib/taskUtils';
 import { TaskFilter, defaultFilters } from '../../components/TaskList/FilterPanel';
+
+// Cache keys for React Query
+export const TASK_QUERY_KEYS = {
+  all: ['tasks'] as const,
+  lists: () => [...TASK_QUERY_KEYS.all, 'list'] as const,
+  list: (filters?: string) => [...TASK_QUERY_KEYS.lists(), filters] as const,
+  details: () => [...TASK_QUERY_KEYS.all, 'detail'] as const,
+  detail: (id: string) => [...TASK_QUERY_KEYS.details(), id] as const,
+  metrics: () => [...TASK_QUERY_KEYS.all, 'metrics'] as const,
+  metric: (name: string) => [...TASK_QUERY_KEYS.metrics(), name] as const,
+};
 
 // Types for the data context
 interface TaskDataContextType {
@@ -11,6 +24,7 @@ interface TaskDataContextType {
   tasks: Task[];
   filteredTasks: Task[];
   isLoading: boolean;
+  isError: boolean;
   error: string | null;
   isRefreshing: boolean;
   isSyncing: boolean;
@@ -39,184 +53,180 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
   // Get the task service from the service registry
   const taskService = ServiceRegistry.getTaskService();
   
-  // Task data state
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  // Get query client from React Query
+  const queryClient = useQueryClient();
   
   // Search and filtering state
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<TaskFilter>(defaultFilters);
   
+  // Other state managed outside of React Query
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  
   // Get toast notifications
   const { addToast } = useToast();
   
-  // Derived state - filtered and sorted tasks
-  // Using useMemo to prevent unnecessary recalculations
+  // The main query to fetch all tasks
+  const { 
+    data: tasks = [], 
+    isLoading, 
+    isError,
+    error: queryError,
+    refetch,
+    isRefetching: isRefreshing
+  } = useQuery({
+    queryKey: TASK_QUERY_KEYS.list(JSON.stringify(filters)),
+    queryFn: async () => {
+      try {
+        const tasks = await taskService.getTasks();
+        return tasks;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error('Failed to fetch tasks');
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+  });
+  
+  // Error state handling
+  const error = queryError instanceof Error ? queryError.message : (queryError ? String(queryError) : null);
+  
+  // Update task status mutation
+  const updateTaskStatusMutation = useMutation({
+    mutationFn: ({ taskId, newStatus }: { taskId: string; newStatus: TaskStatusType }) => 
+      taskService.updateTaskStatus(taskId, newStatus as TaskStatus),
+    onSuccess: (updatedTask) => {
+      // Only proceed if we have a valid task returned
+      if (updatedTask) {
+        // Invalidate affected queries
+        queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.lists() });
+        
+        // Optimistically update the cache for better UX
+        queryClient.setQueryData(
+          TASK_QUERY_KEYS.detail(updatedTask.id),
+          updatedTask
+        );
+        
+        // Show success toast
+        addToast(`Task status updated to ${updatedTask.status}`, 'success');
+      }
+    },
+    onError: (error) => {
+      addToast(`Failed to update task status: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    }
+  });
+  
+  // Delete task mutation
+  const deleteTaskMutation = useMutation({
+    mutationFn: (taskId: string) => taskService.deleteTask(taskId),
+    onSuccess: (_, taskId) => {
+      // Invalidate affected queries
+      queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.lists() });
+      
+      // Optimistically remove from cache
+      queryClient.removeQueries({ queryKey: TASK_QUERY_KEYS.detail(taskId) });
+      
+      // Show success toast
+      addToast('Task deleted successfully', 'success');
+    },
+    onError: (error) => {
+      addToast(`Failed to delete task: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    }
+  });
+  
+  // Sync tasks with backend
+  const syncTasks = useCallback(async (): Promise<void> => {
+    try {
+      setIsSyncing(true);
+      await taskService.sync();
+      setHasPendingChanges(false);
+      
+      // Refetch after sync to get the latest data
+      await queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
+      
+      addToast('Tasks synchronized successfully', 'success');
+    } catch (error) {
+      addToast(`Sync failed: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      setHasPendingChanges(true);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [taskService, queryClient, addToast]);
+  
+  // Helper function to fetch tasks (just triggers refetch)
+  const fetchTasks = useCallback(async (): Promise<void> => {
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      // Error handling is done by React Query
+    }
+  }, [refetch]);
+  
+  // Helper function to refresh tasks (alias for fetchTasks for backward compatibility)
+  const refreshTasks = fetchTasks;
+  
+  // Check for pending changes periodically
+  useEffect(() => {
+    let mounted = true;
+    
+    const checkPendingChanges = async () => {
+      try {
+        if (mounted) {
+          const hasPending = await taskService.hasUnsyncedChanges();
+          setHasPendingChanges(hasPending);
+        }
+      } catch (error) {
+        console.error('Error checking pending changes:', error);
+      }
+    };
+    
+    // Check immediately and then on interval
+    checkPendingChanges();
+    
+    const intervalId = setInterval(checkPendingChanges, 60000); // Check every minute
+    
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, [taskService]);
+  
+  // Helper to update a single task status
+  const updateTaskStatus = useCallback(async (taskId: string, newStatus: TaskStatusType): Promise<void> => {
+    await updateTaskStatusMutation.mutateAsync({ taskId, newStatus });
+  }, [updateTaskStatusMutation]);
+  
+  // Helper to delete a task
+  const deleteTask = useCallback(async (taskId: string): Promise<void> => {
+    await deleteTaskMutation.mutateAsync(taskId);
+  }, [deleteTaskMutation]);
+  
+  // Reset filters to default
+  const resetFilters = useCallback(() => {
+    setFilters(defaultFilters);
+  }, []);
+  
+  // Derived state - filtered and sorted tasks - using useMemo to prevent unnecessary recalculations
   const filteredTasks = useMemo(() => 
     filterTasks(tasks, filters, searchQuery),
     [tasks, filters, searchQuery]
   );
   
-  // Set up event listeners for task changes
-  useEffect(() => {
-    // Subscribe to task service events
-    const unsubs = [
-      taskService.on('tasks-loaded', (loadedTasks) => {
-        setTasks(loadedTasks);
-      }),
-      
-      taskService.on('task-created', (task) => {
-        setTasks(prev => [...prev, task]);
-      }),
-      
-      taskService.on('task-updated', (updatedTask) => {
-        setTasks(prev => 
-          prev.map(task => task.id === updatedTask.id ? updatedTask : task)
-        );
-      }),
-      
-      taskService.on('task-deleted', (taskId) => {
-        setTasks(prev => prev.filter(task => task.id !== taskId));
-      }),
-      
-      taskService.on('error', (error) => {
-        setError(error.message);
-        addToast(error.message, 'error');
-      })
-    ];
-    
-    // Initial data load
-    fetchTasks();
-    
-    // Cleanup function
-    return () => {
-      unsubs.forEach(unsubscribe => unsubscribe());
-    };
-  }, [taskService]);
-  
-  // Check for pending changes
-  useEffect(() => {
-    const checkPendingChanges = async () => {
-      try {
-        const hasChanges = await taskService.hasUnsyncedChanges();
-        setHasPendingChanges(hasChanges);
-      } catch (err) {
-        console.error('Error checking for pending changes:', err);
-      }
-    };
-    
-    checkPendingChanges();
-    
-    // Set up interval to periodically check
-    const interval = setInterval(checkPendingChanges, 60000); // Check every minute
-    
-    return () => clearInterval(interval);
-  }, [taskService]);
-  
-  // Function to fetch all tasks
-  const fetchTasks = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      await taskService.getTasks();
-      
-      // Note: actual tasks will be set via the event listener
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error fetching tasks');
-      setError(error.message);
-      addToast(error.message, 'error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [taskService, addToast]);
-  
-  // Function to refresh tasks from the server
-  const refreshTasks = useCallback(async () => {
-    try {
-      setIsRefreshing(true);
-      setError(null);
-      
-      await taskService.refreshTasks();
-      addToast('Task list has been updated with the latest data', 'success');
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error refreshing tasks');
-      setError(error.message);
-      addToast(error.message, 'error');
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [taskService, addToast]);
-  
-  // Function to sync tasks with the server
-  const syncTasks = useCallback(async () => {
-    if (!hasPendingChanges) return;
-    
-    try {
-      setIsSyncing(true);
-      setError(null);
-      
-      await taskService.sync();
-      setHasPendingChanges(false);
-      
-      addToast('Tasks have been synced with the server', 'success');
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error syncing tasks');
-      setError(error.message);
-      addToast(error.message, 'error');
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [taskService, hasPendingChanges, addToast]);
-  
-  // Function to update a task's status
-  const updateTaskStatus = useCallback(async (taskId: string, newStatus: TaskStatusType) => {
-    try {
-      setError(null);
-      // Explicitly cast the newStatus to match what the service expects
-      await taskService.updateTaskStatus(taskId, newStatus as any);
-      
-      // No need to update local state, it will be updated via the event listener
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error updating task status');
-      setError(error.message);
-      addToast(error.message, 'error');
-    }
-  }, [taskService, addToast]);
-  
-  // Function to delete a task
-  const deleteTask = useCallback(async (taskId: string) => {
-    try {
-      setError(null);
-      
-      await taskService.deleteTask(taskId);
-      
-      addToast('The task has been removed', 'success');
-      
-      // No need to update local state, it will be updated via the event listener
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error deleting task');
-      setError(error.message);
-      addToast(error.message, 'error');
-    }
-  }, [taskService, addToast]);
-  
-  // Function to reset filters
-  const resetFilters = useCallback(() => {
-    setFilters(defaultFilters);
-    setSearchQuery('');
-  }, []);
-  
-  // Context value - using useMemo to prevent unnecessary re-renders
-  const value = useMemo(() => ({
+  // Context value - memoized to prevent unnecessary re-renders
+  const value = useMemo<TaskDataContextType>(() => ({
     // State
     tasks,
     filteredTasks,
     isLoading,
+    isError,
     error,
     isRefreshing,
     isSyncing,
@@ -236,12 +246,13 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     setFilters,
     resetFilters,
   }), [
-    tasks, 
+    tasks,
     filteredTasks,
-    isLoading, 
-    error, 
-    isRefreshing, 
-    isSyncing, 
+    isLoading,
+    isError,
+    error,
+    isRefreshing,
+    isSyncing,
     hasPendingChanges,
     fetchTasks,
     refreshTasks,
@@ -252,7 +263,7 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     filters,
     setSearchQuery,
     setFilters,
-    resetFilters
+    resetFilters,
   ]);
   
   return (
