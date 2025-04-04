@@ -94,4 +94,4 @@ export class ServiceRegistry {
 
 // Initialize services on module import
 // Comment this out during tests to prevent automatic initialization
-// ServiceRegistry.initialize();
+ServiceRegistry.initialize();

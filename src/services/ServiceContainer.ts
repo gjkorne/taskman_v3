@@ -89,11 +89,18 @@ export const serviceContainer = ServiceContainer.getInstance();
 
 // Define service tokens as constants to avoid magic strings
 export const SERVICE_TOKENS = {
+  // Existing services
   TASK_SERVICE: 'taskService',
-  TIME_SESSION_SERVICE: 'timeSessionService',
-  AUTH_SERVICE: 'authService',
   NETWORK_STATUS_SERVICE: 'networkStatusService',
-  SETTINGS_SERVICE: 'settingsService',
+  AUTH_SERVICE: 'authService',
   CATEGORY_SERVICE: 'categoryService',
+  TIME_SESSION_SERVICE: 'timeSessionService',
+  
+  // New services
+  FORM_SERVICE: 'formService',
+  SYNC_SERVICE: 'syncService',
   NOTIFICATION_SERVICE: 'notificationService',
-};
+  PERFORMANCE_SERVICE: 'performanceService',
+  
+  // Add more service tokens here as needed
+} as const;

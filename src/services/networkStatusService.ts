@@ -1,10 +1,14 @@
+import { EventEmitter } from '../utils/eventEmitter';
+import { INetworkStatusService, NetworkStatusEvents } from './interfaces/INetworkStatusService';
+
 /**
  * Service to track and manage network connectivity status
  * Provides methods to check if the app is online and register for notifications
  */
-export class NetworkStatusService {
+export class NetworkStatusService implements INetworkStatusService {
   private online: boolean;
   private listeners: ((isOnline: boolean) => void)[] = [];
+  private eventEmitter = new EventEmitter<NetworkStatusEvents>();
 
   constructor() {
     // Set initial state based on navigator.onLine
@@ -45,42 +49,84 @@ export class NetworkStatusService {
   }
 
   /**
+   * Remove a listener
+   */
+  public removeListener(listener: (isOnline: boolean) => void): void {
+    const index = this.listeners.indexOf(listener);
+    if (index !== -1) {
+      this.listeners.splice(index, 1);
+    }
+  }
+
+  /**
    * Register a callback for connectivity changes
    * @param callback Function to call when connectivity changes
    * @returns Function to unregister the callback
    */
   public onConnectivityChange(callback: (isOnline: boolean) => void): () => void {
     this.addListener(callback);
-    
-    // Return function to remove the listener
     return () => this.removeListener(callback);
   }
 
   /**
-   * Remove a listener
+   * Test connection by making a network request
+   * More reliable than just checking navigator.onLine
    */
-  public removeListener(listener: (isOnline: boolean) => void): void {
-    this.listeners = this.listeners.filter(l => l !== listener);
+  public async testConnection(): Promise<boolean> {
+    try {
+      // Use fetch to a known endpoint that should respond quickly
+      const response = await fetch('https://www.google.com/favicon.ico', {
+        method: 'HEAD',
+        mode: 'no-cors',
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      
+      const isOnline = response.status >= 200 && response.status < 400;
+      
+      // If status changed, update and notify
+      if (isOnline !== this.online) {
+        this.online = isOnline;
+        this.notifyListeners();
+      }
+      
+      return isOnline;
+    } catch (error) {
+      // Network error occurred - we're offline
+      if (this.online) {
+        this.online = false;
+        this.notifyListeners();
+      }
+      return false;
+    }
   }
 
   /**
-   * Handle online event
+   * Handle browser online event
    */
   private handleOnline = (): void => {
-    this.online = true;
-    this.notifyListeners();
+    if (!this.online) {
+      this.online = true;
+      this.notifyListeners();
+      this.emit('online', true);
+      this.emit('status-changed', true);
+    }
   };
 
   /**
-   * Handle offline event
+   * Handle browser offline event
    */
   private handleOffline = (): void => {
-    this.online = false;
-    this.notifyListeners();
+    if (this.online) {
+      this.online = false;
+      this.notifyListeners();
+      this.emit('offline', false);
+      this.emit('status-changed', false);
+    }
   };
 
   /**
-   * Notify all listeners of current status
+   * Notify all registered listeners of connection status change
    */
   private notifyListeners(): void {
     this.listeners.forEach(listener => {
@@ -90,6 +136,21 @@ export class NetworkStatusService {
         console.error('Error in network status listener:', error);
       }
     });
+  }
+
+  // IService interface implementation
+  on<K extends keyof NetworkStatusEvents>(event: K, callback: (data: NetworkStatusEvents[K]) => void): () => void {
+    return this.eventEmitter.on(event, callback);
+  }
+
+  off<K extends keyof NetworkStatusEvents>(event: K, callback?: (data: NetworkStatusEvents[K]) => void): void {
+    // EventEmitter's off method only takes the event name and clears all handlers
+    // We ignore the callback parameter to match the interface
+    this.eventEmitter.off(event);
+  }
+
+  emit<K extends keyof NetworkStatusEvents>(event: K, data?: NetworkStatusEvents[K]): void {
+    this.eventEmitter.emit(event, data);
   }
 }
 
