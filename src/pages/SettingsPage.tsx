@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSettings } from '../contexts/SettingsCompat';
 import { CategorySettings } from '../components/Settings/CategorySettings';
+import { CategoryProvider } from '../contexts/category/CategoryProvider';
 
 interface SettingsPageProps {
   // Add props as needed
@@ -141,7 +142,9 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
       {/* Category Management */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Category Management</h2>
-        <CategorySettings />
+        <CategoryProvider>
+          <CategorySettings />
+        </CategoryProvider>
       </div>
       
       <div className="bg-white shadow rounded-lg p-6 mb-6">

@@ -143,7 +143,7 @@ export class NetworkStatusService implements INetworkStatusService {
     return this.eventEmitter.on(event, callback);
   }
 
-  off<K extends keyof NetworkStatusEvents>(event: K, callback?: (data: NetworkStatusEvents[K]) => void): void {
+  off<K extends keyof NetworkStatusEvents>(event: K, _callback?: (data: NetworkStatusEvents[K]) => void): void {
     // EventEmitter's off method only takes the event name and clears all handlers
     // We ignore the callback parameter to match the interface
     this.eventEmitter.off(event);

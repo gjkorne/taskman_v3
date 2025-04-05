@@ -10,7 +10,7 @@ export const taskInputSchema = z.object({
 });
 
 // Valid status values - aligned with database constraints
-export const VALID_STATUSES = ['pending', 'active', 'in_progress', 'completed', 'archived'] as const;
+export const VALID_STATUSES = ['pending', 'active', 'in_progress', 'paused', 'completed', 'archived'] as const;
 export type TaskStatus = typeof VALID_STATUSES[number];
 
 // Valid priority values - aligned with database constraints

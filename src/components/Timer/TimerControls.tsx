@@ -79,12 +79,14 @@ const TimerControlButtons = ({
       />
     )}
     
-    <TimerButton
+    <button
       onClick={onStop}
-      icon={<Square size={16} />}
+      className="p-1.5 rounded hover:bg-red-100 text-red-600"
       title="Stop timer"
-      className="hover:bg-red-100 text-red-600"
-    />
+      aria-label="Stop timer"
+    >
+      <Square size={16} />
+    </button>
   </div>
 );
 

@@ -116,7 +116,7 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
       status: input.status || 'pending',
       priority: input.priority || 'medium',
       due_date: input.dueDate ? input.dueDate.toISOString() : null,
-      estimated_time: this.minutesToIntervalString(input.estimatedTimeMinutes || null),
+      estimated_time: this.minutesToIntervalString(input.estimatedTimeMinutes ?? null),
       actual_time: null,
       tags: input.tags || [],
       created_by: userId || null,
@@ -179,8 +179,8 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
       status: model.status || 'pending',
       priority: model.priority || 'medium',
       due_date: model.dueDate ? model.dueDate.toISOString() : null,
-      estimated_time: this.minutesToIntervalString(model.estimatedTimeMinutes === null ? null : model.estimatedTimeMinutes),
-      actual_time: this.minutesToIntervalString(model.actualTimeMinutes === null ? null : model.actualTimeMinutes),
+      estimated_time: this.minutesToIntervalString(model.estimatedTimeMinutes ?? null),
+      actual_time: this.minutesToIntervalString(model.actualTimeMinutes ?? null),
       tags: model.tags || [],
       category_name: model.categoryName || null,
       created_by: model.createdBy || null,
@@ -213,8 +213,8 @@ export class TaskTransformer extends BaseDataTransformer<TaskApiDto, TaskModel> 
     if (model.status !== undefined) updateDto.status = model.status;
     if (model.priority !== undefined) updateDto.priority = model.priority;
     if (model.dueDate !== undefined) updateDto.due_date = model.dueDate ? model.dueDate.toISOString() : null;
-    if (model.estimatedTimeMinutes !== undefined) updateDto.estimated_time = this.minutesToIntervalString(model.estimatedTimeMinutes === null ? null : model.estimatedTimeMinutes);
-    if (model.actualTimeMinutes !== undefined) updateDto.actual_time = this.minutesToIntervalString(model.actualTimeMinutes === null ? null : model.actualTimeMinutes);
+    if (model.estimatedTimeMinutes !== undefined) updateDto.estimated_time = this.minutesToIntervalString(model.estimatedTimeMinutes ?? null);
+    if (model.actualTimeMinutes !== undefined) updateDto.actual_time = this.minutesToIntervalString(model.actualTimeMinutes ?? null);
     if (model.tags !== undefined) updateDto.tags = model.tags;
     if (model.isDeleted !== undefined) updateDto.is_deleted = model.isDeleted;
     if (model.listId !== undefined) updateDto.list_id = model.listId;

@@ -44,10 +44,11 @@ export const useTimer = () => {
     taskId: activeSession?.task_id || null,
     isRunning: !!activeSession && !activeSession.end_time,
     startTime: activeSession?.start_time ? new Date(activeSession.start_time).getTime() : 0,
-    pausedAt: 0, // We don't have pause functionality in the new model
+    pausedAt: activeSession?.end_time ? new Date(activeSession.end_time).getTime() : 0,
     totalPausedTime: 0, // We don't track paused time separately
     elapsed: activeSession ? calculateElapsedTime(activeSession) : 0,
-    status: !!activeSession && !activeSession.end_time ? 'running' : 'stopped' // Add status for compatibility
+    status: !activeSession ? 'idle' : 
+            (activeSession && !activeSession.end_time ? 'running' : 'paused')
   };
   
   // Map the old API to the new one
@@ -56,14 +57,14 @@ export const useTimer = () => {
   };
   
   const pauseTimer = async () => {
-    if (activeSession) {
+    if (activeSession && !activeSession.end_time) {
       // In the new model, we'll stop the session rather than pause it
       await stopSession(activeSession.id);
     }
   };
   
   const resumeTimer = async () => {
-    if (activeSession && activeSession.end_time) {
+    if (activeSession) {
       // Create a new session for the same task
       await createSession(activeSession.task_id);
     }

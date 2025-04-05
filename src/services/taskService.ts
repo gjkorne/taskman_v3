@@ -1,4 +1,4 @@
-import { Task } from '../types/task';
+import { Task, TaskStatusType } from '../types/task';
 import { TaskCreateDTO, TaskUpdateDTO, taskRepository } from '../repositories/taskRepository';
 import { ITaskService, TaskServiceEvents } from './interfaces/ITaskService';
 import { BaseService, ServiceError } from './BaseService';
@@ -134,7 +134,7 @@ export class TaskService extends BaseService<TaskServiceEvents> implements ITask
   /**
    * Update a task's status
    */
-  async updateTaskStatus(id: string, status: string): Promise<Task | null> {
+  async updateTaskStatus(id: string, status: TaskStatusType): Promise<Task | null> {
     try {
       return await this.updateTask(id, { status });
     } catch (error) {

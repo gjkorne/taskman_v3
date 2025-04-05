@@ -1,8 +1,7 @@
-import { Task } from '../../types/task';
+import { Task, TaskStatusType } from '../../types/task';
 import { TaskCreateDTO, TaskUpdateDTO } from '../../repositories/taskRepository';
 import { IOfflineCapableService } from './IService';
 import { ServiceError } from '../BaseService';
-import { TaskStatus } from '../../components/TaskForm/schema';
 
 /**
  * Event types that can be emitted by the TaskService
@@ -49,7 +48,7 @@ export interface ITaskService extends IOfflineCapableService<TaskServiceEvents> 
   /**
    * Update a task's status
    */
-  updateTaskStatus(id: string, status: TaskStatus): Promise<Task | null>;
+  updateTaskStatus(id: string, status: TaskStatusType): Promise<Task | null>;
 
   /**
    * Refresh all tasks from the data source
