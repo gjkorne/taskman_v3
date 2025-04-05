@@ -8,10 +8,15 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:e2e": "jest -c jest-e2e.config.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.simple.config.mjs",
+    "test:services": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.simple.config.mjs src/services",
+    "test:contexts": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.simple.config.mjs src/contexts",
+    "test:components": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.simple.config.mjs src/components",
+    "test:basic": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.simple.config.mjs test/simple.test.js",
+    "test:filters": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.simple.config.mjs src/services/__tests__",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.simple.config.mjs --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.simple.config.mjs --coverage",
+    "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config jest-e2e.config.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",

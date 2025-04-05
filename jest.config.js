@@ -1,43 +1,31 @@
-/** @type {import('jest').Config} */
+// Jest configuration optimized for TaskMan's modular architecture
 export default {
-  preset: 'ts-jest',
-  testEnvironment: 'jsdom',
-  moduleNameMapper: {
-    // Handle CSS imports (with CSS modules)
-    '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
-    // Handle CSS imports (without CSS modules)
-    '^.+\\.(css|sass|scss)$': '<rootDir>/__mocks__/styleMock.js',
-    // Handle image imports
-    '^.+\\.(jpg|jpeg|png|gif|webp|svg)$': '<rootDir>/__mocks__/fileMock.js',
-  },
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  // Use babel-jest to transform files
   transform: {
-    // Use babel-jest to transpile tests with the next/babel preset
-    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest'
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './babel.config.cjs' }]
   },
-  testPathIgnorePatterns: [
-    '<rootDir>/node_modules/',
-    '<rootDir>/.next/',
-    '<rootDir>/dist/',
-    '<rootDir>/e2e/'
+  // Only TypeScript files need explicit ESM handling
+  extensionsToTreatAsEsm: ['.ts', '.tsx'],
+  // Test environment for React components
+  testEnvironment: 'jsdom',
+  // File extensions to consider
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'cjs'],
+  // Mock file imports
+  moduleNameMapper: {
+    '\\.(css|scss|sass)$': '<rootDir>/__mocks__/styleMock.js',
+    '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/__mocks__/fileMock.js'
+  },
+  // Where to find tests - explicitly include .cjs files
+  testMatch: [
+    '**/__tests__/**/*.[jt]s?(x)', 
+    '**/__tests__/**/*.cjs',
+    '**/?(*.)+(spec|test).[jt]s?(x)',
+    '**/?(*.)+(spec|test).cjs'
   ],
-  moduleDirectories: [
-    'node_modules',
-    '<rootDir>/src'
-  ],
+  // Don't transform some node_modules
   transformIgnorePatterns: [
-    '/node_modules/',
-    '^.+\\.module\\.(css|sass|scss)$',
+    '/node_modules/(?!.*\\.mjs$)'
   ],
-  collectCoverage: false, // Set to false by default, can be enabled with --coverage flag
-  collectCoverageFrom: [
-    'src/**/*.{js,jsx,ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/**/*.stories.{js,jsx,ts,tsx}',
-    '!src/mocks/**',
-    '!src/**/index.{js,jsx,ts,tsx}',
-    '!src/test-utils/**',
-  ],
-  coverageThreshold: null, // Remove thresholds for now until we have more test coverage
-  coverageReporters: ['text', 'lcov', 'html'],
+  // Setup file
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js']
 };
