@@ -4,6 +4,7 @@ import { SearchPanel } from './TaskList/SearchPanel';
 import { Sidebar, ViewType } from './Navigation/Sidebar';
 import { TaskFormModal } from './TaskForm/TaskFormModal';
 import { Icon } from './UI/Icon';
+import { MainHeader } from './UI/MainHeader';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -69,6 +70,16 @@ export function Layout({
   
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-white">
+      {/* Main Header Component */}
+      <MainHeader 
+        onSearch={(query) => console.log('Searching for:', query)}
+        onRefresh={() => {
+          console.log('Refreshing data...');
+          if (onTaskCreated) onTaskCreated();
+        }}
+        onToggleSidebar={toggleSidebar}
+      />
+      
       <ActiveSession onTimerStateChange={onTimerStateChange} />
       
       <div className="flex flex-1 overflow-hidden">
