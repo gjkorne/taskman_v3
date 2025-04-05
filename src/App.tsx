@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider } from './components/Auth/AuthProvider';
 import { LoginForm } from './components/Auth/LoginForm';
 import { RegisterForm } from './components/Auth/RegisterForm';
@@ -12,6 +12,7 @@ import AdminPage from './pages/AdminPage';
 import { TaskDetailsPage } from './pages/TaskDetailsPage';
 import { TimeSessionsPage } from './pages/TimeSessionsPage';
 import { CalendarPage } from './components/Calendar/CalendarPage';
+import HomePage from './pages/HomePage';
 import { useAuth } from './lib/auth';
 import { TimeSessionProvider } from './contexts/timeSession';
 import { SettingsProvider } from './contexts/SettingsContext';
@@ -54,8 +55,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return children;
 }
 
+// Helper component to redirect while preserving URL parameters
+function RedirectWithParams({ newPathPattern }: { newPathPattern: string }) {
+  const params = useParams();
+  const taskId = params.taskId;
+  
+  return <Navigate to={`${newPathPattern}${taskId}`} replace />;
+}
+
 function App() {
-  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar'>('tasks');
+  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar' | 'home'>('home');
   const taskListRef = useRef<TaskListRefType>(null);
   const [appInitialized, setAppInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -161,6 +170,7 @@ function App() {
                                         onTaskCreated={handleTaskCreated}
                                         onTimerStateChange={handleTimerStateChange}
                                       >
+                                        {activeView === 'home' && <HomePage />}
                                         {activeView === 'tasks' && (
                                           <TaskList 
                                             ref={taskListRef} 
@@ -182,6 +192,13 @@ function App() {
                                     <ProtectedRoute>
                                       <TaskDetailsPage />
                                     </ProtectedRoute>
+                                  } 
+                                />
+                                {/* Add redirect for old /app/task/ URLs that might be stored in history */}
+                                <Route 
+                                  path="/app/task/:taskId" 
+                                  element={
+                                    <RedirectWithParams newPathPattern="/tasks/" />
                                   } 
                                 />
                               </Routes>

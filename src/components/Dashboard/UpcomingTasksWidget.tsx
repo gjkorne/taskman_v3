@@ -5,11 +5,15 @@ import { useTaskData } from '../../contexts/task';
 import { format, addDays, isBefore, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { TASK_QUERY_KEYS } from '../../contexts/task/TaskDataContext';
 
+interface UpcomingTasksWidgetProps {
+  title?: string;
+}
+
 /**
  * UpcomingTasksWidget - Shows upcoming tasks sorted by due date
  * Uses our React Query optimized task data
  */
-export function UpcomingTasksWidget() {
+export function UpcomingTasksWidget({ title = "Upcoming Tasks" }: UpcomingTasksWidgetProps) {
   const { tasks } = useTaskData();
   
   // Use React Query for upcoming tasks
@@ -47,7 +51,7 @@ export function UpcomingTasksWidget() {
   
   return (
     <DashboardWidget
-      title="Upcoming Tasks"
+      title={title}
       isLoading={isLoading}
       className="col-span-1 md:col-span-2"
       footer={

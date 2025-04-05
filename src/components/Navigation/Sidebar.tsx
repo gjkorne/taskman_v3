@@ -1,11 +1,11 @@
-import { BarChart3, Calendar, Clock, List, Settings, AlertTriangle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart3, Calendar, Clock, List, Settings, AlertTriangle, X, ChevronLeft, ChevronRight, Home } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useEffect, useState } from 'react';
 import { authService } from '../../services/api/authService';
 import { User } from '@supabase/supabase-js';
 
 // Types
-export type ViewType = 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar';
+export type ViewType = 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar' | 'home';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -111,6 +111,17 @@ export function Sidebar({
           
           {/* Navigation Links */}
           <nav className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-1 sm:space-y-2">
+            <NavItem 
+              icon={<Home className="w-4 h-4 sm:w-5 sm:h-5" />} 
+              label="Home" 
+              active={activeView === 'home'}
+              collapsed={isCollapsed}
+              onClick={() => {
+                onViewChange('home');
+                if (window.innerWidth < 1024) onToggleSidebar();
+              }}
+            />
+            
             <NavItem 
               icon={<List className="w-4 h-4 sm:w-5 sm:h-5" />} 
               label="Tasks" 
