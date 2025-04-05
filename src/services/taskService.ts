@@ -2,6 +2,7 @@ import { Task, TaskStatusType } from '../types/task';
 import { TaskCreateDTO, TaskUpdateDTO, taskRepository } from '../repositories/taskRepository';
 import { ITaskService, TaskServiceEvents } from './interfaces/ITaskService';
 import { BaseService, ServiceError } from './BaseService';
+import { supabase } from '../lib/supabase';
 
 /**
  * Improved TaskService that uses the repository pattern
@@ -69,7 +70,21 @@ export class TaskService extends BaseService<TaskServiceEvents> implements ITask
         throw new Error('Task repository is not initialized');
       }
       
-      const task = await taskRepository.create(taskData);
+      // Get current user ID from Supabase session
+      const { data: authData } = await supabase.auth.getSession();
+      const userId = authData.session?.user?.id;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Ensure created_by field is set to current user ID
+      const taskWithUserId: TaskCreateDTO = {
+        ...taskData,
+        created_by: userId
+      };
+      
+      const task = await taskRepository.create(taskWithUserId);
       
       // Emit event
       this.emit('task-created', task);

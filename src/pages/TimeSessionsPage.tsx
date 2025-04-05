@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format, subDays, parseISO, differenceInSeconds } from 'date-fns';
 import { Calendar, Clock, Download, RefreshCw } from 'lucide-react';
 import { TimeSessionsList } from '../components/TimeSessions/TimeSessionsList';
@@ -22,10 +22,17 @@ export function TimeSessionsPage() {
     month: '00:00:00'
   });
   const [isLoading, setIsLoading] = useState(true);
+  const isInitialRender = useRef(true);
+  const lastLogTime = useRef(0);
 
   // Fetch sessions and calculate time stats
   useEffect(() => {
     fetchSessionsAndCalculateStats();
+    
+    // Set up cleanup to avoid memory leaks
+    return () => {
+      isInitialRender.current = true; // Reset on unmount
+    };
   }, []);
 
   // Fetch sessions and calculate stats
@@ -60,7 +67,14 @@ export function TimeSessionsPage() {
 
   // Calculate time for different periods
   const calculateTimeStats = (sessions: TimeSession[]) => {
-    logger.log('Calculating time stats with', sessions.length, 'sessions');
+    // Only log on initial load or explicit refresh to avoid console spam
+    const shouldLog = isInitialRender.current || isRefreshing || Date.now() - lastLogTime.current > 10000;
+    
+    if (shouldLog) {
+      logger.log('Calculating time stats with', sessions.length, 'sessions');
+      lastLogTime.current = Date.now();
+    }
+    
     const now = new Date();
 
     // Calculate totals for each period
@@ -72,13 +86,17 @@ export function TimeSessionsPage() {
     const validSessions = sessions.filter(session => {
       // If the task is deleted or doesn't exist, skip this session
       if (!session.tasks || session.tasks.is_deleted) {
-        logger.log('Skipping session for deleted/missing task:', session.id);
+        if (shouldLog) {
+          logger.log('Skipping session for deleted/missing task:', session.id);
+        }
         return false;
       }
       return true;
     });
 
-    logger.log('After filtering, using', validSessions.length, 'valid sessions for calculations');
+    if (shouldLog) {
+      logger.log('After filtering, using', validSessions.length, 'valid sessions for calculations');
+    }
 
     validSessions.forEach(session => {
       const startTime = parseISO(session.start_time);
@@ -113,17 +131,22 @@ export function TimeSessionsPage() {
       }
     });
 
-    logger.log('Time totals calculated:', {
-      today: formatSecondsToTime(todaySeconds),
-      week: formatSecondsToTime(weekSeconds),
-      month: formatSecondsToTime(monthSeconds)
-    });
+    if (shouldLog) {
+      logger.log('Time totals calculated:', {
+        today: formatSecondsToTime(todaySeconds),
+        week: formatSecondsToTime(weekSeconds),
+        month: formatSecondsToTime(monthSeconds)
+      });
+    }
 
     setTimeStats({
       today: formatSecondsToTime(todaySeconds),
       week: formatSecondsToTime(weekSeconds),
       month: formatSecondsToTime(monthSeconds)
     });
+    
+    // Set initial render to false after first calculation
+    isInitialRender.current = false;
   };
 
   // Export sessions as CSV

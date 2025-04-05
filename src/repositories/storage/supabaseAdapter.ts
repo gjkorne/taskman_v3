@@ -2,6 +2,29 @@ import { supabase } from '../../lib/supabase';
 import { IStorageAdapter } from '../types';
 
 /**
+ * Check if the current user has an admin role
+ */
+async function isUserAdmin(): Promise<boolean> {
+  try {
+    const { data: authData } = await supabase.auth.getSession();
+    if (!authData.session?.user) return false;
+    
+    const { data, error } = await supabase
+      .from('user_role_assignments')
+      .select('user_roles(name)')
+      .eq('user_id', authData.session.user.id)
+      .single();
+    
+    if (error || !data) return false;
+    
+    return data.user_roles?.name === 'admin';
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+}
+
+/**
  * A generic Supabase storage adapter that can be used with any table
  */
 export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapter<T> {
@@ -49,6 +72,18 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
       
       let query = supabase.from(this.tableName).select(this.options.select || '*');
       
+      // Apply user filter for tasks table to ensure users only see their own tasks
+      // Skip filtering for admin users who should see all tasks
+      if (this.tableName === 'tasks' && authData.session?.user) {
+        // Check if user is admin
+        const isAdmin = await isUserAdmin();
+        
+        // Only filter by user if not an admin
+        if (!isAdmin) {
+          query = query.eq('created_by', authData.session.user.id);
+        }
+      }
+      
       // Apply default ordering if specified
       if (this.options.orderBy) {
         query = query.order(this.options.orderBy.column, { 
@@ -95,11 +130,24 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
         return null;
       }
       
-      const { data, error } = await supabase
+      let query = supabase
         .from(this.tableName)
         .select(this.options.select || '*')
-        .eq('id', id)
-        .single();
+        .eq('id', id);
+      
+      // Apply user filter for tasks table to ensure users only see their own tasks
+      // Skip filtering for admin users who should see all tasks
+      if (this.tableName === 'tasks' && authData.session?.user) {
+        // Check if user is admin
+        const isAdmin = await isUserAdmin();
+        
+        // Only filter by user if not an admin
+        if (!isAdmin) {
+          query = query.eq('created_by', authData.session.user.id);
+        }
+      }
+      
+      const { data, error } = await query.single();
       
       if (error) {
         if (error.code === 'PGRST116') {
@@ -179,19 +227,30 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
         ? this.options.prepareData(data) 
         : data;
       
-      const { data: updated, error } = await supabase
+      let query = supabase
         .from(this.tableName)
         .update(preparedData)
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('id', id);
+      
+      // For tasks, ensure users can only update their own tasks unless they are admins
+      if (this.tableName === 'tasks' && authData.session?.user) {
+        // Check if user is admin
+        const isAdmin = await isUserAdmin();
+        
+        // Only filter by user if not an admin
+        if (!isAdmin) {
+          query = query.eq('created_by', authData.session.user.id);
+        }
+      }
+      
+      const { data: updated, error } = await query.select().single();
       
       if (error) {
         throw error;
       }
       
       if (!updated) {
-        throw new Error(`Record with ID ${id} not found`);
+        throw new Error(`Record with ID ${id} not found or you don't have permission to update it`);
       }
       
       // Transform row if transformer is provided
@@ -219,10 +278,25 @@ export class SupabaseAdapter<T extends { id: string }> implements IStorageAdapte
         throw new Error('Authentication required to delete data');
       }
       
-      const { error } = await supabase
+      let query = supabase
         .from(this.tableName)
-        .delete()
-        .eq('id', id);
+        .delete();
+      
+      // Apply id filter
+      query = query.eq('id', id);
+      
+      // For tasks, ensure users can only delete their own tasks unless they are admins
+      if (this.tableName === 'tasks' && authData.session?.user) {
+        // Check if user is admin
+        const isAdmin = await isUserAdmin();
+        
+        // Only filter by user if not an admin
+        if (!isAdmin) {
+          query = query.eq('created_by', authData.session.user.id);
+        }
+      }
+      
+      const { error } = await query;
       
       if (error) throw error;
       

@@ -5,6 +5,7 @@ import { Sidebar, ViewType } from './Navigation/Sidebar';
 import { TaskFormModal } from './TaskForm/TaskFormModal';
 import { Icon } from './UI/Icon';
 import { MainHeader } from './UI/MainHeader';
+import { AdminView } from './Admin/AdminView';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -80,6 +81,7 @@ export function Layout({
         onToggleSidebar={toggleSidebar}
       />
       
+      {/* Timer component at the top - spans full width */}
       <ActiveSession onTimerStateChange={onTimerStateChange} />
       
       <div className="flex flex-1 overflow-hidden">
@@ -110,7 +112,9 @@ export function Layout({
             
             {/* Main content area */}
             <div className="px-4 sm:px-6 md:px-8">
-              {children}
+              <div className="w-full flex-grow overflow-y-auto">
+                {children}
+              </div>
             </div>
           </div>
         </main>
@@ -124,6 +128,9 @@ export function Layout({
           onTaskCreated={handleTaskCreated}
         />
       )}
+      
+      {/* Admin View Component */}
+      <AdminView />
       
       {/* Floating action button */}
       <button 

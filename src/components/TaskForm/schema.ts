@@ -114,6 +114,9 @@ export interface TaskSubmitData {
   // State
   isDeleted?: boolean;               // UI field mapping to is_deleted
   
+  // User association
+  created_by?: string | null;        // User ID of the task creator
+  
   // NLP fields
   rawInput?: string;
 }
