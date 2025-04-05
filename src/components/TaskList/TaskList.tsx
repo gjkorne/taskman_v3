@@ -1,8 +1,10 @@
-import { forwardRef, useImperativeHandle, useState } from 'react';
+import { forwardRef, useImperativeHandle, useState, useEffect } from 'react';
 import { TaskContainer } from './TaskContainer';
 import { useTaskData, useTaskUI } from '../../contexts/task';
 import { QuickTaskEntry, TaskForm } from '../TaskForm';
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react'; // Import icons for the dropdown
+import { FilterBar } from '../FilterBar';
+import { useFilterSort } from '../../contexts/filterSort';
 
 // Define ref type for external access to TaskList methods
 export interface TaskListRefType {
@@ -21,8 +23,8 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
     error,
     isRefreshing,
     refreshTasks,
-    filters,
-    setFilters
+    filters: legacyFilters,
+    setFilters: setLegacyFilters
   } = useTaskData();
   
   // Get UI management from the task UI context
@@ -36,6 +38,28 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
     closeDeleteModal,
     viewMode
   } = useTaskUI();
+
+  // Get new filtering capabilities from FilterSortContext
+  const { 
+    legacyFilters: contextLegacyFilters,
+    setLegacyFilters: setContextLegacyFilters,
+    groupBy
+  } = useFilterSort();
+
+  // Sync legacy filters with new context filters (both ways for backward compatibility)
+  useEffect(() => {
+    // Only sync when they're different to avoid loops
+    if (JSON.stringify(legacyFilters) !== JSON.stringify(contextLegacyFilters)) {
+      setContextLegacyFilters(legacyFilters);
+    }
+  }, [legacyFilters, contextLegacyFilters, setContextLegacyFilters]);
+
+  useEffect(() => {
+    // Sync from context to legacy
+    if (JSON.stringify(legacyFilters) !== JSON.stringify(contextLegacyFilters)) {
+      setLegacyFilters(contextLegacyFilters);
+    }
+  }, [contextLegacyFilters, legacyFilters, setLegacyFilters]);
 
   // State for new task modal
   const [isNewTaskModalOpen, setIsNewTaskModalOpen] = useState(false);
@@ -71,15 +95,52 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
     );
   }
 
+  // Display error if any
+  if (error) {
+    return (
+      <div className="w-full mx-auto px-4 py-4 bg-red-50 text-red-700 rounded-md">
+        <p className="font-medium">Error loading tasks</p>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
   // Helper to get currently active category name
   const getActiveCategoryName = () => {
-    if (filters.category.length === 0) return 'All';
-    return filters.category[0].charAt(0).toUpperCase() + filters.category[0].slice(1);
+    if (legacyFilters.category.length === 0) return 'All';
+    return legacyFilters.category[0].charAt(0).toUpperCase() + legacyFilters.category[0].slice(1);
+  };
+
+  // Apply any grouping to tasks
+  const getGroupedTasks = () => {
+    // If no grouping is applied, just return the filtered tasks
+    if (!groupBy || !groupBy.field) {
+      return filteredTasks;
+    }
+
+    // In a real implementation, we would apply grouping logic here
+    // For now, we just return the filtered tasks as-is
+    return filteredTasks;
+  };
+
+  const groupedTasks = getGroupedTasks();
+  const totalTaskCount = filteredTasks.length;
+
+  const handleTaskSuccess = () => {
+    closeEditModal();
+    refreshTasks();
   };
 
   return (
     <div className="w-full mx-auto px-0 py-1 sm:px-6 sm:py-8 relative bg-gray-50 shadow-lg">
-      {/* Mobile-only simple filter dropdown */}
+      {/* New FilterBar component for all device sizes */}
+      <FilterBar 
+        showTaskCount={true}
+        taskCount={totalTaskCount}
+        filteredCount={groupedTasks.length}
+      />
+      
+      {/* Mobile-only simple filter dropdown (legacy) */}
       <div className="md:hidden mb-3">
         <div className="flex items-center justify-between">
           <button
@@ -96,11 +157,11 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
               <ChevronDown className="h-3.5 w-3.5 ml-1" />
             )}
           </button>
-          {filters.category.length > 0 && (
+          {legacyFilters.category.length > 0 && (
             <button
               onClick={() => {
-                setFilters({
-                  ...filters, 
+                setLegacyFilters({
+                  ...legacyFilters, 
                   category: []
                 });
               }}
@@ -116,14 +177,14 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
           <div className="bg-white border border-gray-200 rounded-md shadow-sm mt-1 mb-2 p-1 space-y-1">
             <button
               onClick={() => {
-                setFilters({
-                  ...filters, 
+                setLegacyFilters({
+                  ...legacyFilters, 
                   category: []
                 });
                 setIsFiltersOpen(false);
               }}
               className={`block w-full text-left px-2 py-1.5 text-sm font-medium rounded transition-colors ${
-                filters.category.length === 0 
+                legacyFilters.category.length === 0 
                   ? 'bg-indigo-100 text-indigo-800' 
                   : 'hover:bg-gray-100'
               }`}
@@ -132,14 +193,14 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
             </button>
             <button
               onClick={() => {
-                setFilters({
-                  ...filters, 
+                setLegacyFilters({
+                  ...legacyFilters, 
                   category: ['work']
                 });
                 setIsFiltersOpen(false);
               }}
               className={`block w-full text-left px-2 py-1.5 text-sm font-medium rounded transition-colors ${
-                filters.category.includes('work') 
+                legacyFilters.category.includes('work') 
                   ? 'bg-blue-100 text-blue-800' 
                   : 'hover:bg-gray-100'
               }`}
@@ -148,14 +209,14 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
             </button>
             <button
               onClick={() => {
-                setFilters({
-                  ...filters, 
+                setLegacyFilters({
+                  ...legacyFilters, 
                   category: ['personal']
                 });
                 setIsFiltersOpen(false);
               }}
               className={`block w-full text-left px-2 py-1.5 text-sm font-medium rounded transition-colors ${
-                filters.category.includes('personal') 
+                legacyFilters.category.includes('personal') 
                   ? 'bg-purple-100 text-purple-800' 
                   : 'hover:bg-gray-100'
               }`}
@@ -164,14 +225,14 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
             </button>
             <button
               onClick={() => {
-                setFilters({
-                  ...filters, 
+                setLegacyFilters({
+                  ...legacyFilters, 
                   category: ['childcare']
                 });
                 setIsFiltersOpen(false);
               }}
               className={`block w-full text-left px-2 py-1.5 text-sm font-medium rounded transition-colors ${
-                filters.category.includes('childcare') 
+                legacyFilters.category.includes('childcare') 
                   ? 'bg-green-100 text-green-800' 
                   : 'hover:bg-gray-100'
               }`}
@@ -180,14 +241,14 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
             </button>
             <button
               onClick={() => {
-                setFilters({
-                  ...filters, 
+                setLegacyFilters({
+                  ...legacyFilters, 
                   category: ['other']
                 });
                 setIsFiltersOpen(false);
               }}
               className={`block w-full text-left px-2 py-1.5 text-sm font-medium rounded transition-colors ${
-                filters.category.includes('other') 
+                legacyFilters.category.includes('other') 
                   ? 'bg-amber-100 text-amber-800' 
                   : 'hover:bg-gray-100'
               }`}
@@ -198,169 +259,56 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
         )}
       </div>
       
-      {/* Desktop-only filter and task entry */}
+      {/* Desktop-only task entry */}
       <div className="hidden md:block bg-white border border-gray-200 rounded-lg shadow-md p-2 sm:p-4 mb-3 sm:mb-6 border-l-4 border-l-indigo-400">
         <div className="flex flex-col gap-4">
           {/* Quick task entry */}
           <div className="w-full">
             <QuickTaskEntry onTaskCreated={refreshTasks} />
           </div>
-          
-          {/* Quick Category Filters - Desktop only */}
-          <div className="w-full">
-            <div className="flex items-center mb-2">
-              <h3 className="text-sm font-medium text-gray-600">Quick Filters:</h3>
-              {filters.category.length > 0 && (
-                <button
-                  onClick={() => {
-                    setFilters({
-                      ...filters, 
-                      category: []
-                    });
-                  }}
-                  className="ml-2 text-xs text-indigo-600 hover:text-indigo-800"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => {
-                  setFilters({
-                    ...filters, 
-                    category: ['work']
-                  });
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                  filters.category.includes('work') 
-                    ? 'bg-blue-100 text-blue-700' 
-                    : 'bg-gray-100 text-gray-800 hover:bg-blue-50 hover:text-blue-700'
-                }`}
-              >
-                Work
-              </button>
-              <button
-                onClick={() => {
-                  setFilters({
-                    ...filters, 
-                    category: ['personal']
-                  });
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                  filters.category.includes('personal') 
-                    ? 'bg-purple-100 text-purple-700' 
-                    : 'bg-gray-100 text-gray-800 hover:bg-purple-50 hover:text-purple-700'
-                }`}
-              >
-                Personal
-              </button>
-              <button
-                onClick={() => {
-                  setFilters({
-                    ...filters, 
-                    category: ['childcare']
-                  });
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                  filters.category.includes('childcare') 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-gray-100 text-gray-800 hover:bg-green-50 hover:text-green-700'
-                }`}
-              >
-                Childcare
-              </button>
-              <button
-                onClick={() => {
-                  setFilters({
-                    ...filters, 
-                    category: ['other']
-                  });
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                  filters.category.includes('other') 
-                    ? 'bg-amber-100 text-amber-700' 
-                    : 'bg-gray-100 text-gray-800 hover:bg-amber-50 hover:text-amber-700'
-                }`}
-              >
-                Other
-              </button>
-              <button
-                onClick={() => {
-                  setFilters({
-                    ...filters, 
-                    showCompleted: !filters.showCompleted
-                  });
-                }}
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                  filters.showCompleted
-                    ? 'bg-teal-100 text-teal-700' 
-                    : 'bg-gray-100 text-gray-800 hover:bg-teal-50 hover:text-teal-700'
-                }`}
-              >
-                Completed
-              </button>
-            </div>
-          </div>
         </div>
       </div>
       
-      {error && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-2 mb-2 text-red-700">
-          <p>{error}</p>
+      {/* Mobile-only quick task entry */}
+      <div className="md:hidden mb-2">
+        <div className="bg-white border border-gray-200 rounded-md shadow-md">
+          <QuickTaskEntry onTaskCreated={refreshTasks} />
         </div>
-      )}
+      </div>
       
+      {/* Task Container */}
       <TaskContainer 
-        tasks={filteredTasks}
+        tasks={groupedTasks}
         isLoading={isRefreshing}
-        viewMode={viewMode}
         onEdit={openEditModal}
         onDelete={openDeleteModal}
+        viewMode={viewMode}
         onTimerStateChange={onTimerStateChange}
       />
       
-      {/* Task edit modal */}
+      {/* Task Modals */}
       {isEditModalOpen && editTaskId && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-2">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-auto">
-            <div className="p-4">
-              <h2 className="text-xl font-semibold mb-2">Edit Task</h2>
-              <TaskForm 
-                mode="edit"
-                taskId={editTaskId} 
-                onClose={closeEditModal} 
-                onSuccess={() => {
-                  closeEditModal();
-                  refreshTasks();
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        <TaskForm 
+          taskId={editTaskId}
+          mode="edit"
+          onClose={closeEditModal}
+          onSuccess={handleTaskSuccess}
+        />
       )}
       
-      {/* New task modal */}
       {isNewTaskModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-2">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-auto">
-            <div className="p-4">
-              <h2 className="text-xl font-semibold mb-2">Create New Task</h2>
-              <TaskForm 
-                mode="create"
-                onClose={() => setIsNewTaskModalOpen(false)} 
-                onSuccess={() => {
-                  setIsNewTaskModalOpen(false);
-                  refreshTasks();
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        <TaskForm 
+          mode="create"
+          onClose={() => setIsNewTaskModalOpen(false)}
+          onSuccess={() => {
+            setIsNewTaskModalOpen(false);
+            refreshTasks();
+          }}
+        />
       )}
-      
+
       {/* Delete confirmation modal */}
-      {isDeleteModalOpen && (
+      {isDeleteModalOpen && editTaskId && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-2">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
             <div className="p-4">
@@ -374,7 +322,7 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
                   Cancel
                 </button>
                 <button
-                  onClick={() => editTaskId && confirmDelete(editTaskId)}
+                  onClick={() => confirmDelete(editTaskId)}
                   className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700"
                 >
                   Delete

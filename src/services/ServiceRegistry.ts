@@ -4,7 +4,9 @@ import { NetworkStatusService } from '../services/networkStatusService';
 import { timeSessionsService } from './api/timeSessionsService';
 import { ITaskService } from './interfaces/ITaskService';
 import { ITimeSessionService } from './interfaces/ITimeSessionService';
+import { IFilterSortService } from './interfaces/IFilterSortService';
 import { ErrorHandler } from '../utils/errorHandling';
+import { FilterSortService } from './FilterSortService';
 
 /**
  * Service Registry - Configures and registers all application services
@@ -23,17 +25,18 @@ export class ServiceRegistry {
       console.error('[ServiceError]', error.getUserMessage());
     });
 
-    // Register all services
+    // Register services with the container
     ServiceRegistry.registerTaskService();
     ServiceRegistry.registerNetworkStatusService();
     ServiceRegistry.registerTimeSessionService();
+    ServiceRegistry.registerFilterSortService();
   }
 
   /**
    * Register the task service
    */
   private static registerTaskService(): void {
-    // Register the existing singleton instance
+    // Register the existing task service
     serviceContainer.register<ITaskService>(
       SERVICE_TOKENS.TASK_SERVICE, 
       taskService
@@ -44,7 +47,7 @@ export class ServiceRegistry {
    * Register the network status service
    */
   private static registerNetworkStatusService(): void {
-    // Create and register a new instance
+    // Register a new instance of the network status service
     const networkStatusService = new NetworkStatusService();
     serviceContainer.register(
       SERVICE_TOKENS.NETWORK_STATUS_SERVICE, 
@@ -64,9 +67,23 @@ export class ServiceRegistry {
   }
 
   /**
-   * Get a registered service by token
+   * Register the filter/sort service
    */
-  static getService<T>(token: string): T {
+  private static registerFilterSortService(): void {
+    // Create a new instance of the FilterSortService
+    const filterSortService = new FilterSortService();
+    
+    // Register the filter/sort service
+    serviceContainer.register<IFilterSortService>(
+      SERVICE_TOKENS.FILTER_SORT_SERVICE, 
+      filterSortService
+    );
+  }
+
+  /**
+   * Get a service from the container
+   */
+  private static getService<T>(token: string): T {
     return serviceContainer.get<T>(token);
   }
 
@@ -90,8 +107,14 @@ export class ServiceRegistry {
   static getTimeSessionService(): ITimeSessionService {
     return ServiceRegistry.getService<ITimeSessionService>(SERVICE_TOKENS.TIME_SESSION_SERVICE);
   }
+
+  /**
+   * Get the filter/sort service
+   */
+  static getFilterSortService(): IFilterSortService {
+    return ServiceRegistry.getService<IFilterSortService>(SERVICE_TOKENS.FILTER_SORT_SERVICE);
+  }
 }
 
 // Initialize services on module import
-// Comment this out during tests to prevent automatic initialization
 ServiceRegistry.initialize();

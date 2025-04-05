@@ -101,6 +101,7 @@ export const SERVICE_TOKENS = {
   SYNC_SERVICE: 'syncService',
   NOTIFICATION_SERVICE: 'notificationService',
   PERFORMANCE_SERVICE: 'performanceService',
+  FILTER_SORT_SERVICE: 'filterSortService',
   
   // Add more service tokens here as needed
 } as const;
