@@ -8,8 +8,11 @@ export default {
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   // Simple transform setup that respects ES modules
   transform: {},
-  // Basic test matching
-  testMatch: ['**/test/**/*.test.js'],
+  // Basic test matching - include both test/ directory and src/**/__tests__/ directories
+  testMatch: [
+    '**/test/**/*.test.js',
+    '**/src/**/__tests__/**/*.test.js'
+  ],
   // Jest needs to be told to use --experimental-vm-modules for ESM support
   runner: 'jest-runner',
   testRunner: 'jest-circus/runner'
