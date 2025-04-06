@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSettings } from '../contexts/SettingsCompat';
 import { CategorySettings } from '../components/Settings/CategorySettings';
-import { CategoryProvider } from '../contexts/category/CategoryProvider';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { DensitySelector } from '../components/UI/DensitySelector';
@@ -227,9 +226,7 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
       {/* Categories Section */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Task Categories</h2>
-        <CategoryProvider>
-          <CategorySettings />
-        </CategoryProvider>
+        <CategorySettings />
       </div>
       
       {/* Notification Settings */}

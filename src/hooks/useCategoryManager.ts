@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { useCategories } from '../contexts/CategoryContext';
-import { Category } from '../services/api/categoryService';
+import { useCategories } from '../contexts/CategoryCompat';
+import { Category } from '../services/interfaces/ICategoryService';
 import { useToast } from '../components/Toast';
 
 /**
@@ -209,7 +209,8 @@ export function useCategoryManager() {
       return false;
     }
     
-    return await setDefaultCategory(selectedCategoryId);
+    // The compatibility version of setDefaultCategory doesn't take arguments
+    return await setDefaultCategory();
   }, [selectedCategoryId, setDefaultCategory, addToast]);
 
   return {

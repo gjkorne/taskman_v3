@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskMan Emergency Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    }
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background-color: #3b82f6;
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: #2563eb;
+    }
+    .btn-secondary {
+      background-color: #e5e7eb;
+      color: #374151;
+    }
+    .btn-secondary:hover {
+      background-color: #d1d5db;
+    }
+    .btn-danger {
+      background-color: #ef4444;
+      color: white;
+    }
+    .btn-danger:hover {
+      background-color: #dc2626;
+    }
+    .active-tab {
+      border-bottom: 2px solid #3b82f6;
+      color: #3b82f6;
+    }
+    .tab-button:hover:not(.active-tab) {
+      color: #4b5563;
+      border-bottom: 2px solid #e5e7eb;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="max-w-4xl mx-auto p-6">
+    <header class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">TaskMan Emergency Settings</h1>
+        <p class="text-sm text-gray-500 mt-1">Use this page when the regular settings page isn't accessible</p>
+      </div>
+      <a href="/" class="btn btn-secondary">Return to App</a>
+    </header>
+
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <!-- Tabs -->
+      <div class="border-b border-gray-200">
+        <nav class="flex -mb-px">
+          <button id="tab-general" class="py-4 px-6 font-medium text-sm tab-button active-tab" onclick="switchTab('general')">
+            General
+          </button>
+          <button id="tab-appearance" class="py-4 px-6 font-medium text-sm tab-button" onclick="switchTab('appearance')">
+            Appearance
+          </button>
+          <button id="tab-data" class="py-4 px-6 font-medium text-sm tab-button" onclick="switchTab('data')">
+            Data & Privacy
+          </button>
+          <button id="tab-troubleshooting" class="py-4 px-6 font-medium text-sm tab-button" onclick="switchTab('troubleshooting')">
+            Troubleshooting
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <div id="tab-content" class="p-6">
+        <!-- General tab content is shown by default -->
+        <div id="content-general" class="tab-content">
+          <h2 class="text-lg font-medium mb-4">User Preferences</h2>
+          
+          <div class="space-y-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Default View
+              </label>
+              <select id="default-view" class="w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border">
+                <option value="tasks">Tasks</option>
+                <option value="timer">Timer</option>
+                <option value="reports">Reports</option>
+                <option value="calendar">Calendar</option>
+              </select>
+            </div>
+            
+            <div>
+              <div class="flex justify-between items-center">
+                <label class="block text-sm font-medium text-gray-700">
+                  Enable Notifications
+                </label>
+                <div class="relative inline-block w-12 align-middle select-none">
+                  <input type="checkbox" id="notifications-toggle" class="sr-only toggle-checkbox">
+                  <label for="notifications-toggle" class="block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer">
+                    <span class="toggle-dot block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out"></span>
+                  </label>
+                </div>
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Receive notifications for task reminders and updates</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Appearance tab content (hidden by default) -->
+        <div id="content-appearance" class="tab-content hidden">
+          <h2 class="text-lg font-medium mb-4">Visual Settings</h2>
+          
+          <div class="space-y-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Color Theme
+              </label>
+              <div class="flex space-x-3">
+                <button id="theme-light" class="btn btn-primary" onclick="setTheme('light')">Light</button>
+                <button id="theme-dark" class="btn btn-secondary" onclick="setTheme('dark')">Dark</button>
+                <button id="theme-system" class="btn btn-secondary" onclick="setTheme('system')">System</button>
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                UI Density
+              </label>
+              <div class="flex space-x-3">
+                <button id="density-compact" class="btn btn-secondary" onclick="setDensity('compact')">Compact</button>
+                <button id="density-normal" class="btn btn-primary" onclick="setDensity('normal')">Normal</button>
+                <button id="density-comfortable" class="btn btn-secondary" onclick="setDensity('comfortable')">Comfortable</button>
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Controls the spacing and size of UI elements</p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Font Size
+              </label>
+              <div class="flex space-x-3">
+                <button id="font-small" class="btn btn-secondary" onclick="setFontSize('small')">Small</button>
+                <button id="font-medium" class="btn btn-primary" onclick="setFontSize('medium')">Medium</button>
+                <button id="font-large" class="btn btn-secondary" onclick="setFontSize('large')">Large</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data tab content (hidden by default) -->
+        <div id="content-data" class="tab-content hidden">
+          <h2 class="text-lg font-medium mb-4">Data Management</h2>
+          
+          <div class="space-y-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Export Data
+              </label>
+              <p class="text-sm text-gray-500 mb-2">Download all your tasks and time tracking data as a JSON file</p>
+              <button class="btn btn-primary" onclick="exportData()">Export All Data</button>
+            </div>
+            
+            <div class="pt-4 border-t border-gray-200">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Clear Cache
+              </label>
+              <p class="text-sm text-gray-500 mb-2">Clear the application cache to resolve display or performance issues</p>
+              <button class="btn btn-secondary" onclick="clearCache()">Clear Application Cache</button>
+            </div>
+            
+            <div class="pt-4 border-t border-gray-200">
+              <label class="block text-sm font-medium text-red-700 mb-1">
+                Danger Zone
+              </label>
+              <p class="text-sm text-gray-500 mb-2">These actions cannot be undone</p>
+              <div class="flex space-x-3">
+                <button class="btn btn-danger" onclick="resetAllData()">Reset All Data</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Troubleshooting tab content (hidden by default) -->
+        <div id="content-troubleshooting" class="tab-content hidden">
+          <h2 class="text-lg font-medium mb-4">Troubleshooting Tools</h2>
+          
+          <div class="space-y-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Settings Page Issues
+              </label>
+              <p class="text-sm text-gray-500 mb-2">If you're seeing this page, it means there was an issue with the regular Settings page in the app.</p>
+              <p class="text-sm text-gray-600 mb-4">Common issues and solutions:</p>
+              <ul class="list-disc pl-5 text-sm text-gray-600 space-y-1">
+                <li>Clear your browser cache and reload the app</li>
+                <li>Try logging out and logging back in</li>
+                <li>Check your browser console for specific errors</li>
+                <li>Try a different browser</li>
+              </ul>
+              <div class="mt-4">
+                <button class="btn btn-primary" onclick="resetBrowserStorage()">Reset Browser Storage</button>
+              </div>
+            </div>
+            
+            <div class="pt-4 border-t border-gray-200">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Application Logs
+              </label>
+              <p class="text-sm text-gray-500 mb-2">View and export error logs to help diagnose issues</p>
+              <button class="btn btn-secondary" onclick="viewLogs()">View Application Logs</button>
+              <div id="log-viewer" class="hidden mt-4">
+                <pre id="log-content" class="bg-gray-100 p-4 rounded text-xs max-h-60 overflow-auto"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tab switching logic
+    function switchTab(tabName) {
+      // Hide all tab contents
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+      
+      // Show the selected tab content
+      document.getElementById(`content-${tabName}`).classList.remove('hidden');
+      
+      // Update tab buttons
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active-tab');
+      });
+      document.getElementById(`tab-${tabName}`).classList.add('active-tab');
+    }
+
+    // Appearance settings
+    function setTheme(theme) {
+      localStorage.setItem('taskman-theme', theme);
+      updateThemeButtons(theme);
+      
+      // Update app if possible
+      if (window.opener) {
+        try {
+          window.opener.postMessage({ type: 'settings-update', setting: 'theme', value: theme }, '*');
+        } catch (e) {
+          console.error('Could not communicate with main app:', e);
+        }
+      }
+    }
+
+    function updateThemeButtons(theme) {
+      document.getElementById('theme-light').className = theme === 'light' ? 'btn btn-primary' : 'btn btn-secondary';
+      document.getElementById('theme-dark').className = theme === 'dark' ? 'btn btn-primary' : 'btn btn-secondary';
+      document.getElementById('theme-system').className = theme === 'system' ? 'btn btn-primary' : 'btn btn-secondary';
+    }
+
+    function setDensity(density) {
+      localStorage.setItem('taskman-density', density);
+      updateDensityButtons(density);
+      
+      // Update app if possible
+      if (window.opener) {
+        try {
+          window.opener.postMessage({ type: 'settings-update', setting: 'density', value: density }, '*');
+        } catch (e) {
+          console.error('Could not communicate with main app:', e);
+        }
+      }
+    }
+
+    function updateDensityButtons(density) {
+      document.getElementById('density-compact').className = density === 'compact' ? 'btn btn-primary' : 'btn btn-secondary';
+      document.getElementById('density-normal').className = density === 'normal' ? 'btn btn-primary' : 'btn btn-secondary';
+      document.getElementById('density-comfortable').className = density === 'comfortable' ? 'btn btn-primary' : 'btn btn-secondary';
+    }
+
+    function setFontSize(size) {
+      localStorage.setItem('taskman-font-size', size);
+      updateFontButtons(size);
+      
+      // Update app if possible
+      if (window.opener) {
+        try {
+          window.opener.postMessage({ type: 'settings-update', setting: 'fontSize', value: size }, '*');
+        } catch (e) {
+          console.error('Could not communicate with main app:', e);
+        }
+      }
+    }
+
+    function updateFontButtons(size) {
+      document.getElementById('font-small').className = size === 'small' ? 'btn btn-primary' : 'btn btn-secondary';
+      document.getElementById('font-medium').className = size === 'medium' ? 'btn btn-primary' : 'btn btn-secondary';
+      document.getElementById('font-large').className = size === 'large' ? 'btn btn-primary' : 'btn btn-secondary';
+    }
+
+    // Data management
+    function exportData() {
+      alert('This would normally download your data as a JSON file. In this emergency UI, this functionality is limited.');
+      
+      // In a real implementation, this would call the app's API to generate and download the data
+    }
+
+    function clearCache() {
+      try {
+        if (window.caches) {
+          caches.keys().then(names => {
+            names.forEach(name => {
+              caches.delete(name);
+            });
+          });
+        }
+        
+        // Also clear application data from localStorage except settings
+        const settingsKeys = [
+          'taskman-theme',
+          'taskman-density',
+          'taskman-font-size',
+          'taskman-notifications'
+        ];
+        
+        const settingsValues = {};
+        settingsKeys.forEach(key => {
+          settingsValues[key] = localStorage.getItem(key);
+        });
+        
+        localStorage.clear();
+        
+        // Restore settings
+        for (const key in settingsValues) {
+          if (settingsValues[key]) {
+            localStorage.setItem(key, settingsValues[key]);
+          }
+        }
+        
+        alert('Application cache cleared successfully!');
+      } catch (e) {
+        alert('Error clearing cache: ' + e.message);
+      }
+    }
+
+    function resetAllData() {
+      if (confirm('WARNING: This will delete ALL your data including tasks, time records, and settings. This cannot be undone. Are you sure?')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        if (window.indexedDB) {
+          // List of known DBs used by the app
+          const dbNames = ['taskman-db', 'taskman-cache', 'taskman-offline'];
+          
+          dbNames.forEach(dbName => {
+            try {
+              indexedDB.deleteDatabase(dbName);
+            } catch (e) {
+              console.error(`Could not delete database ${dbName}:`, e);
+            }
+          });
+        }
+        
+        alert('All data has been reset. The app will reload.');
+        window.location.href = '/';
+      }
+    }
+
+    // Troubleshooting
+    function resetBrowserStorage() {
+      if (confirm('This will clear your browser storage for TaskMan but keep your account data. Continue?')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        alert('Browser storage has been reset. Try accessing the Settings page in the app again.');
+      }
+    }
+
+    function viewLogs() {
+      const logViewer = document.getElementById('log-viewer');
+      const logContent = document.getElementById('log-content');
+      
+      if (logViewer.classList.contains('hidden')) {
+        // Collect logs from localStorage and console
+        let logs = [];
+        
+        // Check for logs in localStorage
+        const storedLogs = localStorage.getItem('taskman-error-logs');
+        if (storedLogs) {
+          try {
+            logs = JSON.parse(storedLogs);
+          } catch (e) {
+            logs = [`Error parsing stored logs: ${e.message}`];
+          }
+        }
+        
+        // Get console errors
+        if (window.console && window.console.memory) {
+          logs.push('Console memory usage:');
+          logs.push(JSON.stringify(window.console.memory));
+        }
+        
+        // Display logs or a message if none found
+        if (logs.length > 0) {
+          logContent.textContent = logs.join('\n');
+        } else {
+          logContent.textContent = 'No logs found in browser storage.';
+        }
+        
+        logViewer.classList.remove('hidden');
+      } else {
+        logViewer.classList.add('hidden');
+      }
+    }
+
+    // Toggle button styling
+    document.querySelectorAll('.toggle-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        const label = this.nextElementSibling;
+        const dot = label.querySelector('.toggle-dot');
+        
+        if (this.checked) {
+          dot.classList.add('translate-x-6');
+          label.classList.remove('bg-gray-300');
+          label.classList.add('bg-blue-500');
+        } else {
+          dot.classList.remove('translate-x-6');
+          label.classList.remove('bg-blue-500');
+          label.classList.add('bg-gray-300');
+        }
+
+        // Save notification setting
+        if (this.id === 'notifications-toggle') {
+          localStorage.setItem('taskman-notifications', this.checked ? 'enabled' : 'disabled');
+        }
+      });
+    });
+
+    // Load saved settings on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Load theme
+      const savedTheme = localStorage.getItem('taskman-theme') || 'light';
+      updateThemeButtons(savedTheme);
+      
+      // Load density
+      const savedDensity = localStorage.getItem('taskman-density') || 'normal';
+      updateDensityButtons(savedDensity);
+      
+      // Load font size
+      const savedFontSize = localStorage.getItem('taskman-font-size') || 'medium';
+      updateFontButtons(savedFontSize);
+      
+      // Load notifications setting
+      const notificationsEnabled = localStorage.getItem('taskman-notifications') === 'enabled';
+      const notificationsToggle = document.getElementById('notifications-toggle');
+      if (notificationsToggle) {
+        notificationsToggle.checked = notificationsEnabled;
+        
+        // Update the toggle appearance
+        if (notificationsEnabled) {
+          const label = notificationsToggle.nextElementSibling;
+          const dot = label.querySelector('.toggle-dot');
+          dot.classList.add('translate-x-6');
+          label.classList.remove('bg-gray-300');
+          label.classList.add('bg-blue-500');
+        }
+      }
+      
+      // Load default view
+      const defaultView = localStorage.getItem('taskman-default-view') || 'tasks';
+      const defaultViewSelect = document.getElementById('default-view');
+      if (defaultViewSelect) {
+        defaultViewSelect.value = defaultView;
+        
+        // Save when changed
+        defaultViewSelect.addEventListener('change', function() {
+          localStorage.setItem('taskman-default-view', this.value);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

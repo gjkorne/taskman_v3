@@ -3,11 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-
 import { AuthProvider } from './components/Auth/AuthProvider';
 import { LoginForm } from './components/Auth/LoginForm';
 import { RegisterForm } from './components/Auth/RegisterForm';
-import { Layout } from './components/Layout';
 import { TaskList, TaskListRefType } from './components/TaskList';
 import { Timer } from './components/Timer';
 import { ReportsPage } from './pages/ReportsPage';
-import SettingsPage from './pages/SettingsPage';
+import { MinimalSettingsPage } from './pages/MinimalSettingsPage';
 import AdminPage from './pages/AdminPage';
 import { TaskDetailsPage } from './pages/TaskDetailsPage';
 import { TimeSessionsPage } from './pages/TimeSessionsPage';
@@ -18,11 +17,10 @@ import { TimeSessionProvider } from './contexts/timeSession';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { TaskProvider } from './contexts/task';
 import { ToastProvider } from './components/Toast';
-import { CategoryProvider } from './contexts/category';
+import { UnifiedCategoryProvider } from './contexts/CategoryUnified';
 import { ErrorProvider } from './contexts/ErrorContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { NetworkStatusProvider } from './contexts/NetworkStatusContext';
-import { LoadingIndicator } from './components/UI/LoadingIndicator';
 import { OfflineIndicator } from './components/UI/OfflineIndicator';
 import { AppInitializer } from './services/AppInitializer';
 import { AppError } from './utils/errorHandling';
@@ -32,6 +30,8 @@ import { AdminProvider } from './contexts/AdminContext';
 import { FilterSortProvider } from './contexts/filterSort';
 import { DensityProvider } from './contexts/ui/DensityContext';
 import { DensityStyleInjector } from './components/UI/DensityStyleInjector';
+import ErrorBoundary from './components/ErrorBoundary';
+import { Layout } from './components/Layout';
 
 // Import debug tools in development mode
 if (process.env.NODE_ENV === 'development') {
@@ -48,7 +48,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <LoadingIndicator size="lg" variant="primary" text="Loading authentication..." />
+        <div className="text-center">
+          <div className="mt-4 text-gray-600">Loading authentication...</div>
+        </div>
       </div>
     );
   }
@@ -92,8 +94,24 @@ function TaskDataRefresher({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Create a separate route component for settings to avoid context conflicts
+const SettingsRoute = () => {
+  return (
+    <DensityProvider>
+      <DensityStyleInjector />
+      <div className="min-h-screen bg-gray-50">
+        <div className="py-8">
+          <div className="w-full px-4 sm:px-6 lg:px-8">
+            <MinimalSettingsPage />
+          </div>
+        </div>
+      </div>
+    </DensityProvider>
+  );
+};
+
 function App() {
-  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar' | 'home'>('home');
+  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'admin' | 'time-sessions' | 'calendar' | 'home'>('home');
   const taskListRef = useRef<TaskListRefType>(null);
   const [appInitialized, setAppInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -115,19 +133,7 @@ function App() {
     initApp();
   }, []);
 
-  // If app is still initializing, show loading screen
-  if (!appInitialized && !initError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <LoadingIndicator size="lg" variant="primary" />
-          <div className="mt-4 text-gray-600">Initializing TaskMan...</div>
-        </div>
-      </div>
-    );
-  }
-
-  // If there was an initialization error, show error screen
+  // Display initialization error if any
   if (initError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -144,6 +150,17 @@ function App() {
           >
             Retry
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading screen until app is initialized
+  if (!appInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mt-4 text-gray-600">Initializing TaskMan...</div>
         </div>
       </div>
     );
@@ -183,7 +200,7 @@ function App() {
                   <SettingsProvider>
                     <SettingsDataProvider>
                       <SettingsUIProvider>
-                        <CategoryProvider>
+                        <UnifiedCategoryProvider>
                           <TaskProvider>
                             <FilterSortProvider>
                               <TaskDataRefresher>
@@ -203,7 +220,15 @@ function App() {
                                             <ProtectedRoute>
                                               <Layout 
                                                 activeView={activeView} 
-                                                onViewChange={setActiveView}
+                                                onViewChange={(view: any) => {
+                                                  // Special case for settings, which now has its own route
+                                                  if (view === 'settings') {
+                                                    // Open the emergency settings page in a new tab
+                                                    window.open('/emergency-settings.html', '_blank');
+                                                  } else {
+                                                    setActiveView(view as any);
+                                                  }
+                                                }}
                                                 onTaskCreated={handleTaskCreated}
                                                 onTimerStateChange={handleTimerStateChange}
                                               >
@@ -215,7 +240,6 @@ function App() {
                                                 )}
                                                 {activeView === 'timer' && <Timer />}
                                                 {activeView === 'reports' && <ReportsPage />}
-                                                {activeView === 'settings' && <SettingsPage />}
                                                 {activeView === 'admin' && <AdminPage />}
                                                 {activeView === 'time-sessions' && <TimeSessionsPage />}
                                                 {activeView === 'calendar' && <CalendarPage />}
@@ -236,6 +260,7 @@ function App() {
                                           path="/app/task/:taskId" 
                                           element={<RedirectWithParams newPathPattern="/tasks/:taskId" />}
                                         />
+                                        <Route path="/settings" element={<SettingsRoute />} />
                                       </Routes>
                                     </DensityProvider>
                                   </AdminProvider>
@@ -243,7 +268,7 @@ function App() {
                               </TaskDataRefresher>
                             </FilterSortProvider>
                           </TaskProvider>
-                        </CategoryProvider>
+                        </UnifiedCategoryProvider>
                       </SettingsUIProvider>
                     </SettingsDataProvider>
                   </SettingsProvider>

@@ -69,6 +69,7 @@ export function LoginForm() {
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 value={formData.password}
                 onChange={(e) => setFormData(d => ({ ...d, password: e.target.value }))}
                 className="w-full rounded-lg glass-input"
