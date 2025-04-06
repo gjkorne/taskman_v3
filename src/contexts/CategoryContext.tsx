@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Category, categoryService } from '../services/api/categoryService';
+import { categoryService } from '../services/api/categoryService';
+import { Category } from '../services/interfaces/ICategoryService';
 import { CATEGORIES } from '../types/categories';
 import { useToast } from '../components/Toast';
+import { useAuth } from '../lib/auth';
 
 // Helper to check for development environment
 const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -40,11 +42,20 @@ export function CategoryProvider({ children }: { children: ReactNode }) {
   
   // Get toast notifications
   const { addToast } = useToast();
+  
+  // Get authentication state
+  const { user, loading: authLoading } = useAuth();
 
-  // Fetch categories on mount
+  // Fetch categories when auth is ready and user is logged in
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    // Don't fetch if still loading auth state
+    if (authLoading) return;
+    
+    // Only fetch if user is authenticated
+    if (user) {
+      fetchCategories();
+    }
+  }, [user, authLoading]);
 
   // Fetch all categories
   const fetchCategories = async () => {

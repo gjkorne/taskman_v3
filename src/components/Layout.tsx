@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ActiveSession } from './Timer/ActiveSession';
-import { SearchPanel } from './TaskList/SearchPanel';
 import { Sidebar, ViewType } from './Navigation/Sidebar';
 import { TaskFormModal } from './TaskForm/TaskFormModal';
 import { Icon } from './UI/Icon';
@@ -73,11 +72,6 @@ export function Layout({
     <div className="h-screen flex flex-col overflow-hidden bg-white">
       {/* Main Header Component */}
       <MainHeader 
-        onSearch={(query) => console.log('Searching for:', query)}
-        onRefresh={() => {
-          console.log('Refreshing data...');
-          if (onTaskCreated) onTaskCreated();
-        }}
         onToggleSidebar={toggleSidebar}
       />
       
@@ -106,9 +100,6 @@ export function Layout({
                 <Icon name="Menu" size={24} />
               </button>
             </div>
-            
-            {/* Search panel - only shown on tasks view */}
-            {activeView === 'tasks' && <SearchPanel />}
             
             {/* Main content area */}
             <div className="px-4 sm:px-6 md:px-8">

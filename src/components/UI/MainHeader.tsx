@@ -1,17 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { SearchBar } from './SearchBar';
 import { useAuth } from '../../lib/auth';
 import { useNavigate } from 'react-router-dom';
 
 interface MainHeaderProps {
-  onSearch?: (query: string) => void;
-  onRefresh?: () => void;
   onToggleSidebar?: () => void;
 }
 
 export function MainHeader({
-  onSearch,
-  onRefresh,
   onToggleSidebar
 }: MainHeaderProps) {
   const { signOut, user } = useAuth();
@@ -74,11 +69,6 @@ export function MainHeader({
             </nav>
           </div>
           <div className="flex items-center space-x-3">
-            <SearchBar 
-              placeholder="Search tasks, contacts, deals..." 
-              onSearch={onSearch}
-              onRefresh={onRefresh}
-            />
             <div className="flex gap-3">
               <button className="rounded-full bg-yellow-400 p-2.5 flex items-center justify-center shadow-sm hover:shadow-md transition duration-250" aria-label="Notifications">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
