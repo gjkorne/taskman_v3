@@ -24,7 +24,8 @@ export enum ErrorSource {
   SYNC = 'sync',               // Data synchronization errors
   BUSINESS_LOGIC = 'logic',    // Business logic/rule errors
   UI = 'ui',                   // UI rendering errors
-  UNKNOWN = 'unknown'          // Uncategorized errors
+  UNKNOWN = 'unknown',         // Uncategorized errors
+  API = 'api'                  // API-specific errors
 }
 
 /**
@@ -61,6 +62,12 @@ export enum ErrorCode {
   // Business logic errors
   ERR_LOGIC_INVALID_OPERATION = 'ERR_LOGIC_INVALID_OPERATION',
   ERR_LOGIC_DEPENDENCY = 'ERR_LOGIC_DEPENDENCY',
+  
+  // Task-specific errors
+  ERR_TASK_FETCH_FAILED = 'ERR_TASK_FETCH_FAILED',
+  ERR_TASK_CREATE_FAILED = 'ERR_TASK_CREATE_FAILED',
+  ERR_TASK_UPDATE_FAILED = 'ERR_TASK_UPDATE_FAILED',
+  ERR_TASK_DELETE_FAILED = 'ERR_TASK_DELETE_FAILED',
   
   // Generic errors
   ERR_UNKNOWN = 'ERR_UNKNOWN',
@@ -256,6 +263,18 @@ export class UIError extends BaseAppError {
     super({
       ...options,
       source: ErrorSource.UI
+    });
+  }
+}
+
+/**
+ * API-related errors
+ */
+export class APIError extends BaseAppError {
+  constructor(options: Omit<AppErrorOptions, 'source'>) {
+    super({
+      ...options,
+      source: ErrorSource.API
     });
   }
 }
