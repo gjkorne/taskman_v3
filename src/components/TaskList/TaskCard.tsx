@@ -210,7 +210,7 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
         
         {/* Menu popup */}
         {isMenuOpen && (
-          <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-10 py-1">
+          <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-[1000] py-1">
             <button
               onClick={handleEdit}
               className="block w-full text-left px-4 py-1 text-sm text-gray-700 hover:bg-gray-100"

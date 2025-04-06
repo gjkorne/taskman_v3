@@ -1,18 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../lib/auth';
 import { useNavigate } from 'react-router-dom';
+import { useRefresh } from '../../contexts/RefreshContext';
 
 interface MainHeaderProps {
   onToggleSidebar?: () => void;
 }
 
-export function MainHeader({
-  onToggleSidebar
-}: MainHeaderProps) {
+export function MainHeader({ onToggleSidebar }: MainHeaderProps) {   
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const { refreshData } = useRefresh();
 
   // Handle click outside to close the profile menu
   useEffect(() => {
@@ -70,11 +70,16 @@ export function MainHeader({
           </div>
           <div className="flex items-center space-x-3">
             <div className="flex gap-3">
-              <button className="rounded-full bg-yellow-400 p-2.5 flex items-center justify-center shadow-sm hover:shadow-md transition duration-250" aria-label="Notifications">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-              </button>
+            {/* Add a refresh button in the header next to other controls */}
+            <button 
+              onClick={refreshData}
+              className="mr-4 p-1.5 rounded hover:bg-taskman-blue-600 transition duration-250 flex items-center justify-center"
+              aria-label="Refresh data"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>                         
               
               {/* User profile with dropdown */}
               <div className="relative" ref={profileMenuRef}>

@@ -13,11 +13,18 @@ interface ActiveSessionProps {
 }
 
 export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
-  const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime } = useTimer();
+  const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime: originalFormatElapsedTime } = useTimer();
   const { activeSession } = useTimeSessionData(); // Direct access to activeSession from context
   const { tasks } = useTaskData();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const { impersonatedUser } = useAdmin();
+  
+  // Custom formatter without seconds
+  const formatElapsedTime = () => {
+    const timeWithSeconds = originalFormatElapsedTime();
+    const parts = timeWithSeconds.split(':');
+    return `${parts[0]}:${parts[1]}`;
+  };
   
   // Get the task that is currently being timed
   const activeTask = tasks.find(task => task.id === timerState.taskId);
@@ -50,7 +57,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   // show the loading state
   if (!activeTask) {
     return (
-      <div className="sticky top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
+      <div className="sticky top-0 left-0 right-0 w-full z-[30] bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
         <div className="mx-auto px-4 py-2">
           <div className="animate-pulse flex items-center space-x-2">
             <div className="rounded-full bg-indigo-600 h-4 w-4"></div>
@@ -70,16 +77,9 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   // Compact mode (default when collapsed)
   if (!isExpanded) {
     return (
-      <div className="sticky top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
+      <div className="sticky top-0 left-0 right-0 w-full z-[30] bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
         <div className="mx-auto px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <button 
-              onClick={() => setIsExpanded(true)}
-              className="p-1.5 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
-              aria-label="Expand timer"
-            >
-              <Icon name="ChevronDown" size={18} />
-            </button>
+          <div className="flex items-center">
             <div>
               <div className="font-medium text-sm">{activeTask.title}</div>
               <div className="font-mono text-lg font-bold">{formatElapsedTime()}</div>
@@ -87,6 +87,16 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
           </div>
           
           <div className="flex items-center space-x-2">
+            <div>
+              <button 
+                onClick={() => setIsExpanded(true)}
+                className="p-1.5 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+                aria-label="Expand timer"
+              >
+                <Icon name="ChevronDown" size={18} />
+              </button>
+            </div>
+            
             {isRunning ? (
               <button
                 onClick={() => {
@@ -129,7 +139,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   
   // Full expanded mode
   return (
-    <div className="sticky top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
+    <div className="sticky top-0 left-0 right-0 w-full z-[40] bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
       <div className="mx-auto px-4 py-3">
         <div className="flex justify-between items-start">
           <div className="flex-1">

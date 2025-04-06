@@ -31,6 +31,8 @@ import { FilterSortProvider } from './contexts/filterSort';
 import { DensityProvider } from './contexts/ui/DensityContext';
 import { DensityStyleInjector } from './components/UI/DensityStyleInjector';
 import { Layout } from './components/Layout';
+import { RefreshProvider } from './contexts/RefreshContext';
+import { useRefresh } from './contexts/RefreshContext';
 
 // Import debug tools in development mode
 if (process.env.NODE_ENV === 'development') {
@@ -188,6 +190,19 @@ function App() {
     }
   };
 
+  // Register refresh handler with our RefreshContext
+  // This will be available to the MainHeader refresh button
+  const RefreshRegistrator = () => {
+    const { registerRefreshHandler } = useRefresh();
+    
+    useEffect(() => {
+      console.log('Registering global refresh handler with RefreshContext');
+      return registerRefreshHandler(handleTaskCreated);
+    }, []);
+    
+    return null;
+  };
+
   return (
     <NetworkStatusProvider>
       <QueryProvider>
@@ -205,63 +220,66 @@ function App() {
                               <TaskDataRefresher>
                                 <TimeSessionProvider>
                                   <AdminProvider>
-                                    <DensityProvider>
-                                      <DensityStyleInjector />
-                                      <OfflineIndicator />
-                                      <Routes>
-                                        <Route path="/login" element={<LoginForm />} />
-                                        <Route path="/register" element={<RegisterForm />} />
-                                        {/* Add redirect for /tasks to the main route */}
-                                        <Route path="/tasks" element={<Navigate to="/" replace />} />
-                                        <Route
-                                          path="/"
-                                          element={
-                                            <ProtectedRoute>
-                                              <Layout 
-                                                activeView={activeView} 
-                                                onViewChange={(view: any) => {
-                                                  // Special case for settings, which now has its own route
-                                                  if (view === 'settings') {
-                                                    // Open the emergency settings page in a new tab
-                                                    window.open('/emergency-settings.html', '_blank');
-                                                  } else {
-                                                    setActiveView(view as any);
-                                                  }
-                                                }}
-                                                onTaskCreated={handleTaskCreated}
-                                                onTimerStateChange={handleTimerStateChange}
-                                              >
-                                                {activeView === 'home' && <HomePage />}
-                                                {activeView === 'tasks' && (
-                                                  <TaskList 
-                                                    ref={taskListRef} 
-                                                  />
-                                                )}
-                                                {activeView === 'timer' && <Timer />}
-                                                {activeView === 'reports' && <ReportsPage />}
-                                                {activeView === 'admin' && <AdminPage />}
-                                                {activeView === 'time-sessions' && <TimeSessionsPage />}
-                                                {activeView === 'calendar' && <CalendarPage />}
-                                              </Layout>
-                                            </ProtectedRoute>
-                                          }
-                                        />
-                                        <Route 
-                                          path="/tasks/:taskId" 
-                                          element={
-                                            <ProtectedRoute>
-                                              <TaskDetailsPage />
-                                            </ProtectedRoute>
-                                          } 
-                                        />
-                                        {/* Add redirect for old /app/task/ URLs that might be stored in history */}
-                                        <Route 
-                                          path="/app/task/:taskId" 
-                                          element={<RedirectWithParams newPathPattern="/tasks/:taskId" />}
-                                        />
-                                        <Route path="/settings" element={<SettingsRoute />} />
-                                      </Routes>
-                                    </DensityProvider>
+                                    <RefreshProvider>
+                                      <DensityProvider>
+                                        <DensityStyleInjector />
+                                        <OfflineIndicator />
+                                        <RefreshRegistrator />
+                                        <Routes>
+                                          <Route path="/login" element={<LoginForm />} />
+                                          <Route path="/register" element={<RegisterForm />} />
+                                          {/* Add redirect for /tasks to the main route */}
+                                          <Route path="/tasks" element={<Navigate to="/" replace />} />
+                                          <Route
+                                            path="/"
+                                            element={
+                                              <ProtectedRoute>
+                                                <Layout 
+                                                  activeView={activeView} 
+                                                  onViewChange={(view: any) => {
+                                                    // Special case for settings, which now has its own route
+                                                    if (view === 'settings') {
+                                                      // Open the emergency settings page in a new tab
+                                                      window.open('/emergency-settings.html', '_blank');
+                                                    } else {
+                                                      setActiveView(view as any);
+                                                    }
+                                                  }}
+                                                  onTaskCreated={handleTaskCreated}
+                                                  onTimerStateChange={handleTimerStateChange}
+                                                >
+                                                  {activeView === 'home' && <HomePage />}
+                                                  {activeView === 'tasks' && (
+                                                    <TaskList 
+                                                      ref={taskListRef} 
+                                                    />
+                                                  )}
+                                                  {activeView === 'timer' && <Timer />}
+                                                  {activeView === 'reports' && <ReportsPage />}
+                                                  {activeView === 'admin' && <AdminPage />}
+                                                  {activeView === 'time-sessions' && <TimeSessionsPage />}
+                                                  {activeView === 'calendar' && <CalendarPage />}
+                                                </Layout>
+                                              </ProtectedRoute>
+                                            }
+                                          />
+                                          <Route 
+                                            path="/tasks/:taskId" 
+                                            element={
+                                              <ProtectedRoute>
+                                                <TaskDetailsPage />
+                                              </ProtectedRoute>
+                                            } 
+                                          />
+                                          {/* Add redirect for old /app/task/ URLs that might be stored in history */}
+                                          <Route 
+                                            path="/app/task/:taskId" 
+                                            element={<RedirectWithParams newPathPattern="/tasks/:taskId" />}
+                                          />
+                                          <Route path="/settings" element={<SettingsRoute />} />
+                                        </Routes>
+                                      </DensityProvider>
+                                    </RefreshProvider>
                                   </AdminProvider>
                                 </TimeSessionProvider>
                               </TaskDataRefresher>

@@ -21,7 +21,7 @@ export function Layout({
   onTaskCreated,
   onTimerStateChange 
 }: LayoutProps) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   

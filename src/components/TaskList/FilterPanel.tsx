@@ -111,40 +111,36 @@ export function FilterPanel({
     filters.sortOrder !== defaultFilters.sortOrder;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm space-y-4">
-      <div className="flex items-center justify-between">
-        {/* Filter heading removed */}
+    <div className="flex flex-wrap gap-2 items-center relative">
+      <div className="flex space-x-2 ml-auto">
+        {/* Show count of filtered tasks if provided */}
+        {taskCount !== undefined && filteredCount !== undefined && (
+          <span className="text-sm text-gray-500">
+            {filteredCount} / {taskCount}
+          </span>
+        )}
         
-        <div className="flex space-x-2 ml-auto">
-          {/* Show count of filtered tasks if provided */}
-          {taskCount !== undefined && filteredCount !== undefined && (
-            <span className="text-sm text-gray-500">
-              {filteredCount} / {taskCount}
-            </span>
-          )}
-          
-          {/* Reset filters button */}
-          {hasActiveFilters && (
-            <button
-              onClick={handleReset}
-              className="text-xs text-indigo-600 hover:text-indigo-800"
-            >
-              Reset
-            </button>
-          )}
-          
-          {/* Expand/collapse button */}
+        {/* Reset filters button */}
+        {hasActiveFilters && (
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-gray-500 hover:text-gray-700"
+            onClick={handleReset}
+            className="text-xs text-indigo-600 hover:text-indigo-800"
           >
-            {isExpanded ? (
-              <ChevronUp className="h-5 w-5" />
-            ) : (
-              <ChevronDown className="h-5 w-5" />
-            )}
+            Reset
           </button>
-        </div>
+        )}
+        
+        {/* Expand/collapse button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          {isExpanded ? (
+            <ChevronUp className="h-5 w-5" />
+          ) : (
+            <ChevronDown className="h-5 w-5" />
+          )}
+        </button>
       </div>
 
       {/* Filter sections - only shown when expanded */}

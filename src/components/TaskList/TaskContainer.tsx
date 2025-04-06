@@ -11,6 +11,7 @@ interface TaskContainerProps {
   onEdit?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onTimerStateChange?: () => void;
+  groupedTasks?: Record<string, Task[]> | null;
 }
 
 export function TaskContainer({
@@ -19,7 +20,8 @@ export function TaskContainer({
   viewMode,
   onEdit,
   onDelete,
-  onTimerStateChange
+  onTimerStateChange,
+  groupedTasks
 }: TaskContainerProps) {
   // Loading state indicator
   if (isLoading) {
@@ -46,6 +48,64 @@ export function TaskContainer({
         <p className="mt-2 text-gray-500">Create your first task to get started.</p>
       </div>
     );
+  }
+
+  // Render grouped tasks when grouping is applied
+  if (groupedTasks && Object.keys(groupedTasks).length > 0) {
+    if (viewMode === 'list') {
+      // Display grouped tasks in list view
+      return (
+        <div className="space-y-6">
+          {Object.entries(groupedTasks).map(([groupName, groupTasks]) => (
+            <div key={groupName} className="mb-8">
+              <div className="flex items-center px-3 py-2 bg-gray-100 rounded-t-md mb-2">
+                <h2 className="text-md font-medium text-gray-800">
+                  {groupName}
+                  <span className="ml-2 px-2 py-0.5 bg-white bg-opacity-90 rounded-full text-xs">
+                    {groupTasks.length}
+                  </span>
+                </h2>
+              </div>
+              <div className="px-4 space-y-2">
+                {groupTasks.map((task, index) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    index={index}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onTimerStateChange={onTimerStateChange}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    } else {
+      // Display grouped tasks in board view
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Object.entries(groupedTasks).map(([groupName, groupTasks]) => (
+            <div key={groupName} className="space-y-4">
+              <h2 className="text-lg font-medium px-2">{groupName}</h2>
+              <div className="px-2">
+                {groupTasks.map((task, index) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    index={index}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onTimerStateChange={onTimerStateChange}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
   }
 
   // Use our custom hook to categorize tasks

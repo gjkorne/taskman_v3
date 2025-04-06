@@ -20,10 +20,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex flex-col h-screen">
       {/* Main header */}
-      <MainHeader 
-        onSearch={(query) => console.log('Search for:', query)}
-        onRefresh={() => console.log('Refreshing tasks...')}
-      />
+      <MainHeader />
       
       {/* Offline indicator */}
       <OfflineIndicator />
