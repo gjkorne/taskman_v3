@@ -4,7 +4,7 @@ import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TaskDebug } from './TaskDebug';
 import { TagsInput } from '../Common/TagsInput';
-import { FormSection } from '../Common/FormSection';
+import { Form, FormGroup, FormSection } from '../Common/FormComponents';
 import { PrioritySelector } from '../Common/PrioritySelector';
 import { CategorySelector } from '../Common/CategorySelector';
 import { useTaskForm } from '../../hooks/useTaskForm';
@@ -123,7 +123,7 @@ export function UnifiedTaskForm({
 
   return (
     <div className="w-full" ref={formRef}>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <Form onSubmit={handleSubmit}>
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -137,10 +137,12 @@ export function UnifiedTaskForm({
         {/* TASK DETAILS SECTION */}
         <FormSection title="Task Details" useGradient={true} hideTitle={true}>
           {/* Title Field */}
-          <div>
-            <label htmlFor="task-title" className="block text-sm font-semibold text-gray-800">
-              Task Title <span className="text-red-500">*</span>
-            </label>
+          <FormGroup 
+            label="Task Title" 
+            htmlFor="task-title" 
+            required
+            error={errors.title?.message}
+          >
             <input
               type="text"
               placeholder="What needs to be done?"
@@ -152,29 +154,33 @@ export function UnifiedTaskForm({
                 errors.title ? 'border-red-500' : 'border-gray-300'
               )}
             />
-            {errors.title && (
-              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-            )}
-          </div>
+          </FormGroup>
           
           {/* Classification Fields */}
           <div className="mt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">Classification</h3>
             
             {/* Category Selection */}
-            <CategorySelector
-              value={categoryName || ''}
-              onChange={(value) => setValue('category_name', value)}
+            <FormGroup 
+              label="Category"
+              htmlFor="category"
+              required
               error={errors.category_name?.message}
-              required={true}
-            />
+            >
+              <CategorySelector
+                value={categoryName || ''}
+                onChange={(value) => setValue('category_name', value)}
+                error={errors.category_name?.message}
+                required={true}
+              />
+            </FormGroup>
             
             {/* Subcategory Selection - Only shown when a category is selected */}
             {categoryName && (
-              <div className="mt-3">
-                <label htmlFor="subcategory" className="block text-sm font-medium text-gray-700 mb-1">
-                  Subcategory
-                </label>
+              <FormGroup
+                label="Subcategory"
+                htmlFor="subcategory"
+              >
                 <select
                   id="subcategory"
                   value={getValues('subcategory') || ''}
@@ -200,15 +206,16 @@ export function UnifiedTaskForm({
                     </option>
                   ))}
                 </select>
-              </div>
+              </FormGroup>
             )}
             
             {/* Status Field - Only show in edit mode */}
             {mode === 'edit' && (
-              <div className="mt-4">
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
+              <FormGroup
+                label="Status"
+                htmlFor="status"
+                error={errors.status?.message}
+              >
                 <select
                   id="status"
                   {...register('status')}
@@ -220,10 +227,7 @@ export function UnifiedTaskForm({
                   <option value="completed">Completed</option>
                   <option value="archived">Archived</option>
                 </select>
-                {errors.status && (
-                  <p className="mt-1 text-sm text-red-600">{errors.status.message}</p>
-                )}
-              </div>
+              </FormGroup>
             )}
           </div>
           
@@ -274,18 +278,24 @@ export function UnifiedTaskForm({
         {/* PRIORITY & TIMING SECTION */}
         <FormSection title="Priority & Timing" useGradient={true} hideTitle={true}>
           {/* Priority Selection */}
-          <PrioritySelector
-            value={watch('priority') || 'medium'}
-            onChange={(value) => setValue('priority', value)}
-            layout="radio"
+          <FormGroup
+            label="Priority"
+            htmlFor="priority"
             error={errors.priority?.message}
-          />
+          >
+            <PrioritySelector
+              value={watch('priority') || 'medium'}
+              onChange={(value) => setValue('priority', value)}
+              layout="radio"
+            />
+          </FormGroup>
           
           {/* Estimated Time */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Estimated Time (minutes)
-            </label>
+          <FormGroup
+            label="Estimated Time (minutes)"
+            htmlFor="estimatedTime"
+            error={errors.estimatedTime?.message}
+          >
             <input
               type="number"
               min="0"
@@ -296,22 +306,23 @@ export function UnifiedTaskForm({
                 errors.estimatedTime ? "border-red-500" : "border-gray-300"
               )}
             />
-            {errors.estimatedTime && (
-              <p className="mt-1 text-sm text-red-500">{errors.estimatedTime.message}</p>
-            )}
             <p className="mt-1 text-xs text-gray-500">Enter total minutes (e.g., 300 for 5 hours)</p>
-          </div>
+          </FormGroup>
           
           {/* Due Date Field */}
-          <div className="mt-4">
-            <label className="flex items-center space-x-2">
+          <FormGroup
+            label="Due Date"
+            htmlFor="dueDate"
+            error={errors.due_date?.message}
+          >
+            <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 {...register('hasDueDate')}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
               <span className="text-sm font-medium text-gray-700">Has due date</span>
-            </label>
+            </div>
             
             {hasDueDate && (
               <div className="mt-2">
@@ -323,18 +334,20 @@ export function UnifiedTaskForm({
                     errors.due_date ? 'border-red-500' : 'border-gray-300'
                   )}
                 />
-                {errors.due_date && (
-                  <p className="mt-1 text-sm text-red-600">{errors.due_date.message}</p>
-                )}
               </div>
             )}
-          </div>
+          </FormGroup>
           
           {/* Tags Field */}
-          <TagsInput
-            value={watchedTags}
-            onChange={(tags) => setValue('tags', tags)}
-          />
+          <FormGroup
+            label="Tags"
+            htmlFor="tags"
+          >
+            <TagsInput
+              value={watchedTags}
+              onChange={(tags) => setValue('tags', tags)}
+            />
+          </FormGroup>
         </FormSection>
         
         {/* Task Creation Diagnostic - Only shown in development */}
@@ -372,7 +385,7 @@ export function UnifiedTaskForm({
             )}
           </button>
         </div>
-      </form>
+      </Form>
     </div>
   );
 }
