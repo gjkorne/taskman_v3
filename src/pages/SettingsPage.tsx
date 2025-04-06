@@ -4,6 +4,7 @@ import { CategorySettings } from '../components/Settings/CategorySettings';
 import { CategoryProvider } from '../contexts/category/CategoryProvider';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
+import { DensitySelector } from '../components/UI/DensitySelector';
 
 interface SettingsPageProps {
   // Add props as needed
@@ -53,7 +54,7 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
   const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
     updateSetting('theme', newTheme);
   };
-
+  
   // Function to save all settings
   const handleSaveSettings = () => {
     saveAllSettings();
@@ -193,6 +194,15 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
         
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">UI Density</label>
+          {/* Note: Our DensitySelector uses its own DensityContext which is separate from the Settings */}
+          <DensitySelector showLabels={true} className="mt-2" />
+          <p className="text-sm text-gray-500 mt-2">
+            Control how compact or spacious the user interface appears.
+          </p>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">UI Density (Settings Context)</label>
           <div className="flex space-x-4">
             {(['default', 'compact'] as const).map((density) => (
               <button
@@ -204,113 +214,95 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
                     : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
                 }`}
               >
-                {density === 'default' ? 'Default (Comfortable)' : 'Compact'}
+                {density === 'default' ? 'Default' : 'Compact'}
               </button>
             ))}
           </div>
-          <p className="mt-1 text-sm text-gray-500">
-            {settings.uiDensity === 'default' 
-              ? 'Default spacing with larger text for better readability' 
-              : 'Reduced spacing and smaller text for more compact layout'}
+          <p className="text-sm text-gray-500 mt-1">
+            This is the legacy density setting. We will migrate to the new system gradually.
           </p>
         </div>
       </div>
       
+      {/* Categories Section */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Task Management</h2>
-        
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Default Sort Order</label>
-          <select
-            value={settings.defaultTaskSort}
-            onChange={(e) => updateSetting('defaultTaskSort', e.target.value as 'due_date' | 'priority' | 'created_at')}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          >
-            <option value="due_date">Due Date</option>
-            <option value="priority">Priority</option>
-            <option value="created_at">Creation Date</option>
-          </select>
-        </div>
-        
-        <div className="mb-4">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={settings.autoSave}
-              onChange={(e) => updateSetting('autoSave', e.target.checked)}
-              className="rounded text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="text-sm font-medium text-gray-700">Auto-save task drafts</span>
-          </label>
-        </div>
-
-        <div className="mb-4">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={settings.allowTaskSwitching}
-              onChange={(e) => updateSetting('allowTaskSwitching', e.target.checked)}
-              className="rounded text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="text-sm font-medium text-gray-700">Auto-switch tasks when starting a new timer</span>
-          </label>
-          <p className="text-sm text-gray-500 mt-1 ml-6">
-            When enabled, starting a timer on a different task will automatically stop the current timer.
-            When disabled, you'll need to manually stop the current timer before starting a new one.
-          </p>
-        </div>
-      </div>
-      
-      {/* Category Management */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Category Management</h2>
+        <h2 className="text-xl font-semibold mb-4">Task Categories</h2>
         <CategoryProvider>
           <CategorySettings />
         </CategoryProvider>
       </div>
       
+      {/* Notification Settings */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Notifications</h2>
         
-        <div className="mb-4">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={settings.notificationsEnabled}
-              onChange={(e) => updateSetting('notificationsEnabled', e.target.checked)}
-              className="rounded text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="text-sm font-medium text-gray-700">Enable notifications</span>
-          </label>
-        </div>
-        
-        {settings.notificationsEnabled && (
-          <div className="pl-6 mt-2 space-y-2">
-            <label className="flex items-center space-x-2">
-              <input
+        <div className="space-y-4">
+          <div>
+            <label className="flex items-center">
+              <input 
                 type="checkbox"
-                className="rounded text-indigo-600 focus:ring-indigo-500"
-                defaultChecked
+                checked={settings.notificationsEnabled}
+                onChange={(e) => updateSetting('notificationsEnabled', e.target.checked)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
               />
-              <span className="text-sm text-gray-700">Task due reminders</span>
-            </label>
-            
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                className="rounded text-indigo-600 focus:ring-indigo-500"
-                defaultChecked
-              />
-              <span className="text-sm text-gray-700">Timer notifications</span>
+              <span className="ml-2 text-sm text-gray-700">Enable browser notifications</span>
             </label>
           </div>
-        )}
+        </div>
       </div>
       
-      <div className="mt-6 flex justify-end">
+      {/* Task Management Settings */}
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Task Management</h2>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Default Task Sort</label>
+            <select
+              value={settings.defaultTaskSort}
+              onChange={(e) => updateSetting('defaultTaskSort', e.target.value as 'due_date' | 'priority' | 'created_at')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+              <option value="due_date">Due Date</option>
+              <option value="priority">Priority</option>
+              <option value="created_at">Creation Date</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="flex items-center">
+              <input 
+                type="checkbox"
+                checked={settings.autoSave}
+                onChange={(e) => updateSetting('autoSave', e.target.checked)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <span className="ml-2 text-sm text-gray-700">Auto-save task drafts</span>
+            </label>
+          </div>
+          
+          <div>
+            <label className="flex items-center">
+              <input 
+                type="checkbox"
+                checked={settings.allowTaskSwitching}
+                onChange={(e) => updateSetting('allowTaskSwitching', e.target.checked)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <span className="ml-2 text-sm text-gray-700">Auto-switch tasks when starting a new timer</span>
+            </label>
+            <p className="text-xs text-gray-500 ml-6">
+              When enabled, starting a timer on a different task will automatically stop the current timer.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Save Button */}
+      <div className="flex justify-end mb-8">
         <button
+          className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           onClick={handleSaveSettings}
-          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
         >
           Save Settings
         </button>

@@ -1,28 +1,42 @@
 import React, { useEffect } from 'react';
-import { densityCssModule } from './DensityStyles';
+import { useDensity } from '../../contexts/ui/DensityContext';
+import { generateDensityCss } from './DensityStyles';
+import './DensityStyles.css';
 
 /**
- * Component that injects density CSS styles into the document head
- * This should be included once at the app root
+ * A component that injects density CSS styles into the document head
+ * This allows global styling based on the current density setting
  */
 export const DensityStyleInjector: React.FC = () => {
+  const { density } = useDensity();
+  
   useEffect(() => {
-    // Create style element
+    // Create a style element for dynamic density styles
     const styleElement = document.createElement('style');
-    styleElement.id = 'density-styles';
-    styleElement.textContent = densityCssModule;
+    styleElement.id = 'density-dynamic-styles';
+    styleElement.innerHTML = generateDensityCss();
     
-    // Inject into head
+    // Add the dynamic styles to the document head
     document.head.appendChild(styleElement);
     
-    // Cleanup on unmount
+    // Add a data-density attribute to the body for global styling
+    document.body.setAttribute('data-density', density);
+    
+    // Clean up when component unmounts
     return () => {
-      const existingStyle = document.getElementById('density-styles');
+      const existingStyle = document.getElementById('density-dynamic-styles');
       if (existingStyle) {
         document.head.removeChild(existingStyle);
       }
+      document.body.removeAttribute('data-density');
     };
   }, []);
   
+  // Update body attribute when density changes
+  useEffect(() => {
+    document.body.setAttribute('data-density', density);
+  }, [density]);
+  
+  // This component doesn't render anything visible
   return null;
 };
