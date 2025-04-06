@@ -30,7 +30,6 @@ import { AdminProvider } from './contexts/AdminContext';
 import { FilterSortProvider } from './contexts/filterSort';
 import { DensityProvider } from './contexts/ui/DensityContext';
 import { DensityStyleInjector } from './components/UI/DensityStyleInjector';
-import ErrorBoundary from './components/ErrorBoundary';
 import { Layout } from './components/Layout';
 
 // Import debug tools in development mode
