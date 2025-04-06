@@ -1,18 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   format, 
   startOfMonth, 
-  endOfMonth, 
   startOfWeek, 
-  endOfWeek, 
   addDays, 
   isSameMonth, 
   isSameDay, 
-  addMonths, 
-  parseISO, 
-  isToday, 
-  getDay, 
-  getWeeksInMonth 
+  addMonths 
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useTaskData } from '../../contexts/task';
@@ -31,7 +25,7 @@ export function CalendarPage() {
   const [viewMode, setViewMode] = useState<'month' | 'day'>('month');
   
   // Get tasks from context
-  const { tasks, refreshTasks } = useTaskData();
+  const { tasks } = useTaskData();
   
   // Group tasks by due date for efficient lookup
   const tasksByDate = useMemo(() => {
@@ -184,7 +178,6 @@ export function CalendarPage() {
   // Render calendar cells
   const renderCells = () => {
     const monthStart = startOfMonth(currentMonth);
-    const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
     const startDate = startOfWeek(monthStart);
     const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 6);
     
