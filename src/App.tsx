@@ -30,6 +30,8 @@ import { QueryProvider } from './contexts/query/QueryProvider';
 import { useQueryClient } from '@tanstack/react-query';
 import { AdminProvider } from './contexts/AdminContext';
 import { FilterSortProvider } from './contexts/filterSort';
+import { DensityProvider } from './contexts/ui/DensityContext';
+import { DensityStyleInjector } from './components/UI/DensityStyleInjector';
 
 // Import debug tools in development mode
 if (process.env.NODE_ENV === 'development') {
@@ -187,52 +189,55 @@ function App() {
                               <TaskDataRefresher>
                                 <TimeSessionProvider>
                                   <AdminProvider>
-                                    <OfflineIndicator />
-                                    <Routes>
-                                      <Route path="/login" element={<LoginForm />} />
-                                      <Route path="/register" element={<RegisterForm />} />
-                                      {/* Add redirect for /tasks to the main route */}
-                                      <Route path="/tasks" element={<Navigate to="/" replace />} />
-                                      <Route
-                                        path="/"
-                                        element={
-                                          <ProtectedRoute>
-                                            <Layout 
-                                              activeView={activeView} 
-                                              onViewChange={setActiveView}
-                                              onTaskCreated={handleTaskCreated}
-                                              onTimerStateChange={handleTimerStateChange}
-                                            >
-                                              {activeView === 'home' && <HomePage />}
-                                              {activeView === 'tasks' && (
-                                                <TaskList 
-                                                  ref={taskListRef} 
-                                                />
-                                              )}
-                                              {activeView === 'timer' && <Timer />}
-                                              {activeView === 'reports' && <ReportsPage />}
-                                              {activeView === 'settings' && <SettingsPage />}
-                                              {activeView === 'admin' && <AdminPage />}
-                                              {activeView === 'time-sessions' && <TimeSessionsPage />}
-                                              {activeView === 'calendar' && <CalendarPage />}
-                                            </Layout>
-                                          </ProtectedRoute>
-                                        }
-                                      />
-                                      <Route 
-                                        path="/tasks/:taskId" 
-                                        element={
-                                          <ProtectedRoute>
-                                            <TaskDetailsPage />
-                                          </ProtectedRoute>
-                                        } 
-                                      />
-                                      {/* Add redirect for old /app/task/ URLs that might be stored in history */}
-                                      <Route 
-                                        path="/app/task/:taskId" 
-                                        element={<RedirectWithParams newPathPattern="/tasks/:taskId" />}
-                                      />
-                                    </Routes>
+                                    <DensityProvider>
+                                      <DensityStyleInjector />
+                                      <OfflineIndicator />
+                                      <Routes>
+                                        <Route path="/login" element={<LoginForm />} />
+                                        <Route path="/register" element={<RegisterForm />} />
+                                        {/* Add redirect for /tasks to the main route */}
+                                        <Route path="/tasks" element={<Navigate to="/" replace />} />
+                                        <Route
+                                          path="/"
+                                          element={
+                                            <ProtectedRoute>
+                                              <Layout 
+                                                activeView={activeView} 
+                                                onViewChange={setActiveView}
+                                                onTaskCreated={handleTaskCreated}
+                                                onTimerStateChange={handleTimerStateChange}
+                                              >
+                                                {activeView === 'home' && <HomePage />}
+                                                {activeView === 'tasks' && (
+                                                  <TaskList 
+                                                    ref={taskListRef} 
+                                                  />
+                                                )}
+                                                {activeView === 'timer' && <Timer />}
+                                                {activeView === 'reports' && <ReportsPage />}
+                                                {activeView === 'settings' && <SettingsPage />}
+                                                {activeView === 'admin' && <AdminPage />}
+                                                {activeView === 'time-sessions' && <TimeSessionsPage />}
+                                                {activeView === 'calendar' && <CalendarPage />}
+                                              </Layout>
+                                            </ProtectedRoute>
+                                          }
+                                        />
+                                        <Route 
+                                          path="/tasks/:taskId" 
+                                          element={
+                                            <ProtectedRoute>
+                                              <TaskDetailsPage />
+                                            </ProtectedRoute>
+                                          } 
+                                        />
+                                        {/* Add redirect for old /app/task/ URLs that might be stored in history */}
+                                        <Route 
+                                          path="/app/task/:taskId" 
+                                          element={<RedirectWithParams newPathPattern="/tasks/:taskId" />}
+                                        />
+                                      </Routes>
+                                    </DensityProvider>
                                   </AdminProvider>
                                 </TimeSessionProvider>
                               </TaskDataRefresher>
