@@ -4,6 +4,8 @@ import { useTimer } from '../../contexts/TimerCompat';
 import { useSettings } from '../../contexts/SettingsCompat';
 import { useToast } from '../../components/Toast/ToastContext';
 
+//
+
 // Debug flag - set to false in production
 const DEBUG_TIMER = false;
 
@@ -102,7 +104,6 @@ export function TimerControls({
   const { timerState, startTimer, pauseTimer, resumeTimer, stopTimer, formatElapsedTime } = useTimer();
   const { settings } = useSettings();
   const { addToast } = useToast();
-  
   const isValid = isValidUUID(taskId);
   const isThisTaskActive = isValid && timerState.taskId === taskId;
   const isRunning = isThisTaskActive && timerState.status === 'running';

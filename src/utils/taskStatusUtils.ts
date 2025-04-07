@@ -10,20 +10,11 @@ import { TaskStatus, TaskStatusType } from '../types/task';
 export const VALID_STATUS_TRANSITIONS: Record<TaskStatusType, TaskStatusType[]> = {
   [TaskStatus.PENDING]: [
     TaskStatus.ACTIVE,
-    TaskStatus.IN_PROGRESS,
     TaskStatus.COMPLETED,
     TaskStatus.ARCHIVED
   ],
   [TaskStatus.ACTIVE]: [
     TaskStatus.PENDING,
-    TaskStatus.IN_PROGRESS,
-    TaskStatus.PAUSED,
-    TaskStatus.COMPLETED,
-    TaskStatus.ARCHIVED
-  ],
-  [TaskStatus.IN_PROGRESS]: [
-    TaskStatus.PENDING,
-    TaskStatus.ACTIVE,
     TaskStatus.PAUSED,
     TaskStatus.COMPLETED,
     TaskStatus.ARCHIVED
@@ -31,7 +22,6 @@ export const VALID_STATUS_TRANSITIONS: Record<TaskStatusType, TaskStatusType[]> 
   [TaskStatus.PAUSED]: [
     TaskStatus.PENDING,
     TaskStatus.ACTIVE,
-    TaskStatus.IN_PROGRESS,
     TaskStatus.COMPLETED,
     TaskStatus.ARCHIVED
   ],
@@ -57,19 +47,13 @@ export const STATUS_DISPLAY_CONFIG: Record<TaskStatusType, {
     label: 'Pending',
     color: 'text-gray-700',
     bgColor: 'bg-gray-100',
-    icon: 'circle'
+    icon: 'clock'
   },
   [TaskStatus.ACTIVE]: {
     label: 'Active',
     color: 'text-blue-700',
     bgColor: 'bg-blue-100',
     icon: 'play-circle'
-  },
-  [TaskStatus.IN_PROGRESS]: {
-    label: 'In Progress',
-    color: 'text-indigo-700',
-    bgColor: 'bg-indigo-100',
-    icon: 'loader'
   },
   [TaskStatus.PAUSED]: {
     label: 'Paused',
@@ -152,33 +136,90 @@ export function getStatusBadgeClasses(status: TaskStatusType): string {
 }
 
 /**
- * Determines the appropriate task status based on its sessions
- * - Pending: Task has no time sessions
- * - In Progress: Task has at least one time session
- * 
- * This function respects the existing task status in certain cases:
- * - If task is already completed or archived, it won't change the status
- * - If task is active or paused (and is specified as currently being timed), it preserves that status
+ * Determines the appropriate status for a task based on sessions data
+ * @param currentStatus Current status of the task
+ * @param hasSessions Whether the task has any time sessions
+ * @param isCurrentlyTimed Whether the task is currently being timed
+ * @returns Corrected task status
  */
-export function determineStatusFromSessions(
+export const determineStatusFromSessions = (
   currentStatus: TaskStatusType,
   hasSessions: boolean,
-  isCurrentlyTimed: boolean = false
-): TaskStatusType {
-  // Don't change status if task is completed or archived
+  isCurrentlyTimed: boolean
+): TaskStatusType => {
+  // Don't change completed or archived tasks
   if (currentStatus === TaskStatus.COMPLETED || currentStatus === TaskStatus.ARCHIVED) {
     return currentStatus;
   }
   
-  // Only preserve active or paused status if the task is currently being timed
-  if ((currentStatus === TaskStatus.ACTIVE || currentStatus === TaskStatus.PAUSED) && isCurrentlyTimed) {
-    return currentStatus;
+  // If currently being timed, task is active
+  if (isCurrentlyTimed) {
+    return TaskStatus.ACTIVE;
   }
   
   // Determine status based on sessions
   if (hasSessions) {
-    return TaskStatus.IN_PROGRESS;
+    return TaskStatus.PAUSED; // Tasks with sessions but not currently timed are paused
   } else {
-    return TaskStatus.PENDING;
+    return TaskStatus.PENDING; // No sessions means pending
   }
 }
+
+/**
+ * Validates a task status transition to prevent database constraint violations
+ * @param currentStatus The current status of the task
+ * @param newStatus The proposed new status
+ * @returns Object with validation result and error message if any
+ */
+export const validateTaskStatus = (
+  currentStatus: TaskStatusType,
+  newStatus: TaskStatusType
+): { isValid: boolean; errorMessage?: string } => {
+  
+  // 1. Check if newStatus is a valid TaskStatus value
+  const validStatuses = Object.values(TaskStatus) as TaskStatusType[];
+  if (!validStatuses.includes(newStatus)) {
+    return { 
+      isValid: false, 
+      errorMessage: `Invalid status: ${newStatus}. Must be one of: ${validStatuses.join(', ')}` 
+    };
+  }
+  
+  // 2. Check if the status transition is allowed
+  const allowedTransitions = VALID_STATUS_TRANSITIONS[currentStatus] || [];
+  if (!allowedTransitions.includes(newStatus) && currentStatus !== newStatus) {
+    return { 
+      isValid: false, 
+      errorMessage: `Cannot transition from ${currentStatus} to ${newStatus}` 
+    };
+  }
+  
+  return { isValid: true };
+};
+
+/**
+ * Centralizes status change logic with validation
+ * Use this function whenever changing a task's status to ensure database integrity
+ */
+export const changeTaskStatus = (
+  task: { id: string; status: TaskStatusType }, 
+  newStatus: TaskStatusType,
+  updateFunction: (id: string, data: any) => Promise<any>
+): Promise<any> => {
+  
+  // Validate the status transition
+  const validation = validateTaskStatus(task.status, newStatus);
+  if (!validation.isValid) {
+    console.error(validation.errorMessage);
+    return Promise.reject(new Error(validation.errorMessage));
+  }
+  
+  // Format data for the update with current timestamp
+  const updateData = {
+    status: newStatus,
+    updated_at: new Date().toISOString()
+  };
+  
+  // Perform the update using the provided function
+  return updateFunction(task.id, updateData);
+};

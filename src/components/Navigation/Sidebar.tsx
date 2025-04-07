@@ -106,8 +106,9 @@ export function Sidebar({
       )}
       
       <div className={cn(
-        "fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 transition-all duration-300 transform lg:translate-x-0 lg:static shadow-lg lg:shadow-none",
-        isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        "fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 transition-all duration-300",
+        "lg:relative lg:shadow-none", // Always display on desktop as relative
+        isSidebarOpen ? "translate-x-0 shadow-lg" : "-translate-x-full lg:translate-x-0", // Only hide on mobile when closed
         isCollapsed ? 'w-[70px]' : 'w-[240px] sm:w-64'
       )}>
         <div className="flex h-full flex-col">

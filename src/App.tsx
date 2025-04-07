@@ -365,6 +365,16 @@ function App() {
                                               } 
                                             />
                                             
+                                            {/* Task Edit Route */}
+                                            <Route 
+                                              path="/tasks/edit/:taskId" 
+                                              element={
+                                                <ProtectedRoute>
+                                                  <TaskDetailsPage isEditMode={true} />
+                                                </ProtectedRoute>
+                                              } 
+                                            />
+                                            
                                             {/* Legacy URL redirects */}
                                             <Route 
                                               path="/app/task/:taskId" 

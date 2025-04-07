@@ -5,13 +5,12 @@
 export enum TaskStatus {
   PENDING = 'pending',
   ACTIVE = 'active',
-  IN_PROGRESS = 'in_progress',
   PAUSED = 'paused',
   COMPLETED = 'completed',
   ARCHIVED = 'archived'
 }
 
-export type TaskStatusType = 'pending' | 'active' | 'in_progress' | 'paused' | 'completed' | 'archived';
+export type TaskStatusType = 'pending' | 'active' | 'paused' | 'completed' | 'archived';
 
 /**
  * Task status options as an object for component usage
@@ -19,7 +18,6 @@ export type TaskStatusType = 'pending' | 'active' | 'in_progress' | 'paused' | '
 export const TaskStatusValues = {
   PENDING: TaskStatus.PENDING,
   ACTIVE: TaskStatus.ACTIVE,
-  IN_PROGRESS: TaskStatus.IN_PROGRESS,
   PAUSED: TaskStatus.PAUSED,
   COMPLETED: TaskStatus.COMPLETED,
   ARCHIVED: TaskStatus.ARCHIVED,

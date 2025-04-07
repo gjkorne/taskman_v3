@@ -7,8 +7,8 @@ import { formatDistanceToNow, isValid } from 'date-fns';
 import { TASK_QUERY_KEYS } from '../../contexts/task/TaskDataContext';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { TaskStatus, TaskStatusType } from '../../types/task';
-import { useTimer } from '../../contexts/TimerContext';
+import { TaskStatus, TaskStatusType, Task } from '../../types/task';
+import { useTimer } from '../../contexts/TimerCompat';
 import { determineStatusFromSessions } from '../../utils/taskStatusUtils';
 
 interface RecentTasksWidgetProps {
@@ -23,9 +23,8 @@ interface RecentTasksWidgetProps {
 export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }: RecentTasksWidgetProps) {
   const { tasks, isLoading: tasksLoading, refreshTasks } = useTaskData();
   const { sessions } = useTimeSessionData();
-  // Make timer context optional to prevent errors if TimerProvider is not available
-  const timer = useTimer && typeof useTimer === 'function' ? useTimer() : null;
-  const timerState = timer?.timerState;
+  const timer = useTimer();
+  const timerState = timer.timerState;
   const [showCompleted, setShowCompleted] = useState(false);
   
   // Ensure tasks are loaded when the component mounts
@@ -40,7 +39,8 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
   useEffect(() => {
     console.log('[RecentTasksWidget] Tasks:', tasks);
     console.log('[RecentTasksWidget] Sessions:', sessions);
-  }, [tasks, sessions]);
+    console.log('[RecentTasksWidget] Timer state:', timerState);
+  }, [tasks, sessions, timerState]);
   
   // Toggle show completed tasks
   const handleToggleShowCompleted = () => {
@@ -77,7 +77,6 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
     const statusMap: Record<string, { color: string, text: string }> = {
       [TaskStatus.PENDING]: { color: 'bg-gray-100 text-gray-800', text: 'Pending' },
       [TaskStatus.ACTIVE]: { color: 'bg-blue-100 text-blue-800', text: 'Active' },
-      [TaskStatus.IN_PROGRESS]: { color: 'bg-blue-100 text-blue-800', text: 'In Progress' },
       [TaskStatus.PAUSED]: { color: 'bg-yellow-100 text-yellow-800', text: 'Paused' },
       [TaskStatus.COMPLETED]: { color: 'bg-green-100 text-green-800', text: 'Completed' },
       [TaskStatus.ARCHIVED]: { color: 'bg-gray-100 text-gray-500', text: 'Archived' }
@@ -93,13 +92,13 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
   
   // Get corrected task status based on sessions and timer state
   const getCorrectedTaskStatus = (currentStatus: string, taskId: string): TaskStatusType => {
-    // If task is currently being timed, respect active/paused status
-    const isCurrentlyTimed = timerState && timerState.taskId === taskId && timerState.status !== 'idle';
-    
     // If task is completed or archived, respect that status
     if (currentStatus === TaskStatus.COMPLETED || currentStatus === TaskStatus.ARCHIVED) {
       return currentStatus as TaskStatusType;
     }
+    
+    // If task is currently being timed, respect active/paused status
+    const isCurrentlyTimed = timerState && timerState.taskId === taskId && timerState.status !== 'idle';
     
     // Get all sessions for this task
     const taskSessions = sessions.filter(session => session.task_id === taskId);
@@ -107,6 +106,46 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
     
     // Use our utility function to determine the correct status
     return determineStatusFromSessions(currentStatus as TaskStatusType, hasSessions, isCurrentlyTimed);
+  };
+  
+  /**
+   * Handle starting a timer - explicitly preventing event bubbling
+   */
+  const handleStartTimer = (e: React.MouseEvent, taskId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('[RecentTasksWidget] Starting timer for task:', taskId);
+    timer.startTimer(taskId);
+  };
+  
+  /**
+   * Handle pausing a timer - explicitly preventing event bubbling
+   */
+  const handlePauseTimer = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('[RecentTasksWidget] Pausing timer');
+    timer.pauseTimer();
+  };
+  
+  /**
+   * Handle resuming a timer - explicitly preventing event bubbling
+   */
+  const handleResumeTimer = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('[RecentTasksWidget] Resuming timer');
+    timer.resumeTimer();
+  };
+  
+  /**
+   * Handle completing a task - explicitly preventing event bubbling
+   */
+  const handleCompleteTask = (e: React.MouseEvent, taskId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('[RecentTasksWidget] Completing task:', taskId);
+    timer.completeTask(taskId);
   };
   
   const combinedLoading = isLoading || tasksLoading;
@@ -142,7 +181,11 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
         )}
         
         {recentTasks && recentTasks.map((task) => (
-          <div key={task.id} className="flex items-center border-b border-gray-100 py-2 last:border-0">
+          <Link 
+            key={task.id}
+            to={`/tasks/${task.id}`}
+            className="block hover:bg-gray-50 transition-colors duration-150"
+          >
             <div className="mr-2 flex-shrink-0">
               {task.status === TaskStatus.COMPLETED ? (
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -166,7 +209,7 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
               <div className="flex mt-1 space-x-2">
                 {task.status !== TaskStatus.COMPLETED && (
                   <button 
-                    onClick={() => timer?.completeTask(task.id)}
+                    onClick={(e) => handleCompleteTask(e, task.id)}
                     className="text-xs text-blue-600 hover:text-blue-800"
                   >
                     Complete
@@ -174,7 +217,7 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
                 )}
                 {timerState?.taskId !== task.id && task.status !== TaskStatus.COMPLETED && (
                   <button 
-                    onClick={() => timer?.startTimer(task.id)}
+                    onClick={(e) => handleStartTimer(e, task.id)}
                     className="text-xs text-blue-600 hover:text-blue-800"
                   >
                     Start Timer
@@ -182,7 +225,7 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
                 )}
                 {timerState?.taskId === task.id && timerState?.status === 'running' && (
                   <button 
-                    onClick={() => timer?.pauseTimer()}
+                    onClick={handlePauseTimer}
                     className="text-xs text-yellow-600 hover:text-yellow-800"
                   >
                     Pause Timer
@@ -190,7 +233,7 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
                 )}
                 {timerState?.taskId === task.id && timerState?.status === 'paused' && (
                   <button 
-                    onClick={() => timer?.resumeTimer()}
+                    onClick={handleResumeTimer}
                     className="text-xs text-green-600 hover:text-green-800"
                   >
                     Resume Timer
@@ -198,70 +241,59 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
                 )}
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </DashboardWidget>
   );
 }
 
-/**
- * Function to get the most recently worked on tasks based on session data
- */
-const getRecentlyWorkedTasks = (tasks: any[], sessions: any[], limit: number, showCompleted: boolean) => {
-  console.log('[getRecentlyWorkedTasks] Starting with:', {
-    tasksCount: tasks.length,
-    sessionsCount: sessions.length,
-    limit,
-    showCompleted
-  });
+// Function to get the most recently worked on tasks based on session data
+function getRecentlyWorkedTasks(tasks: Task[] = [], sessions: any[] = [], limit = 5, showCompleted = false) {
+  if (!tasks.length || !sessions.length) {
+    return [];
+  }
   
-  // Map to store the most recent session timestamp for each task
-  const taskSessionMap = new Map();
-  
-  // Process all sessions to find the most recent timestamp for each task
-  sessions.forEach(session => {
-    if (!session.task_id) return;
+  try {
+    // Map to track the most recent session date for each task
+    const taskLastSessionMap = new Map<string, string>();
     
-    const sessionDate = session.end_time || session.start_time;
-    if (!sessionDate) return;
-    
-    const currentLatest = taskSessionMap.get(session.task_id);
-    if (!currentLatest || new Date(sessionDate) > new Date(currentLatest)) {
-      taskSessionMap.set(session.task_id, sessionDate);
-    }
-  });
-  
-  console.log('[getRecentlyWorkedTasks] Task sessions mapped:', taskSessionMap.size);
-  
-  // Get tasks with session data and add lastSessionDate
-  const tasksWithSessions = tasks
-    .filter(task => {
-      // Filter out completed tasks if showCompleted is false
-      if (!showCompleted && task.status === TaskStatus.COMPLETED) {
-        console.log(`[Filter] Task ${task.id} filtered out - status: "${task.status}"`);
-        return false;
-      }
+    // Process all sessions to find the most recent for each task
+    sessions.forEach(session => {
+      const taskId = session.task_id;
+      const sessionDate = session.end_time || session.start_time;
       
-      // Only include tasks that have session data
-      const hasSession = taskSessionMap.has(task.id);
-      console.log(`[Filter] Task ${task.id} ${hasSession ? 'has' : 'does not have'} session data`);
-      return hasSession;
-    })
-    .map(task => ({
-      ...task,
-      lastSessionDate: taskSessionMap.get(task.id)
-    }))
-    .sort((a, b) => {
-      // Sort by most recent session
-      const dateA = new Date(a.lastSessionDate);
-      const dateB = new Date(b.lastSessionDate);
-      return dateB.getTime() - dateA.getTime();
-    })
-    .slice(0, limit);
-  
-  console.log('[getRecentlyWorkedTasks] Final filtered tasks:', tasksWithSessions.length);
-  return tasksWithSessions;
-};
+      if (!taskLastSessionMap.has(taskId) || 
+          new Date(sessionDate) > new Date(taskLastSessionMap.get(taskId)!)) {
+        taskLastSessionMap.set(taskId, sessionDate);
+      }
+    });
+    
+    // Create a list of tasks with their last session date
+    const tasksWithLastSession = tasks
+      .filter(task => {
+        // Filter based on task visibility settings
+        if (!showCompleted && task.status === TaskStatus.COMPLETED) {
+          return false;
+        }
+        return taskLastSessionMap.has(task.id);
+      })
+      .map(task => ({
+        ...task,
+        lastSessionDate: taskLastSessionMap.get(task.id)
+      }));
+    
+    // Sort by most recent session
+    const sortedTasks = tasksWithLastSession.sort((a, b) => {
+      return new Date(b.lastSessionDate as string).getTime() - new Date(a.lastSessionDate as string).getTime();
+    });
+    
+    // Return limited number of tasks
+    return sortedTasks.slice(0, limit);
+  } catch (error) {
+    console.error('Error in getRecentlyWorkedTasks:', error);
+    return [];
+  }
+}
 
 export default RecentTasksWidget;

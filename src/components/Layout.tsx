@@ -28,7 +28,7 @@ export function Layout({
   // Check if we're on a mobile device
   useEffect(() => {
     const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 1024); // Align with Tailwind lg breakpoint
     };
     
     // Check immediately
@@ -41,10 +41,10 @@ export function Layout({
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
   
-  // If we switch to a non-mobile size, auto-close the sidebar
+  // If we switch to desktop, ensure sidebar is open
   useEffect(() => {
     if (!isMobile) {
-      setIsSidebarOpen(false);
+      setIsSidebarOpen(true); // Keep sidebar open on desktop
     }
   }, [isMobile]);
   

@@ -4,6 +4,7 @@ import { ServiceFactory } from '../../services/factory/ServiceFactory';
 import { ITaskService } from '../../services/interfaces/ITaskService';
 import { useError } from '../error/ErrorContext';
 import { ErrorSeverity, ErrorSource, ErrorCode } from '../../services/error/ErrorTypes';
+import { supabase } from '../../lib/supabase';
 
 // Define a type for service response to ensure consistent handling
 interface ServiceResponse<T> {
@@ -257,37 +258,34 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
     try {
       setIsLoading(true);
       
-      const result = await taskService.deleteTask(id);
-      let success = false;
+      // Get current user
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
       
-      // Handle different result types
-      if (typeof result === 'boolean') {
-        // If the result is directly a boolean
-        success = result;
-      } else if (result && typeof result === 'object' && 'error' in result) {
-        // If result is a wrapper object
-        const deleteResponse = result as unknown as { error?: Error };
-        
-        if (deleteResponse.error) {
-          throw deleteResponse.error;
-        }
-        
-        success = true;
+      // Check if user is admin (greg@gjkandsons.com)
+      const isAdmin = authData?.user?.email === 'greg@gjkandsons.com';
+      
+      if (!isAdmin) {
+        throw new Error('Insufficient permissions: Admin privileges required for deletion');
       }
+
+      // Delete the task from Supabase
+      const { error: deleteError } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
       
-      if (success) {
-        // Update local state by removing the deleted task
-        setTasks(prevTasks => {
-          const updatedTasks = prevTasks.filter(task => task.id !== id);
-          // Update cache
-          localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(updatedTasks));
-          return updatedTasks;
-        });
+      // Update local state by removing the deleted task
+      setTasks(prevTasks => {
+        const updatedTasks = prevTasks.filter(task => task.id !== id);
+        // Update cache
+        localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(updatedTasks));
+        return updatedTasks;
+      });
         
-        return { success: true };
-      }
-      
-      return { success: false };
+      return { success: true };
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to delete task');
       
@@ -303,7 +301,7 @@ export const TasksProvider: React.FC<TasksProviderProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [taskService, logError]);
+  }, [logError]);
   
   // Complete a task
   const completeTask = useCallback(async (id: string) => {

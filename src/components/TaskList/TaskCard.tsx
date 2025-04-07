@@ -1,20 +1,15 @@
-import { useState } from 'react';
 import { format } from 'date-fns';
-import { MoreVertical, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TaskActions } from './TaskActions';
 import { 
   getTaskCategory, 
-  getTaskCategoryInfo, 
-  getCategoryColorStyle 
+  getTaskCategoryInfo,
 } from '../../lib/categoryUtils';
 import { getPriorityBorderColor, getDueDateStyling, formatEstimatedTime } from '../../lib/taskUtils';
-import { Task, TaskStatus, TaskStatusType } from '../../types/task';
+import { Task, TaskStatus } from '../../types/task';
 import { TimerControls } from '../Timer/TimerControls';
-import { useTimer } from '../../contexts/TimerCompat';
-import { useTaskActions } from '../../hooks/useTaskActions';
 import { useCategories } from '../../contexts/CategoryCompat';
-import { useTaskData } from '../../contexts/task';
 import NotesViewer from '../TaskNotes/NotesViewer';
 
 interface TaskCardProps {
@@ -26,98 +21,64 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: TaskCardProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { categories } = useCategories();
-  const { timerState, stopTimer } = useTimer();
-  const { refreshTasks } = useTaskData();
-  const { updateTaskStatus } = useTaskActions({
-    refreshTasks,
-    onSuccess: () => {
-      // If we wanted to show a success message or trigger side effects
-    },
-    onError: (error) => {
-      console.error('Task action failed:', error);
-      // Could display an error toast here
-    }
-  });
   
   // Get category information from the task
   const categoryName = getTaskCategory(task);
-  const { id: categoryId } = getTaskCategoryInfo(task, categories);
-  
-  // Get the color for the ellipsis menu based on category
-  const getCategoryColor = () => {
-    const categoryStyle = getCategoryColorStyle(categoryName, categoryId, categories);
-    return categoryStyle.text;
+  const { id: _ } = getTaskCategoryInfo(task, categories);
+
+  /**
+   * Helper to get a formatted display of the task's status
+   */
+  const getStatusDisplay = (status: string) => {
+    // Replace underscores with spaces and capitalize each word
+    return status
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
-  // Handle status change with proper type conversion
-  const handleStatusChange = async (taskId: string, newStatus: TaskStatusType) => {
-    // Validate parameters received
-    if (!taskId || typeof taskId !== 'string' || 
-        !taskId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      console.error('TaskCard: Invalid task ID format received:', taskId);
-      return;
-    }
-    
-    // Convert TaskStatusType (string literal) to TaskStatus (enum)
-    let statusEnum: TaskStatus;
-    switch(newStatus) {
-      case 'active':
-        statusEnum = TaskStatus.ACTIVE;
-        break;
-      case 'pending':
-        statusEnum = TaskStatus.PENDING;
-        break;
-      case 'in_progress':
-        statusEnum = TaskStatus.IN_PROGRESS;
-        break;
-      case 'completed':
-        statusEnum = TaskStatus.COMPLETED;
-        if (timerState.taskId === taskId && timerState.status !== 'idle') {
-          await stopTimer(TaskStatus.COMPLETED);
-          return; 
-        }
-        break;
-      case 'archived':
-        statusEnum = TaskStatus.ARCHIVED;
-        if (timerState.taskId === taskId && timerState.status !== 'idle') {
-          await stopTimer(TaskStatus.ARCHIVED);
-          return;
-        }
-        break;
+  /**
+   * Get CSS classes for status badge
+   */
+  const getStatusBadgeClasses = (status: string) => {
+    switch(status) {
+      case TaskStatus.ACTIVE:
+        return 'bg-blue-100 text-blue-800';
+      case TaskStatus.IN_PROGRESS:
+        return 'bg-yellow-100 text-yellow-800';
+      case TaskStatus.COMPLETED:
+        return 'bg-green-100 text-green-800';
+      case TaskStatus.ARCHIVED:
+        return 'bg-purple-100 text-purple-800';
+      case TaskStatus.PAUSED:
+        return 'bg-orange-100 text-orange-800';
+      case TaskStatus.PENDING:
       default:
-        console.error('TaskCard: Invalid status value received:', newStatus);
-        return;
+        return 'bg-gray-100 text-gray-700';
     }
-    
-    await updateTaskStatus(taskId, statusEnum);
-    await refreshTasks();
   };
 
-  // Handle task editing and deletion
+  // Handle task editing
   const handleEdit = () => {
     if (onEdit) {
       onEdit(task.id);
-      setIsMenuOpen(false);
     }
   };
 
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(task.id);
-      setIsMenuOpen(false);
-    }
-  };
-
-  // Get priority colors and styles
+  // Determine priority color for the task
   const priorityColor = getPriorityBorderColor(task.priority);
+  
+  // Get styling for due date (overdue, etc)
   const dueDateStyle = task.due_date ? getDueDateStyling(task.due_date) : null;
-
+  
+  // Convert TaskStatus enum to TaskStatusType string
+  const statusAsType = task.status.toLowerCase() as any;
+  
   return (
     <div 
       className={cn(
-        "group relative flex flex-col sm:flex-row py-1 sm:py-2 px-2 sm:px-3 border-b border-gray-100 transition-colors",
+        "flex p-3 sm:p-4 flex-col sm:flex-row group relative", // Base card styling
+        "border-b border-gray-200", // Bottom border
         `border-l-2 ${priorityColor}`,  // Thin priority indicator
         index % 2 === 1 ? "bg-gray-50" : "bg-white",  // Alternating row colors
         "hover:bg-gray-100 cursor-pointer" // Darken hover state for better contrast and add pointer cursor
@@ -141,7 +102,15 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
         </div>
         
         {/* Metadata Row */}
-        <div className="flex items-center space-x-1 sm:space-x-2 text-xs text-gray-500">
+        <div className="flex items-center flex-wrap gap-1 sm:gap-2 text-xs text-gray-500">
+          {/* Status badge */}
+          <span className={cn(
+            "px-1.5 py-0.5 rounded-full font-medium",
+            getStatusBadgeClasses(task.status)
+          )}>
+            {getStatusDisplay(task.status)}
+          </span>
+          
           {/* Estimated time if available */}
           {task.estimated_time && (
             <span className="flex items-center">
@@ -195,36 +164,10 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
         <div className="flex-shrink-0 scale-90">
           <TaskActions 
             taskId={task.id} 
-            status={task.status as TaskStatusType} 
-            updateTaskStatus={handleStatusChange}
+            status={statusAsType}
+            onDelete={onDelete ? () => onDelete(task.id) : undefined}
           />
         </div>
-        
-        {/* Menu button */}
-        <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <MoreVertical className={`h-4 w-4 ${getCategoryColor()}`} />
-        </button>
-        
-        {/* Menu popup */}
-        {isMenuOpen && (
-          <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-[1000] py-1">
-            <button
-              onClick={handleEdit}
-              className="block w-full text-left px-4 py-1 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              Edit
-            </button>
-            <button
-              onClick={handleDelete}
-              className="block w-full text-left px-4 py-1 text-sm text-red-600 hover:bg-gray-100"
-            >
-              Delete
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
