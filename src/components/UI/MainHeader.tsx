@@ -46,13 +46,13 @@ export function MainHeader({ onToggleSidebar }: MainHeaderProps) {
 
   return (
     <div className="bg-taskman-blue-500 text-white shadow-header">
-      <div className="container mx-auto px-6 py-4">
+      <div className="container mx-auto px-4 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             {/* Hamburger menu for mobile */}
             <button 
               onClick={onToggleSidebar}
-              className="mr-4 p-1.5 rounded hover:bg-taskman-blue-600 transition duration-250 flex items-center justify-center"
+              className="md:hidden mr-4 p-1.5 rounded hover:bg-taskman-blue-600 transition duration-250 flex items-center justify-center"
               aria-label="Toggle navigation menu"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -62,10 +62,6 @@ export function MainHeader({ onToggleSidebar }: MainHeaderProps) {
             
             <div className="text-3xl font-bold mr-8">TaskMan</div>
             <nav className="hidden md:flex space-x-4">
-              <a href="#" className="py-1.5 px-3 bg-taskman-blue-600 rounded text-white hover:bg-taskman-blue-700 transition duration-250">Dashboard</a>
-              <a href="#" className="py-1.5 px-3 hover:bg-taskman-blue-600 rounded transition duration-250">Tasks</a>
-              <a href="#" className="py-1.5 px-3 hover:bg-taskman-blue-600 rounded transition duration-250">Calendar</a>
-              <a href="#" className="py-1.5 px-3 hover:bg-taskman-blue-600 rounded transition duration-250">Reports</a>
             </nav>
           </div>
           <div className="flex items-center space-x-3">

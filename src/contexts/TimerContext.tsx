@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { TaskContext } from './TaskContext'; 
 import { Task, TaskStatus, TaskStatusType } from '../types/task';
@@ -18,6 +18,7 @@ interface TimerContextType {
   formatElapsedTime: (compact?: boolean) => string; 
   getDisplayTime: (task: Task) => string;
   clearTimerStorage: () => void;
+  completeTask: (taskId: string) => Promise<void>;
 }
 
 // Create Context with a default undefined value
@@ -35,10 +36,61 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   // Get task context to update UI after timer actions
   const taskContext = useContext(TaskContext);
 
-  // Use the task actions hook, passing the refreshTasks function from context
+  // Create a timer context value first before using it in hooks
+  const timerContextValue = useMemo(() => {
+    // Format elapsed time for display
+    const formatElapsedTime = (compact = false) => {
+      if (!timerState.elapsedTime) return '00:00:00';
+      
+      const totalSeconds = Math.floor(timerState.elapsedTime / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      
+      if (compact && hours === 0) {
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+      
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    };
+    
+    // Get display time for a task - combines actual time and current session time
+    const getDisplayTime = (task: Task) => {
+      if (!task) return '00:00:00';
+      
+      // Base time is the task's recorded actual time
+      let baseTimeMs = 0;
+      if (task.actual_time) {
+        // Convert PostgreSQL interval to milliseconds
+        baseTimeMs = typeof task.actual_time === 'number' ? task.actual_time * 1000 : 0;
+      }
+      
+      // If this task is being timed currently, add the elapsed time
+      if (timerState.taskId === task.id && timerState.status !== 'idle') {
+        return formatMillisecondsToTime(baseTimeMs + (timerState.elapsedTime || 0));
+      }
+      
+      return formatMillisecondsToTime(baseTimeMs);
+    };
+    
+    return {
+      timerState,
+      startTimer: async () => {},
+      pauseTimer: async () => {},
+      resumeTimer: async () => {},
+      stopTimer: async () => {},
+      resetTimer: () => {},
+      formatElapsedTime,
+      getDisplayTime,
+      clearTimerStorage
+    };
+  }, [timerState, clearTimerStorage]);
+  
+  // Now use the task actions hook, passing the timer context
   const taskActions = useTaskActions({
     refreshTasks: taskContext?.refreshTasks,
-    showToasts: false // Optionally disable toasts if they are redundant here
+    showToasts: false,
+    timerContext: timerContextValue
   });
  
   // Get current user
@@ -89,328 +141,326 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // Start the timer tick interval
+  const startTimerTick = () => {
+    // Clear any existing interval first
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
+    // Start a new interval to update the elapsed time
+    intervalRef.current = setInterval(() => {
+      // Get current state values
+      if (timerState.status !== 'running' || !timerState.startTime) return;
+      
+      const now = Date.now();
+      const elapsedSinceStart = now - timerState.startTime;
+      const totalElapsed = elapsedSinceStart + (timerState.previouslyElapsed || 0);
+      
+      // Update state directly instead of using a function
+      setTimerState({
+        ...timerState,
+        elapsedTime: totalElapsed,
+        displayTime: formatMillisecondsToTime(totalElapsed)
+      });
+    }, 1000);
+  };
+
   // Timer tick effect - updates the elapsed time while timer is running
   useEffect(() => {
     if (timerState.status === 'running' && timerState.startTime) {
-      // Clear any existing interval
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      
-      // Start a new interval
-      intervalRef.current = setInterval(() => {
-        const now = new Date().getTime();
-        // Add null check to prevent TypeScript error
-        const currentSessionElapsed = timerState.startTime ? now - timerState.startTime : 0;
-        
-        // Update state with new elapsed time
-        setTimerState({
-          elapsedTime: currentSessionElapsed
-          // The displayTime will be automatically calculated by the updateState function in useTimerPersistence
-        });
-      }, 1000); // Update every second
-      
-      // Clean up interval on unmount or when deps change
-      return () => {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-      };
+      startTimerTick();
     } else if (intervalRef.current) {
-      // Stop the interval if timer is not running
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-  }, [timerState.status, timerState.startTime, setTimerState]); // Dependencies
-
-  // Start timer for a task
-  const startTimer = async (taskId: string) => {
-    if (!taskId || !currentUser) {
-      console.warn('Cannot start timer: Missing task ID or user');
-      return;
-    }
-
-    try {
-      // 1. Reset timer for different task, otherwise continue with current
-      if (timerState.taskId && timerState.taskId !== taskId) {
-        // If switching tasks, first stop the current one
-        await stopTimer();
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
+    }
+  }, [timerState.status, timerState.startTime]);
 
-      // 2. Create a session record in DB
-      const { data: newSession, error: insertError } = await supabase
+  // Create a new time session in the database
+  const createTimeSession = async (taskId: string) => {
+    if (!currentUser) return null;
+    
+    try {
+      const { data: session, error } = await supabase
         .from('time_sessions')
         .insert({
           task_id: taskId,
           user_id: currentUser.id,
-          start_time: new Date().toISOString()
+          start_time: new Date().toISOString(),
+          status: 'ACTIVE'
         })
         .select('id')
         .single();
+        
+      if (error) throw error;
+      return session?.id || null;
+    } catch (error) {
+      console.error('Error creating time session:', error);
+      return null;
+    }
+  };
+  
+  // Update a time session's status in the database
+  const updateTimeSession = async (status: 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED') => {
+    if (!timerState.sessionId) return;
+    
+    try {
+      const updates: Record<string, any> = {};
+      
+      // If completing or cancelling, add end time and duration
+      if (status === 'COMPLETED' || status === 'CANCELLED') {
+        const endTime = new Date().toISOString();
+        const durationMs = timerState.elapsedTime || 0;
+        
+        updates.end_time = endTime;
+        updates.duration = msToPostgresInterval(durationMs);
+        updates.status = status; // Add status to the updates object
+      } else {
+        // Just update the status field
+        updates.status = status;
+      }
+      
+      console.log(`Updating time session ${timerState.sessionId} to ${status}`, updates);
+      
+      const { error } = await supabase
+        .from('time_sessions')
+        .update(updates)
+        .eq('id', timerState.sessionId);
+        
+      if (error) {
+        console.error(`Error updating time session: ${error.message}`);
+        throw error;
+      }
+    } catch (error) {
+      console.error(`Error updating time session to ${status}:`, error);
+    }
+  };
 
-      if (insertError) throw insertError;
-      if (!newSession || !newSession.id) throw new Error('Failed to create session record');
+  // Update a task's actual time in the database
+  const updateTaskTime = async (taskId: string, durationMs: number) => {
+    if (!taskId) return;
+    
+    try {
+      // Format the duration as a PostgreSQL interval
+      const interval = msToPostgresInterval(durationMs);
+      
+      // Update the task
+      const { error } = await supabase
+        .from('tasks')
+        .update({ actual_time: interval })
+        .eq('id', taskId);
+        
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating task time:', error);
+    }
+  };
 
-      const newSessionId = newSession.id;
-
-      // Set task to ACTIVE status if needed
-      await taskActions.startTask(taskId);
-
-      // 3. Update local state
+  // Implement the actual timer functions with access to taskActions
+  // Start timer for a task
+  const startTimer = async (taskId: string) => {
+    if (!taskId || !currentUser) return;
+    
+    try {
+      // Update the task status to active
+      await taskActions.updateTaskStatus(taskId, TaskStatus.ACTIVE);
+      
+      // Create a new time session
+      const sessionId = await createTimeSession(taskId);
+      if (!sessionId) throw new Error('Failed to create time session');
+      
+      // Start the timer
+      const now = Date.now();
       setTimerState({
         status: 'running',
-        taskId: taskId,
-        sessionId: newSessionId,
-        startTime: new Date().getTime(),
-        elapsedTime: 0, // Reset elapsed time for the new session
-        // Keep previous elapsed if continuing with same task, otherwise reset
-        previouslyElapsed: timerState.taskId === taskId ? timerState.previouslyElapsed : 0
-        // displayTime will be calculated by useTimerPersistence
+        taskId,
+        sessionId,
+        startTime: now,
+        elapsedTime: 0,
+        previouslyElapsed: 0,
+        displayTime: '00:00:00'
       });
-
-      // No need to explicitly call startTimerInterval, useEffect handles it
-
+      
+      // Start our timer tick
+      startTimerTick();
     } catch (error) {
       console.error('Error starting timer:', error);
     }
   };
-
-  // Pause the currently running timer
+  
+  // Pause the current timer
   const pauseTimer = async (taskStatus?: TaskStatusType) => {
-    if (timerState.status !== 'running' || !timerState.startTime || !timerState.taskId || !timerState.sessionId) {
-      console.warn('Cannot pause: Timer not running or missing data');
-      return;
-    }
-
-    const endTime = new Date().getTime();
-    const currentSessionDurationMs = endTime - timerState.startTime;
-    const currentSessionDurationInterval = msToPostgresInterval(currentSessionDurationMs);
-    const totalElapsedMs = timerState.previouslyElapsed + currentSessionDurationMs;
-
+    if (timerState.status !== 'running' || !timerState.taskId) return;
+    
     try {
-      // 1. Update the time session in Supabase 
-      const { error: sessionError } = await supabase
-        .from('time_sessions')
-        .update({
-          end_time: new Date().toISOString(),
-          duration: currentSessionDurationInterval
-        })
-        .eq('id', timerState.sessionId);
-
-      if (sessionError) throw sessionError;
-
-      // If a task status update was requested, update the task
-      if (taskStatus) {
-        const { error: taskError } = await supabase
-          .from('tasks')
-          .update({ status: taskStatus })
-          .eq('id', timerState.taskId);
-          
-        if (taskError) throw taskError;
-      }
-
-      // 2. Update local timer state
+      // Calculate current elapsed time
+      const now = Date.now();
+      const currentElapsed = timerState.startTime 
+        ? (now - timerState.startTime) + timerState.previouslyElapsed
+        : timerState.previouslyElapsed;
+      
+      // Update the timer state
       setTimerState({
+        ...timerState,
         status: 'paused',
-        startTime: null,
-        elapsedTime: 0, // Reset current session elapsed time
-        // Add the just-completed session's duration to previouslyElapsed
-        previouslyElapsed: totalElapsedMs
-        // displayTime will be calculated by useTimerPersistence
+        elapsedTime: currentElapsed,
+        displayTime: formatMillisecondsToTime(currentElapsed)
       });
       
-      // 3. Refresh tasks to show updated times
-      if (taskContext?.refreshTasks) {
-        taskContext.refreshTasks();
+      // Update the time session status
+      await updateTimeSession('PAUSED');
+      
+      // Update the task status if provided
+      if (taskStatus) {
+        await taskActions.updateTaskStatus(timerState.taskId, taskStatus);
+      } else {
+        await taskActions.updateTaskStatus(timerState.taskId, TaskStatus.PAUSED);
       }
-    } catch (err) {
-      console.error('Error pausing timer:', err);
+    } catch (error) {
+      console.error('Error pausing timer:', error);
     }
   };
-
+  
   // Resume a paused timer
   const resumeTimer = async () => {
-    if (timerState.status !== 'paused' || !timerState.taskId) {
-      console.warn('Cannot resume: Timer not paused or missing task ID');
-      return;
-    }
-
-    try {
-      // Create a new session in the database
-      const { data, error } = await supabase
-        .from('time_sessions')
-        .insert({
-          task_id: timerState.taskId,
-          user_id: currentUser?.id,
-          start_time: new Date().toISOString()
-        })
-        .select('id')
-        .single();
-
-      if (error) throw error;
-
-      // Update timer state
-      setTimerState({
-        status: 'running',
-        startTime: new Date().getTime(),
-        sessionId: data.id,
-        elapsedTime: 0
-        // Keep previouslyElapsed unchanged
-        // displayTime will be calculated by useTimerPersistence
-      });
-    } catch (err) {
-      console.error('Error resuming timer:', err);
-    }
-  };
-
-  // Helper function to update the total actual_time in the tasks table
-  const updateTaskActualTime = async (taskId: string) => {
-    if (!taskId) return;
-
-    try {
-      // 1. Fetch all completed sessions for this task
-      const { data: sessions, error: sessionError } = await supabase
-        .from('time_sessions')
-        .select('duration')
-        .eq('task_id', taskId)
-        .not('duration', 'is', null); // Only sessions with a duration
-
-      if (sessionError) throw sessionError;
-      if (!sessions) return;
-
-      // 2. Sum the durations (convert from interval string to seconds/ms)
-      const totalSeconds = sessions.reduce((sum: number, session: any) => {
-        if (session.duration && typeof session.duration === 'string') {
-          // Example: Parse '3600 seconds' -> 3600
-          const parts = session.duration.split(' ');
-          if (parts.length === 2 && parts[1] === 'seconds') {
-            const seconds = parseInt(parts[0], 10);
-            if (!isNaN(seconds)) return sum + seconds;
-          }
-        }
-        return sum;
-      }, 0);
-
-      const totalInterval = msToPostgresInterval(totalSeconds * 1000); // Format back for Supabase
-
-      // 3. Update the task's actual_time
-      const { error: updateError } = await supabase
-        .from('tasks')
-        .update({ actual_time: totalInterval })
-        .eq('id', taskId);
-
-      if (updateError) throw updateError;
-
-      console.log(`Updated actual_time for task ${taskId} to ${totalInterval}`);
-    } catch (error) {
-      console.error('Error updating task actual_time:', error);
-    }
-  };
-
-  // Stop timer completely (e.g., when task is completed)
-  const stopTimer = async (finalStatus?: TaskStatusType) => {
-    if (timerState.status === 'idle' || !timerState.taskId) return;
-    const currentTaskId = timerState.taskId; // Store taskId before potential state changes
+    if (timerState.status !== 'paused' || !timerState.taskId) return;
     
-    // Ensure finalStatus is a valid TaskStatusType
-    const taskStatus = finalStatus || TaskStatus.PENDING;
-
     try {
-      // If status is running, pause it first (which will also update the session)
-      if (timerState.status === 'running') {
-        await pauseTimer(taskStatus);
-      } else {
-        // If it was already paused, just update the task status
-        await taskActions.updateTaskStatus(currentTaskId, taskStatus);
+      // Create a new session if needed
+      let sessionId = timerState.sessionId;
+      if (!sessionId) {
+        sessionId = await createTimeSession(timerState.taskId);
       }
       
-      // Update task's total time
-      await updateTaskActualTime(currentTaskId);
-
-      // Clean up timer state completely
+      // Update timer state
+      const now = Date.now();
+      setTimerState({
+        ...timerState,
+        status: 'running',
+        startTime: now,
+        sessionId,
+        previouslyElapsed: timerState.elapsedTime || 0,
+      });
+      
+      // Update session status if we still have the same session
+      if (timerState.sessionId) {
+        await updateTimeSession('ACTIVE');
+      }
+      
+      // Update task status
+      await taskActions.updateTaskStatus(timerState.taskId, TaskStatus.ACTIVE);
+    } catch (error) {
+      console.error('Error resuming timer:', error);
+    }
+  };
+  
+  // Stop the timer completely
+  const stopTimer = async (finalStatus: TaskStatusType = TaskStatus.COMPLETED) => {
+    if (timerState.status === 'idle' || !timerState.taskId) return;
+    
+    try {
+      console.log(`Stopping timer for task ${timerState.taskId}`);
+      
+      // If running, pause it first to calculate the proper elapsed time
+      if (timerState.status === 'running') {
+        // Calculate final elapsed time
+        const now = Date.now();
+        const finalElapsed = timerState.startTime 
+          ? (now - timerState.startTime) + (timerState.previouslyElapsed || 0)
+          : timerState.elapsedTime;
+        
+        // Update the timer state directly to paused
+        setTimerState({
+          ...timerState,
+          status: 'paused',
+          elapsedTime: finalElapsed,
+          displayTime: formatMillisecondsToTime(finalElapsed)
+        });
+      }
+      
+      // Get the final elapsed time from the current state
+      const finalElapsed = timerState.elapsedTime || 0;
+      
+      // Update the task's actual time
+      await updateTaskTime(timerState.taskId, finalElapsed);
+      
+      // Close the time session
+      if (timerState.sessionId) {
+        await updateTimeSession('COMPLETED');
+      }
+      
+      // Update the task status
+      await taskActions.updateTaskStatus(timerState.taskId, finalStatus);
+      
+      // Reset the timer state
       setTimerState({
         status: 'idle',
         taskId: null,
         sessionId: null,
         startTime: null,
         elapsedTime: 0,
-        previouslyElapsed: 0
-        // displayTime will be calculated to 00:00:00 by useTimerPersistence
+        previouslyElapsed: 0,
+        displayTime: '00:00:00'
       });
-
-      // Refresh the task list to show updated times
-      if (taskContext?.refreshTasks) {
-        taskContext.refreshTasks();
-      }
+      
+      console.log(`Timer stopped and task ${timerState.taskId} marked as ${finalStatus}`);
     } catch (error) {
       console.error('Error stopping timer:', error);
     }
   };
 
-  // Reset local timer state without affecting DB
+  // Implement the pause timer function for completed tasks
+  const completeTask = async (taskId: string) => {
+    console.log(`Completing task ${taskId}`);
+    
+    // If this task is currently being timed, stop the timer
+    if (timerState.taskId === taskId && timerState.status !== 'idle') {
+      await stopTimer(TaskStatus.COMPLETED);
+    } else {
+      // Otherwise just update the status
+      await taskActions.updateTaskStatus(taskId, TaskStatus.COMPLETED);
+    }
+  };
+
+  // Reset the timer state without affecting DB
   const resetTimer = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = null;
-    setTimerState({ status: 'idle', taskId: null, sessionId: null, startTime: null, elapsedTime: 0, previouslyElapsed: 0, displayTime: '00:00:00' });
-    clearTimerStorage(); // Clear storage
+    setTimerState({
+      status: 'idle',
+      taskId: null,
+      sessionId: null,
+      startTime: null,
+      elapsedTime: 0,
+      previouslyElapsed: 0,
+      displayTime: '00:00:00'
+    });
   };
-
-  // Format total time for display with compact option
-  const formatTotalTime = useCallback((compact: boolean = false) => {
-      // This uses the state's displayTime which is updated by the interval
-      if (compact) {
-        // For compact displays, show mini time format (e.g., "1h 23m")
-        const time = timerState.displayTime.split(':');
-        const hours = parseInt(time[0], 10);
-        const minutes = parseInt(time[1], 10);
-        
-        if (hours > 0) {
-          return `${hours}h ${minutes}m`;
-        } else {
-          return `${minutes}m`;
-        }
-      }
-      return timerState.displayTime;
-  }, [timerState.displayTime]);
-
-  // --- TODO: Review getDisplayTime --- 
-  // This function seems less useful now that the context manages the active timer's display
-  // It might be used for displaying *historical* actual_time on non-active tasks?
-  const getDisplayTime = (task: Task): string => {
-    if (timerState.taskId === task.id) {
-      return formatTotalTime(); // If it's the active task, use live state
-    }
-    // If not active, display the stored actual_time (needs conversion from interval)
-    if (task.actual_time && typeof task.actual_time === 'string') { 
-        // Basic parser for 'X seconds' interval format
-        const parts = (task.actual_time as string).split(' '); // Temporary type assertion
-        if (parts.length === 2 && parts[1] === 'seconds') {
-            const seconds = parseInt(parts[0], 10);
-            if (!isNaN(seconds)) {
-                return formatMillisecondsToTime(seconds * 1000); 
-            }
-        }
-        // Fallback or handle other interval formats if necessary
-        return '--:--:--'; // Or task.actual_time directly?
-    }
-    return '00:00:00';
-  };
-
-  // Value provided to consumers of the context
-  const value = {
+  
+  // Create the complete timer context
+  const timerContextComplete: TimerContextType = useMemo(() => ({
     timerState,
     startTimer,
     pauseTimer,
-    resumeTimer, 
+    resumeTimer,
     stopTimer,
     resetTimer,
-    formatElapsedTime: formatTotalTime, 
-    getDisplayTime,
+    formatElapsedTime: timerContextValue.formatElapsedTime,
+    getDisplayTime: timerContextValue.getDisplayTime,
     clearTimerStorage,
-  };
-
-  return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>;
+    completeTask
+  }), [timerState, clearTimerStorage]);
+  
+  return (
+    <TimerContext.Provider value={timerContextComplete}>
+      {children}
+    </TimerContext.Provider>
+  );
 };
 
 // Custom hook to use the Timer Context

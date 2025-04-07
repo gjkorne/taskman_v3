@@ -150,3 +150,35 @@ export function getStatusBadgeClasses(status: TaskStatusType): string {
   const config = getStatusDisplayConfig(status);
   return `${config.bgColor} ${config.color}`;
 }
+
+/**
+ * Determines the appropriate task status based on its sessions
+ * - Pending: Task has no time sessions
+ * - In Progress: Task has at least one time session
+ * 
+ * This function respects the existing task status in certain cases:
+ * - If task is already completed or archived, it won't change the status
+ * - If task is active or paused (and is specified as currently being timed), it preserves that status
+ */
+export function determineStatusFromSessions(
+  currentStatus: TaskStatusType,
+  hasSessions: boolean,
+  isCurrentlyTimed: boolean = false
+): TaskStatusType {
+  // Don't change status if task is completed or archived
+  if (currentStatus === TaskStatus.COMPLETED || currentStatus === TaskStatus.ARCHIVED) {
+    return currentStatus;
+  }
+  
+  // Only preserve active or paused status if the task is currently being timed
+  if ((currentStatus === TaskStatus.ACTIVE || currentStatus === TaskStatus.PAUSED) && isCurrentlyTimed) {
+    return currentStatus;
+  }
+  
+  // Determine status based on sessions
+  if (hasSessions) {
+    return TaskStatus.IN_PROGRESS;
+  } else {
+    return TaskStatus.PENDING;
+  }
+}

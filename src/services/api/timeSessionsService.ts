@@ -1,6 +1,8 @@
 import { supabase } from '../../lib/supabase';
 import { BaseService, ServiceError } from '../BaseService';
 import { ITimeSessionService, TimeSessionEvents } from '../interfaces/ITimeSessionService';
+import { TaskStatusType } from '../../types/task';
+import { determineStatusFromSessions } from '../../utils/taskStatusUtils';
 
 /**
  * Time session interface matching the Supabase database schema
@@ -14,6 +16,7 @@ export interface TimeSession {
   duration: string | null; // PostgreSQL interval as string
   created_at: string;
   notes?: string;
+  status?: string; // Added status field to track session status
   is_deleted?: boolean; // Add is_deleted field for soft deletion
   // Add task information from joined queries
   tasks?: {
@@ -23,6 +26,14 @@ export interface TimeSession {
     category_name?: string;
     is_deleted?: boolean;
   };
+}
+
+// Define session status constants for consistent usage
+export enum TimeSessionStatus {
+  ACTIVE = 'active',
+  COMPLETED = 'completed',
+  PAUSED = 'paused',
+  CANCELLED = 'cancelled'
 }
 
 /**
@@ -167,8 +178,23 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
       
       if (error) throw error;
       
-      // Return the first active session or null if none found
-      return (data && data.length > 0) ? data[0] as TimeSession : null;
+      // Check if we found any active sessions
+      if (!data || data.length === 0) return null;
+      
+      // Check if the associated task is completed - if so, we should auto-close this session
+      const session = data[0] as TimeSession;
+      if (session.tasks?.status === 'completed') {
+        console.log(`Found active session ${session.id} for completed task ${session.task_id}, auto-closing it`);
+        // Auto-close the session since the task is completed
+        await this.stopSession(session.id);
+        
+        // Also make sure task status is updated properly 
+        await this.updateTaskStatusBasedOnSessions(session.task_id);
+        
+        return null;
+      }
+      
+      return session;
     } catch (error) {
       const serviceError: ServiceError = this.processError(error, 'time_sessions.fetch_active_error');
       this.emit('error', serviceError);
@@ -193,6 +219,7 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
         start_time: new Date().toISOString(),
         end_time: null,
         duration: null,
+        status: TimeSessionStatus.ACTIVE, // Set initial status
         is_deleted: false
       };
       
@@ -207,6 +234,9 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
       const session = data as TimeSession;
       this.emit('session-created', session);
       this.emit('session-started', session);
+      
+      // Update task status based on the presence of sessions
+      await this.updateTaskStatusBasedOnSessions(taskId);
       
       return session;
     } catch (error) {
@@ -246,15 +276,32 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
    */
   async deleteSession(id: string): Promise<boolean> {
     try {
-      // Soft delete - update is_deleted flag instead of removing
+      // First get the session to know which task it belongs to
+      const { data: session, error: fetchError } = await supabase
+        .from('time_sessions')
+        .select('task_id')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      const taskId = session?.task_id;
+      
+      // Then perform soft delete by setting is_deleted flag
       const { error } = await supabase
         .from('time_sessions')
         .update({ is_deleted: true })
         .eq('id', id);
-        
+      
       if (error) throw error;
       
       this.emit('session-deleted', id);
+      
+      // If we have a task ID, update its status based on remaining sessions
+      if (taskId) {
+        await this.updateTaskStatusBasedOnSessions(taskId);
+      }
+      
       return true;
     } catch (error) {
       const serviceError: ServiceError = this.processError(error, 'time_sessions.delete_error');
@@ -285,10 +332,11 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
       // Calculate duration in seconds
       const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
       
-      // Update the session with end time and duration
+      // Update the session with end time, duration, and completed status
       const updateData = {
         end_time: endTime.toISOString(),
-        duration: `${durationSeconds} seconds`
+        duration: `${durationSeconds} seconds`,
+        status: TimeSessionStatus.COMPLETED
       };
       
       const { data: updatedData, error: updateError } = await supabase
@@ -311,6 +359,130 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
     }
   }
   
+  /**
+   * Pause an active time session
+   * @param sessionId The ID of the session to pause
+   */
+  async pauseSession(sessionId: string): Promise<TimeSession | null> {
+    try {
+      // First check if session exists and is active
+      const { data: session, error: fetchError } = await supabase
+        .from('time_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      if (!session) throw new Error('Session not found');
+      
+      if (session.status !== TimeSessionStatus.ACTIVE) {
+        throw new Error(`Cannot pause session with status: ${session.status}`);
+      }
+      
+      // Update the session status to paused
+      const { data, error } = await supabase
+        .from('time_sessions')
+        .update({ status: TimeSessionStatus.PAUSED })
+        .eq('id', sessionId)
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      
+      this.emit('session-paused', data);
+      
+      return data;
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.pause_error');
+      this.emit('error', serviceError);
+      return null;
+    }
+  }
+
+  /**
+   * Resume a paused time session
+   * @param sessionId The ID of the session to resume
+   */
+  async resumeSession(sessionId: string): Promise<TimeSession | null> {
+    try {
+      // First check if session exists and is paused
+      const { data: session, error: fetchError } = await supabase
+        .from('time_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      if (!session) throw new Error('Session not found');
+      
+      if (session.status !== TimeSessionStatus.PAUSED) {
+        throw new Error(`Cannot resume session with status: ${session.status}`);
+      }
+      
+      // Update the session status to active
+      const { data, error } = await supabase
+        .from('time_sessions')
+        .update({ status: TimeSessionStatus.ACTIVE })
+        .eq('id', sessionId)
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      
+      this.emit('session-resumed', data);
+      
+      return data;
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.resume_error');
+      this.emit('error', serviceError);
+      return null;
+    }
+  }
+
+  /**
+   * Cancel an active or paused time session
+   * @param sessionId The ID of the session to cancel
+   */
+  async cancelSession(sessionId: string): Promise<TimeSession | null> {
+    try {
+      // First check if session exists
+      const { data: session, error: fetchError } = await supabase
+        .from('time_sessions')
+        .select('*')
+        .eq('id', sessionId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      if (!session) throw new Error('Session not found');
+      
+      if (session.status !== TimeSessionStatus.ACTIVE && 
+          session.status !== TimeSessionStatus.PAUSED) {
+        throw new Error(`Cannot cancel session with status: ${session.status}`);
+      }
+      
+      // Update the session status to cancelled
+      const { data, error } = await supabase
+        .from('time_sessions')
+        .update({ 
+          status: TimeSessionStatus.CANCELLED,
+          end_time: new Date().toISOString()
+        })
+        .eq('id', sessionId)
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      
+      this.emit('session-cancelled', data);
+      
+      return data;
+    } catch (error) {
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.cancel_error');
+      this.emit('error', serviceError);
+      return null;
+    }
+  }
+
   /**
    * Calculate total time spent on tasks in a given period
    * @param taskIds Optional array of task IDs to filter by
@@ -369,6 +541,56 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
       const serviceError: ServiceError = this.processError(error, 'time_sessions.calculate_time_error');
       this.emit('error', serviceError);
       return 0;
+    }
+  }
+
+  /**
+   * Update task status based on presence of time sessions
+   * @private
+   */
+  private async updateTaskStatusBasedOnSessions(taskId: string): Promise<void> {
+    try {
+      // First check how many sessions this task has
+      const { data: sessions, error: sessionError } = await supabase
+        .from('time_sessions')
+        .select('id, end_time')
+        .eq('task_id', taskId)
+        .eq('is_deleted', false);
+      
+      if (sessionError) throw sessionError;
+      
+      // Get current task to know its status
+      const { data: task, error: taskError } = await supabase
+        .from('tasks')
+        .select('status')
+        .eq('id', taskId)
+        .single();
+      
+      if (taskError) throw taskError;
+      if (!task) throw new Error('Task not found');
+      
+      // Check if any active sessions exist (no end_time)
+      const hasActiveSessions = sessions && sessions.some(session => !session.end_time);
+      
+      // Determine appropriate status
+      const hasSessions = sessions && sessions.length > 0;
+      const currentStatus = task.status as TaskStatusType;
+      const newStatus = determineStatusFromSessions(currentStatus, hasSessions, hasActiveSessions);
+      
+      // Only update if status needs to change
+      if (newStatus !== currentStatus) {
+        const { error: updateError } = await supabase
+          .from('tasks')
+          .update({ status: newStatus })
+          .eq('id', taskId);
+        
+        if (updateError) throw updateError;
+        
+        console.log(`Task ${taskId} status updated from ${currentStatus} to ${newStatus} based on sessions`);
+      }
+    } catch (error) {
+      console.error('Error updating task status based on sessions:', error);
+      // Don't throw the error - this is a background operation
     }
   }
 }

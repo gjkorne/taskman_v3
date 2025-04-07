@@ -12,6 +12,8 @@ export interface TimeSessionEvents {
   'session-started': TimeSession;
   'session-paused': TimeSession;
   'session-stopped': TimeSession;
+  'session-resumed': TimeSession;
+  'session-cancelled': TimeSession;
   'sessions-loaded': TimeSession[];
   'error': ServiceError;
 }

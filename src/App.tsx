@@ -1,12 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/Auth/AuthProvider';
 import { LoginForm } from './components/Auth/LoginForm';
 import { RegisterForm } from './components/Auth/RegisterForm';
 import { TaskList, TaskListRefType } from './components/TaskList';
 import { Timer } from './components/Timer';
 import { ReportsPage } from './pages/ReportsPage';
-import { MinimalSettingsPage } from './pages/MinimalSettingsPage';
+import SettingsPageWrapper from './pages/SettingsPageWrapper';
 import AdminPage from './pages/AdminPage';
 import { TaskDetailsPage } from './pages/TaskDetailsPage';
 import { TimeSessionsPage } from './pages/TimeSessionsPage';
@@ -33,15 +33,184 @@ import { DensityStyleInjector } from './components/UI/DensityStyleInjector';
 import { Layout } from './components/Layout';
 import { RefreshProvider } from './contexts/RefreshContext';
 import { useRefresh } from './contexts/RefreshContext';
+import { TimerProvider } from './contexts/TimerContext';
+import { SettingsDataProvider } from './contexts/settings/SettingsDataContext';
+import { SettingsUIProvider } from './contexts/settings/SettingsUIContext';
 
 // Import debug tools in development mode
 if (process.env.NODE_ENV === 'development') {
   import('./utils/debugTools');
 }
 
-// Import the new providers
-import { SettingsDataProvider } from './contexts/settings/SettingsDataContext';
-import { SettingsUIProvider } from './contexts/settings/SettingsUIContext';
+// Helper component to redirect while preserving URL parameters
+function RedirectWithParams({ newPathPattern }: { newPathPattern: string }) {
+  const { taskId } = useParams();
+  const redirectPath = newPathPattern.replace(':taskId', taskId || '');
+  
+  return <Navigate to={redirectPath} replace />;
+}
+
+// Create a component that can access the query client and handle refreshes
+function TaskDataRefresher({ children }: { children: React.ReactNode }) {
+  const queryClient = useQueryClient();
+  
+  // Attach the refresh function to the global scope for other parts to trigger refreshes
+  useEffect(() => {
+    (window as any).__refreshTaskData = () => {
+      console.log('Global refresh triggered');
+      queryClient.invalidateQueries({
+        predicate: query => query.queryKey[0] === 'tasks'
+      });
+    };
+    
+    return () => {
+      delete (window as any).__refreshTaskData;
+    };
+  }, [queryClient]);
+  
+  return <>{children}</>;
+}
+
+// Layout wrapper that handles the activeView based on the current route
+function RouteBasedLayout({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const [activeView, setActiveView] = useState<'tasks' | 'timer' | 'reports' | 'admin' | 'time-sessions' | 'calendar' | 'home' | 'settings'>('home');
+  const taskListRef = useRef<TaskListRefType>(null);
+  
+  // Update activeView based on the current route path
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/' || path === '') {
+      setActiveView('home');
+    } else if (path === '/tasks' || path.startsWith('/tasks/')) {
+      setActiveView('tasks');
+    } else if (path === '/timer') {
+      setActiveView('timer');
+    } else if (path === '/reports') {
+      setActiveView('reports');
+    } else if (path === '/admin') {
+      setActiveView('admin');
+    } else if (path === '/time-sessions') {
+      setActiveView('time-sessions');
+    } else if (path === '/calendar') {
+      setActiveView('calendar');
+    } else if (path === '/settings') {
+      setActiveView('settings');
+    }
+  }, [location]);
+  
+  // Handler for when a task is created or refresh is clicked
+  const handleTaskCreated = () => {
+    // Use the global refresh function we attached to window
+    if ((window as any).__refreshTaskData) {
+      (window as any).__refreshTaskData();
+    }
+    
+    // Also use the legacy ref method if available
+    if (activeView === 'tasks' && taskListRef.current) {
+      taskListRef.current.refreshTaskList();
+    }
+    
+    console.log('Tasks refresh triggered via global refresh button');
+  };
+  
+  // Force task list refresh when timer state changes
+  const handleTimerStateChange = () => {
+    if (taskListRef.current) {
+      console.log('Timer state changed, refreshing tasks');
+      taskListRef.current.refreshTaskList();
+    }
+  };
+  
+  // Listen for custom app:change-view events for backward compatibility 
+  useEffect(() => {
+    const handleViewChangeEvent = (event: any) => {
+      const newView = event.detail?.view;
+      if (newView) {
+        // Convert view to URL and use navigate
+        switch(newView) {
+          case 'home':
+            window.history.pushState({}, '', '/');
+            setActiveView('home');
+            break;
+          case 'tasks':
+            window.history.pushState({}, '', '/tasks');
+            setActiveView('tasks');
+            break;
+          case 'timer':
+            window.history.pushState({}, '', '/timer');
+            setActiveView('timer');
+            break;
+          case 'reports':
+            window.history.pushState({}, '', '/reports');
+            setActiveView('reports');
+            break;
+          case 'admin':
+            window.history.pushState({}, '', '/admin');
+            setActiveView('admin');
+            break;
+          case 'time-sessions':
+            window.history.pushState({}, '', '/time-sessions');
+            setActiveView('time-sessions');
+            break;
+          case 'calendar':
+            window.history.pushState({}, '', '/calendar');
+            setActiveView('calendar');
+            break;
+          case 'settings':
+            window.history.pushState({}, '', '/settings');
+            setActiveView('settings');
+            break;
+        }
+      }
+    };
+    
+    document.addEventListener('app:change-view', handleViewChangeEvent);
+    return () => {
+      document.removeEventListener('app:change-view', handleViewChangeEvent);
+    };
+  }, []);
+  
+  return (
+    <Layout 
+      activeView={activeView} 
+      onViewChange={(view: any) => {
+        // Handle view change by updating URL
+        switch(view) {
+          case 'home':
+            window.history.pushState({}, '', '/');
+            break;
+          case 'tasks':
+            window.history.pushState({}, '', '/tasks');
+            break;
+          case 'timer':
+            window.history.pushState({}, '', '/timer');
+            break;
+          case 'reports':
+            window.history.pushState({}, '', '/reports');
+            break;
+          case 'admin':
+            window.history.pushState({}, '', '/admin');
+            break;
+          case 'time-sessions':
+            window.history.pushState({}, '', '/time-sessions');
+            break;
+          case 'calendar':
+            window.history.pushState({}, '', '/calendar');
+            break;
+          case 'settings':
+            window.history.pushState({}, '', '/settings');
+            break;
+        }
+        setActiveView(view as any);
+      }}
+      onTaskCreated={handleTaskCreated}
+      onTimerStateChange={handleTimerStateChange}
+    >
+      {children}
+    </Layout>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -49,9 +218,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="mt-4 text-gray-600">Loading authentication...</div>
-        </div>
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -63,56 +230,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Helper component to redirect while preserving URL parameters
-function RedirectWithParams({ newPathPattern }: { newPathPattern: string }) {
-  const params = useParams();
-  const redirectTo = Object.entries(params).reduce(
-    (path, [key, value]) => path.replace(`:${key}`, value || ''),
-    newPathPattern
-  );
-  return <Navigate to={redirectTo} replace />;
-}
-
-// Create a component that can access the query client and handle refreshes
-function TaskDataRefresher({ children }: { children: React.ReactNode }) {
-  const queryClient = useQueryClient();
-  
-  // This function will be called from Layout
-  const refreshTaskData = () => {
-    console.log('Refreshing task data via QueryClient invalidation');
-    queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    return true;
-  };
-  
-  // Add the refresh function to the window for access from other components
-  React.useEffect(() => {
-    (window as any).__refreshTaskData = refreshTaskData;
-    return () => {
-      delete (window as any).__refreshTaskData;
-    };
-  }, [refreshTaskData]);
-  
-  return <>{children}</>;
-}
-
-// Create a separate route component for settings to avoid context conflicts
-const SettingsRoute = () => {
-  return (
-    <DensityProvider>
-      <DensityStyleInjector />
-      <div className="min-h-screen bg-gray-50">
-        <div className="py-8">
-          <div className="w-full px-4 sm:px-6 lg:px-8">
-            <MinimalSettingsPage />
-          </div>
-        </div>
-      </div>
-    </DensityProvider>
-  );
-};
-
 function App() {
-  const [activeView, setActiveView] = React.useState<'tasks' | 'timer' | 'reports' | 'admin' | 'time-sessions' | 'calendar' | 'home'>('home');
   const taskListRef = useRef<TaskListRefType>(null);
   const [appInitialized, setAppInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -167,29 +285,6 @@ function App() {
     );
   }
 
-  // Handler for when a task is created or refresh is clicked
-  const handleTaskCreated = () => {
-    // Use the global refresh function we attached to window
-    if ((window as any).__refreshTaskData) {
-      (window as any).__refreshTaskData();
-    }
-    
-    // Also use the legacy ref method if available
-    if (activeView === 'tasks' && taskListRef.current) {
-      taskListRef.current.refreshTaskList();
-    }
-    
-    console.log('Tasks refresh triggered via global refresh button');
-  };
-  
-  // Force task list refresh when timer state changes
-  const handleTimerStateChange = () => {
-    if (taskListRef.current) {
-      console.log('Timer state changed, refreshing tasks');
-      taskListRef.current.refreshTaskList();
-    }
-  };
-
   // Register refresh handler with our RefreshContext
   // This will be available to the MainHeader refresh button
   const RefreshRegistrator = () => {
@@ -201,6 +296,16 @@ function App() {
     }, []);
     
     return null;
+  };
+  
+  // Handler for when a task is created or refresh is clicked
+  const handleTaskCreated = () => {
+    // Use the global refresh function we attached to window
+    if ((window as any).__refreshTaskData) {
+      (window as any).__refreshTaskData();
+    }
+    
+    console.log('Tasks refresh triggered via global refresh button');
   };
 
   return (
@@ -218,70 +323,124 @@ function App() {
                           <TaskProvider>
                             <FilterSortProvider>
                               <TaskDataRefresher>
-                                <TimeSessionProvider>
-                                  <AdminProvider>
-                                    <RefreshProvider>
-                                      <DensityProvider>
-                                        <DensityStyleInjector />
-                                        <OfflineIndicator />
-                                        <RefreshRegistrator />
-                                        <Routes>
-                                          <Route path="/login" element={<LoginForm />} />
-                                          <Route path="/register" element={<RegisterForm />} />
-                                          {/* Add redirect for /tasks to the main route */}
-                                          <Route path="/tasks" element={<Navigate to="/" replace />} />
-                                          <Route
-                                            path="/"
-                                            element={
+                                <TimerProvider>
+                                  <TimeSessionProvider>
+                                    <AdminProvider>
+                                      <RefreshProvider>
+                                        <DensityProvider>
+                                          <DensityStyleInjector />
+                                          <OfflineIndicator />
+                                          <RefreshRegistrator />
+                                          <Routes>
+                                            {/* Authentication Routes */}
+                                            <Route path="/login" element={<LoginForm />} />
+                                            <Route path="/register" element={<RegisterForm />} />
+                                            
+                                            {/* Settings Route */}
+                                            <Route path="/settings" element={
                                               <ProtectedRoute>
-                                                <Layout 
-                                                  activeView={activeView} 
-                                                  onViewChange={(view: any) => {
-                                                    // Special case for settings, which now has its own route
-                                                    if (view === 'settings') {
-                                                      // Open the emergency settings page in a new tab
-                                                      window.open('/emergency-settings.html', '_blank');
-                                                    } else {
-                                                      setActiveView(view as any);
-                                                    }
-                                                  }}
-                                                  onTaskCreated={handleTaskCreated}
-                                                  onTimerStateChange={handleTimerStateChange}
-                                                >
-                                                  {activeView === 'home' && <HomePage />}
-                                                  {activeView === 'tasks' && (
-                                                    <TaskList 
-                                                      ref={taskListRef} 
-                                                    />
-                                                  )}
-                                                  {activeView === 'timer' && <Timer />}
-                                                  {activeView === 'reports' && <ReportsPage />}
-                                                  {activeView === 'admin' && <AdminPage />}
-                                                  {activeView === 'time-sessions' && <TimeSessionsPage />}
-                                                  {activeView === 'calendar' && <CalendarPage />}
-                                                </Layout>
+                                                <RouteBasedLayout>
+                                                  <SettingsPageWrapper />
+                                                </RouteBasedLayout>
                                               </ProtectedRoute>
-                                            }
-                                          />
-                                          <Route 
-                                            path="/tasks/:taskId" 
-                                            element={
-                                              <ProtectedRoute>
-                                                <TaskDetailsPage />
-                                              </ProtectedRoute>
-                                            } 
-                                          />
-                                          {/* Add redirect for old /app/task/ URLs that might be stored in history */}
-                                          <Route 
-                                            path="/app/task/:taskId" 
-                                            element={<RedirectWithParams newPathPattern="/tasks/:taskId" />}
-                                          />
-                                          <Route path="/settings" element={<SettingsRoute />} />
-                                        </Routes>
-                                      </DensityProvider>
-                                    </RefreshProvider>
-                                  </AdminProvider>
-                                </TimeSessionProvider>
+                                            } />
+                                            
+                                            {/* Task Details Route */}
+                                            <Route 
+                                              path="/tasks/:taskId" 
+                                              element={
+                                                <ProtectedRoute>
+                                                  <TaskDetailsPage />
+                                                </ProtectedRoute>
+                                              } 
+                                            />
+                                            
+                                            {/* Legacy URL redirects */}
+                                            <Route 
+                                              path="/app/task/:taskId" 
+                                              element={<RedirectWithParams newPathPattern="/tasks/:taskId" />}
+                                            />
+                                            
+                                            {/* Main App Routes */}
+                                            <Route
+                                              path="/"
+                                              element={
+                                                <ProtectedRoute>
+                                                  <RouteBasedLayout>
+                                                    <HomePage />
+                                                  </RouteBasedLayout>
+                                                </ProtectedRoute>
+                                              }
+                                            />
+                                            <Route
+                                              path="/tasks"
+                                              element={
+                                                <ProtectedRoute>
+                                                  <RouteBasedLayout>
+                                                    <TaskList ref={taskListRef} />
+                                                  </RouteBasedLayout>
+                                                </ProtectedRoute>
+                                              }
+                                            />
+                                            <Route
+                                              path="/timer"
+                                              element={
+                                                <ProtectedRoute>
+                                                  <RouteBasedLayout>
+                                                    <Timer />
+                                                  </RouteBasedLayout>
+                                                </ProtectedRoute>
+                                              }
+                                            />
+                                            <Route
+                                              path="/reports"
+                                              element={
+                                                <ProtectedRoute>
+                                                  <RouteBasedLayout>
+                                                    <ReportsPage />
+                                                  </RouteBasedLayout>
+                                                </ProtectedRoute>
+                                              }
+                                            />
+                                            <Route
+                                              path="/admin"
+                                              element={
+                                                <ProtectedRoute>
+                                                  <RouteBasedLayout>
+                                                    <AdminPage />
+                                                  </RouteBasedLayout>
+                                                </ProtectedRoute>
+                                              }
+                                            />
+                                            <Route
+                                              path="/time-sessions"
+                                              element={
+                                                <ProtectedRoute>
+                                                  <RouteBasedLayout>
+                                                    <TimeSessionsPage />
+                                                  </RouteBasedLayout>
+                                                </ProtectedRoute>
+                                              }
+                                            />
+                                            <Route
+                                              path="/calendar"
+                                              element={
+                                                <ProtectedRoute>
+                                                  <RouteBasedLayout>
+                                                    <CalendarPage />
+                                                  </RouteBasedLayout>
+                                                </ProtectedRoute>
+                                              }
+                                            />
+                                            
+                                            {/* Fallback route - Redirect any unmatched routes to home */}
+                                            <Route path="*" element={<Navigate to="/" replace />} />
+                                          </Routes>
+                                        </DensityProvider>
+                                      </RefreshProvider>
+                                    </AdminProvider>
+                                  </TimeSessionProvider>
+                                </TimerProvider>
                               </TaskDataRefresher>
                             </FilterSortProvider>
                           </TaskProvider>

@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useTimeSessionData } from './timeSession';
 import { useTimeSessionUI } from './timeSession';
 import { Task } from '../types/task';
+import { supabase } from '../lib/supabase'; // Import supabase instance directly
 
 // Define an extended session interface for our compatibility layer
 interface TimerSession {
@@ -22,12 +24,39 @@ export const useTimer = () => {
     activeSession,
     sessions,
     createSession,
-    stopSession
+    stopSession,
+    refreshSessions
   } = useTimeSessionData();
   
   // We don't actually use these in the compatibility layer
   // but keeping reference to ensure context is accessed
   useTimeSessionUI();
+
+  // Check if we have an active task that's already completed
+  useEffect(() => {
+    const checkForCompletedTasks = async () => {
+      if (activeSession) {
+        try {
+          // Get the task directly from Supabase to ensure we have latest status
+          const { data: taskData } = await supabase
+            .from('tasks')
+            .select('status')
+            .eq('id', activeSession.task_id)
+            .single();
+            
+          if (taskData && taskData.status === 'completed') {
+            console.log(`[TimerCompat] Found active session for completed task ${activeSession.task_id}, stopping it`);
+            await stopSession(activeSession.id);
+            refreshSessions();
+          }
+        } catch (error) {
+          console.error('Error checking task status:', error);
+        }
+      }
+    };
+    
+    checkForCompletedTasks();
+  }, [activeSession, stopSession, refreshSessions]);
   
   // Calculate elapsed time based on session data
   const calculateElapsedTime = (session: TimerSession): number => {
@@ -71,9 +100,24 @@ export const useTimer = () => {
   };
   
   // Accept TaskStatus parameter for backward compatibility but ignore it
-  const stopTimer = async (_newStatus?: any) => {
+  const stopTimer = async (newStatus?: any) => {
     if (activeSession) {
       await stopSession(activeSession.id);
+      
+      // Get the taskId before stopping
+      const taskId = activeSession.task_id;
+      
+      // If we're stopping with a 'completed' status, update the task status
+      if (newStatus === 'completed' && taskId) {
+        try {
+          // Import dynamically to avoid circular dependencies
+          const { taskService } = await import('../services/api');
+          console.log(`Marking completed task ${taskId} via compatibility layer`);
+          await taskService.updateTaskStatus(taskId, 'completed');
+        } catch (error) {
+          console.error('Error updating task status on timer stop:', error);
+        }
+      }
     }
   };
   
@@ -133,6 +177,24 @@ export const useTimer = () => {
     console.warn('clearTimerStorage is deprecated and has no effect with the new context structure');
   };
   
+  // Add a completeTask method for compatibility
+  const completeTask = async (taskId: string) => {
+    console.log(`Completing task ${taskId} via compatibility layer`);
+    
+    // If this task is currently being timed, stop the timer
+    if (activeSession?.task_id === taskId) {
+      await stopTimer('completed');
+    } else {
+      // Import dynamically to avoid circular dependencies
+      try {
+        const { taskService } = await import('../services/api');
+        await taskService.updateTaskStatus(taskId, 'completed');
+      } catch (error) {
+        console.error('Error updating task status on complete:', error);
+      }
+    }
+  };
+  
   return {
     timerState,
     startTimer,
@@ -142,6 +204,7 @@ export const useTimer = () => {
     resetTimer,
     formatElapsedTime,
     getDisplayTime,
-    clearTimerStorage
+    clearTimerStorage,
+    completeTask
   };
 };

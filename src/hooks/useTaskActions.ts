@@ -21,6 +21,7 @@ interface UseTaskActionsOptions {
   refreshTasks?: () => Promise<void>;
   onSuccess?: (action: string) => void;
   onError?: (error: string, action: string) => void;
+  timerContext?: any; 
 }
 
 /**
@@ -30,7 +31,8 @@ export function useTaskActions({
   showToasts = true,
   refreshTasks = async () => {},
   onSuccess,
-  onError
+  onError,
+  timerContext = null 
 }: UseTaskActionsOptions = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,8 +125,15 @@ export function useTaskActions({
    * Mark a task as completed
    */
   const completeTask = useCallback(async (taskId: string) => {
-    await updateTaskStatus(taskId, TaskStatus.COMPLETED);
-  }, [updateTaskStatus]);
+    // Check if this task is currently being timed
+    if (timerContext && timerContext.timerState.taskId === taskId && timerContext.timerState.status !== 'idle') {
+      // Stop the timer with COMPLETED status
+      await timerContext.stopTimer(TaskStatus.COMPLETED);
+    } else {
+      // Otherwise just update the status
+      await updateTaskStatus(taskId, TaskStatus.COMPLETED);
+    }
+  }, [updateTaskStatus, timerContext]);
 
   /**
    * Start a task

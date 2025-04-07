@@ -6,6 +6,7 @@ interface DashboardWidgetProps {
   className?: string;
   isLoading?: boolean;
   footer?: ReactNode;
+  actions?: ReactNode;
 }
 
 /**
@@ -17,12 +18,18 @@ export function DashboardWidget({
   children, 
   className = '', 
   isLoading = false,
-  footer
+  footer,
+  actions
 }: DashboardWidgetProps) {
   return (
     <div className={`bg-white rounded-lg shadow-md p-4 ${className}`}>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-700">{title}</h2>
+        {actions && (
+          <div className="flex items-center">
+            {actions}
+          </div>
+        )}
       </div>
       
       <div className="relative">

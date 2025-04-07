@@ -21,7 +21,7 @@ export function LoginForm() {
 
     try {
       await signIn(formData.email, formData.password);
-      navigate('/tasks');
+      navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
     } finally {

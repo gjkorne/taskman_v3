@@ -1,8 +1,5 @@
 import React, { ErrorInfo, ReactNode, Suspense, useEffect, useState } from 'react';
-import { DensityProvider } from '../contexts/ui/DensityContext';
 import { UnifiedCategoryProvider } from '../contexts/CategoryUnified';
-import { SettingsDataProvider } from '../contexts/settings/SettingsDataContext';
-import { SettingsUIProvider } from '../contexts/settings/SettingsUIContext';
 
 // Lazy load the actual Settings page
 const SettingsPageLazy = React.lazy(() => import('./SettingsPage'));
@@ -79,34 +76,32 @@ export function SettingsPageWrapper() {
   }, [error, errorInfo]);
 
   return (
-    <DensityProvider>
-      <SettingsDataProvider>
-        <SettingsUIProvider>
-          <UnifiedCategoryProvider>
-            <SettingsErrorBoundary onError={handleError}>
-              <Suspense fallback={
-                <div className="p-8 flex justify-center">
-                  <div className="animate-pulse flex space-x-4">
-                    <div className="flex-1 space-y-6 py-1">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="h-4 bg-gray-200 rounded col-span-2"></div>
-                          <div className="h-4 bg-gray-200 rounded col-span-1"></div>
-                        </div>
-                        <div className="h-4 bg-gray-200 rounded"></div>
-                      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <h1 className="text-2xl font-bold mb-6">Settings</h1>
+      
+      <UnifiedCategoryProvider>
+        <SettingsErrorBoundary onError={handleError}>
+          <Suspense fallback={
+            <div className="p-8 flex justify-center">
+              <div className="animate-pulse flex space-x-4">
+                <div className="flex-1 space-y-6 py-1">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="h-4 bg-gray-200 rounded col-span-2"></div>
+                      <div className="h-4 bg-gray-200 rounded col-span-1"></div>
                     </div>
+                    <div className="h-4 bg-gray-200 rounded"></div>
                   </div>
                 </div>
-              }>
-                <SettingsPageLazy />
-              </Suspense>
-            </SettingsErrorBoundary>
-          </UnifiedCategoryProvider>
-        </SettingsUIProvider>
-      </SettingsDataProvider>
-    </DensityProvider>
+              </div>
+            </div>
+          }>
+            <SettingsPageLazy />
+          </Suspense>
+        </SettingsErrorBoundary>
+      </UnifiedCategoryProvider>
+    </div>
   );
 }
 

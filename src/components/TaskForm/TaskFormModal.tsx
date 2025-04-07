@@ -29,7 +29,7 @@ export function TaskFormModal({
       isOpen={isOpen} 
       onClose={onClose}
       title="Create Task"
-      size="lg"
+      size="xl"
     >
       <TaskForm 
         mode="create"

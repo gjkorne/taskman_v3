@@ -55,7 +55,7 @@ const ModalBase: React.FC<ModalBaseProps> = ({
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
-    xl: 'max-w-xl',
+    xl: 'max-w-4xl',
     full: 'max-w-full w-full h-full m-0 rounded-none'
   };
 

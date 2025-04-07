@@ -92,10 +92,37 @@ export const useTimerPersistence = () => {
         });
         
         console.log('Synced timer with remote session');
-      } else if (state.status === 'running') {
+      } else if (state.status === 'running' && state.taskId) {
         // No active sessions in Supabase, but we have a running timer locally
-        // This could happen if the timer was started on this device but not synced to Supabase yet
         console.log('No active remote sessions found, but local timer is running');
+        
+        // Create a remote session to match the local state
+        try {
+          const newSession = await timeSessionsService.createSession(state.taskId);
+          if (newSession) {
+            console.log('Created new remote session to match local timer:', newSession);
+            
+            // Update local state with the new session ID
+            updateState({
+              sessionId: newSession.id,
+              startTime: new Date(newSession.start_time).getTime()
+            });
+          } else {
+            // If we couldn't create a remote session, stop the local timer
+            console.warn('Could not create remote session, stopping local timer');
+            updateState({
+              status: 'idle',
+              taskId: null,
+              sessionId: null,
+              startTime: null,
+              elapsedTime: 0,
+              previouslyElapsed: 0
+            });
+          }
+        } catch (error) {
+          console.error('Error creating remote session:', error);
+          // Don't stop the timer here - let the user continue working and try to sync later
+        }
       }
       
       setHasSyncedWithRemote(true);
@@ -103,7 +130,7 @@ export const useTimerPersistence = () => {
       console.error('Error syncing with remote timer state:', error);
       setHasSyncedWithRemote(true); // Mark as synced anyway to prevent repeated attempts
     }
-  }, [state.previouslyElapsed]);
+  }, [state.previouslyElapsed, state.status, state.taskId]);
   
   // Save state to localStorage whenever it changes
   useEffect(() => {

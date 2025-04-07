@@ -3,6 +3,7 @@ import { cn } from '../../lib/utils';
 import { useEffect, useState } from 'react';
 import { authService } from '../../services/api/authService';
 import { User } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
 
 // Types
 export type ViewType = 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar' | 'home';
@@ -45,6 +46,7 @@ export function Sidebar({
 }: SidebarProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -66,6 +68,17 @@ export function Sidebar({
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', String(newState));
+  };
+
+  // Handle navigation with both the callback and direct URL navigation
+  const handleNavigation = (view: ViewType, path: string) => {
+    onViewChange(view); // Keep the callback for backward compatibility
+    navigate(path); // Direct URL navigation
+    
+    // Close sidebar on mobile
+    if (window.innerWidth < 1024) {
+      onToggleSidebar();
+    }
   };
 
   return (
@@ -116,10 +129,7 @@ export function Sidebar({
               label="Home" 
               active={activeView === 'home'}
               collapsed={isCollapsed}
-              onClick={() => {
-                onViewChange('home');
-                if (window.innerWidth < 1024) onToggleSidebar();
-              }}
+              onClick={() => handleNavigation('home', '/')}
             />
             
             <NavItem 
@@ -127,10 +137,7 @@ export function Sidebar({
               label="Tasks" 
               active={activeView === 'tasks'}
               collapsed={isCollapsed}
-              onClick={() => {
-                onViewChange('tasks');
-                if (window.innerWidth < 1024) onToggleSidebar();
-              }}
+              onClick={() => handleNavigation('tasks', '/tasks')}
             />
             
             <NavItem 
@@ -138,10 +145,7 @@ export function Sidebar({
               label="Calendar" 
               active={activeView === 'calendar'}
               collapsed={isCollapsed}
-              onClick={() => {
-                onViewChange('calendar');
-                if (window.innerWidth < 1024) onToggleSidebar();
-              }}
+              onClick={() => handleNavigation('calendar', '/calendar')}
             />
             
             <NavItem 
@@ -149,21 +153,15 @@ export function Sidebar({
               label="Timer" 
               active={activeView === 'timer'}
               collapsed={isCollapsed}
-              onClick={() => {
-                onViewChange('timer');
-                if (window.innerWidth < 1024) onToggleSidebar();
-              }}
+              onClick={() => handleNavigation('timer', '/timer')}
             />
             
             <NavItem 
               icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5" />} 
-              label="Time Sessions"
+              label="Time Sessions" 
               active={activeView === 'time-sessions'}
               collapsed={isCollapsed}
-              onClick={() => {
-                onViewChange('time-sessions');
-                if (window.innerWidth < 1024) onToggleSidebar();
-              }}
+              onClick={() => handleNavigation('time-sessions', '/time-sessions')}
             />
             
             <NavItem 
@@ -171,59 +169,51 @@ export function Sidebar({
               label="Reports" 
               active={activeView === 'reports'}
               collapsed={isCollapsed}
-              onClick={() => {
-                onViewChange('reports');
-                if (window.innerWidth < 1024) onToggleSidebar();
-              }}
+              onClick={() => handleNavigation('reports', '/reports')}
             />
             
-            <NavItem 
-              icon={<Settings className="w-4 h-4 sm:w-5 sm:h-5" />} 
-              label="Settings" 
-              active={activeView === 'settings'}
-              collapsed={isCollapsed}
-              onClick={() => {
-                onViewChange('settings');
-                if (window.innerWidth < 1024) onToggleSidebar();
-              }}
-            />
-            
-            {/* Admin Section - Only visible in development mode */}
-            {import.meta.env.DEV && (
-              <div className={cn("mt-6 pt-6 border-t border-gray-200", isCollapsed && "flex flex-col items-center")}>
-                {!isCollapsed && <div className="mb-2 px-3 sm:px-4 text-xs font-medium uppercase text-gray-400">Admin</div>}
-                {isCollapsed && <div className="mb-2 text-xs font-medium uppercase text-gray-400">A</div>}
-                <NavItem 
-                  icon={<AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />} 
-                  label="Admin Panel" 
-                  active={activeView === 'admin'}
-                  collapsed={isCollapsed}
-                  onClick={() => {
-                    onViewChange('admin');
-                    if (window.innerWidth < 1024) onToggleSidebar();
-                  }}
-                />
-              </div>
+            {user?.user_metadata?.is_admin && (
+              <NavItem 
+                icon={<AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />} 
+                label="Admin" 
+                active={activeView === 'admin'}
+                collapsed={isCollapsed}
+                onClick={() => handleNavigation('admin', '/admin')}
+              />
             )}
+
+            <div className="mt-auto pt-2 sm:pt-4 border-t border-gray-200 mt-2 sm:mt-4">
+              <NavItem 
+                icon={<Settings className="w-4 h-4 sm:w-5 sm:h-5" />} 
+                label="Settings" 
+                active={activeView === 'settings'}
+                collapsed={isCollapsed}
+                onClick={() => handleNavigation('settings', '/settings')}
+              />
+            </div>
           </nav>
           
-          {/* User Section */}
-          {user && (
-            <div className={cn("p-3 sm:p-4 border-t border-gray-200", 
-              isCollapsed && "flex flex-col items-center justify-center")}>
-              <div className={cn("flex items-center", 
-                isCollapsed && "flex-col")}>
-                <div className="flex-shrink-0 bg-blue-500 rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-white font-medium text-sm sm:text-base">
-                  {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
+          {/* User Info (Mobile) */}
+          {!isCollapsed && (
+            <div className="p-3 sm:p-4 border-t border-gray-200">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold">
+                  {user?.email?.charAt(0)?.toUpperCase() || '?'}
                 </div>
-                {!isCollapsed && (
-                  <div className="ml-3">
-                    <p className="text-sm sm:text-base font-medium text-gray-700">
-                      {user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'}
-                    </p>
-                    <p className="text-xs text-gray-500">{user.email || ''}</p>
-                  </div>
-                )}
+                <div className="ml-3 truncate">
+                  <p className="text-sm font-medium text-gray-700 truncate">
+                    {user?.email || 'Anonymous User'}
+                  </p>
+                  <button 
+                    onClick={async () => {
+                      await authService.signOut();
+                      window.location.href = '/login';
+                    }}
+                    className="text-xs text-blue-500 hover:text-blue-700"
+                  >
+                    Sign out
+                  </button>
+                </div>
               </div>
             </div>
           )}

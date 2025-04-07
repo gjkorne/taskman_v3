@@ -38,6 +38,7 @@ interface TimeSessionDataContextType {
   updateSession: (id: string, data: Partial<TimeSession>) => Promise<TimeSession | null>;
   deleteSession: (id: string) => Promise<boolean>;
   stopSession: (id: string) => Promise<TimeSession | null>;
+  refreshSessions: () => Promise<void>;
   
   // Metrics calculations
   calculateTimeSpent: (taskIds?: string[], startDate?: Date, endDate?: Date) => Promise<number>;
@@ -400,6 +401,7 @@ export const TimeSessionDataProvider = ({ children }: { children: ReactNode }) =
     updateSession,
     deleteSession,
     stopSession,
+    refreshSessions: fetchSessions,
     
     // Metrics calculations
     calculateTimeSpent,

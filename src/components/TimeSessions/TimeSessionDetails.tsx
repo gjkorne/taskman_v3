@@ -37,16 +37,15 @@ export function TimeSessionDetails({
       setError(null);
       
       try {
-        const { data, error } = await timeSessionsService.getSessionById(sessionId);
+        const sessionData = await timeSessionsService.getSessionById(sessionId);
         
-        if (error) throw error;
-        if (!data) throw new Error('Session not found');
+        if (!sessionData) throw new Error('Session not found');
         
-        setSession(data);
+        setSession(sessionData);
         
         // Fetch associated task
-        if (data.task_id) {
-          const { data: taskData, error: taskError } = await taskService.getTaskById(data.task_id);
+        if (sessionData.task_id) {
+          const { data: taskData, error: taskError } = await taskService.getTaskById(sessionData.task_id);
           
           if (!taskError && taskData) {
             setTask(taskData);
@@ -54,7 +53,7 @@ export function TimeSessionDetails({
         }
         
         // Set notes
-        setNotes(data.notes || '');
+        setNotes(sessionData.notes || '');
       } catch (err) {
         console.error('Error fetching session data:', err);
         setError('Failed to load session details');
@@ -81,18 +80,28 @@ export function TimeSessionDetails({
     return `${hours > 0 ? `${hours}h ` : ''}${minutes}m ${seconds}s`;
   };
 
-  // Save notes
-  const handleSaveNotes = async () => {
+  // Save session notes
+  const handleUpdateNotes = async () => {
     if (!session) return;
     
     setIsSaving(true);
     
     try {
-      await timeSessionsService.updateSession(sessionId, { notes });
+      const updatedSession = await timeSessionsService.updateSession(sessionId, { 
+        notes 
+      });
+      
+      if (!updatedSession) throw new Error('Failed to update session notes');
+      
+      // Update local state
+      setSession(updatedSession);
       setIsEditing(false);
-      if (onSessionUpdated) onSessionUpdated();
+      
+      if (onSessionUpdated) {
+        onSessionUpdated();
+      }
     } catch (err) {
-      console.error('Error saving notes:', err);
+      console.error('Error updating session notes:', err);
       setError('Failed to save notes');
     } finally {
       setIsSaving(false);
@@ -108,21 +117,18 @@ export function TimeSessionDetails({
     try {
       // Update session with current time as end_time
       const endTime = new Date().toISOString();
-      const { data, error } = await timeSessionsService.updateSession(sessionId, { 
+      const updatedSession = await timeSessionsService.updateSession(sessionId, { 
         end_time: endTime
       });
       
-      if (error) throw error;
+      if (!updatedSession) throw new Error('Failed to update session');
       
       // Update local state
-      if (data) {
-        setSession({
-          ...session,
-          end_time: endTime
-        });
-      }
+      setSession(updatedSession);
       
-      if (onSessionUpdated) onSessionUpdated();
+      if (onSessionUpdated) {
+        onSessionUpdated();
+      }
     } catch (err) {
       console.error('Error ending session:', err);
       setError('Failed to end session');
@@ -335,7 +341,7 @@ export function TimeSessionDetails({
                 />
                 <div className="flex justify-end mt-2">
                   <button
-                    onClick={handleSaveNotes}
+                    onClick={handleUpdateNotes}
                     disabled={isSaving}
                     className="flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md"
                   >

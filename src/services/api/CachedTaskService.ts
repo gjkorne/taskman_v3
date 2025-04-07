@@ -5,6 +5,8 @@ import { ServiceFactory } from '../factory/ServiceFactory';
 import { CacheService } from '../../core/cache/CacheService';
 import { CacheStorageType, CacheExpirationStrategy } from '../../core/cache/CacheTypes';
 import { NetworkError } from '../error/ErrorTypes';
+import { timeSessionsService } from './timeSessionsService';
+import { determineStatusFromSessions } from '../../utils/taskStatusUtils';
 
 /**
  * Cache-enhanced Task Service that wraps the regular TaskService
@@ -166,6 +168,9 @@ export class CachedTaskService implements ITaskService {
       
       // Emit the event
       this.emit('tasks-loaded', tasks);
+      
+      // Check and update status based on sessions
+      await this.updateTaskStatusesBasedOnSessions(tasks);
       
       return tasks;
     } catch (error) {
@@ -507,6 +512,64 @@ export class CachedTaskService implements ITaskService {
     } catch (error) {
       this.emit('error', error);
       throw error;
+    }
+  }
+  
+  /**
+   * Update status for tasks based on their sessions
+   * @private
+   */
+  private async updateTaskStatusesBasedOnSessions(tasks: Task[]): Promise<void> {
+    try {
+      const updatedTasks: Task[] = [];
+      
+      // Process tasks in batches to avoid overwhelming the database
+      const batchSize = 10;
+      for (let i = 0; i < tasks.length; i += batchSize) {
+        const batch = tasks.slice(i, i + batchSize);
+        
+        // Process each task in the batch
+        const updates = await Promise.all(batch.map(async (task) => {
+          // Skip completed or archived tasks
+          if (task.status === 'completed' || task.status === 'archived') {
+            return null;
+          }
+          
+          // Get sessions for the task
+          const sessions = await timeSessionsService.getSessionsByTaskId(task.id);
+          const hasSessions = sessions && sessions.length > 0;
+          
+          // Check if any sessions are currently active (no end_time)
+          const hasActiveSessions = sessions && sessions.some(session => !session.end_time);
+          
+          // Determine correct status
+          const newStatus = determineStatusFromSessions(
+            task.status as TaskStatusType, 
+            hasSessions,
+            hasActiveSessions
+          );
+          
+          // Only update if status should change
+          if (newStatus !== task.status) {
+            const updatedTask = await this.updateTaskStatus(task.id, newStatus);
+            if (updatedTask) {
+              return updatedTask;
+            }
+          }
+          return null;
+        }));
+        
+        // Add successful updates to the list
+        updatedTasks.push(...updates.filter(Boolean) as Task[]);
+      }
+      
+      if (updatedTasks.length > 0) {
+        console.log(`Updated status for ${updatedTasks.length} tasks based on sessions`);
+        this.emit('tasks-changed');
+      }
+    } catch (error) {
+      console.error('Error updating task statuses based on sessions:', error);
+      // Don't throw - this is a background operation
     }
   }
   

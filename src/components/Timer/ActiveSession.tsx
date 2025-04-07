@@ -13,9 +13,9 @@ interface ActiveSessionProps {
 }
 
 export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
-  const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime: originalFormatElapsedTime } = useTimer();
-  const { activeSession } = useTimeSessionData(); // Direct access to activeSession from context
-  const { tasks } = useTaskData();
+  const { timerState, startTimer, pauseTimer, stopTimer, completeTask, formatElapsedTime: originalFormatElapsedTime } = useTimer();
+  const { activeSession, refreshSessions } = useTimeSessionData(); // Direct access to activeSession from context
+  const { tasks, refreshTasks } = useTaskData();
   const [isExpanded, setIsExpanded] = useState(false);
   const { impersonatedUser } = useAdmin();
   
@@ -37,6 +37,22 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
       });
     }
   }, [timerState, activeSession]);
+  
+  // Force refresh the sessions when component mounts
+  useEffect(() => {
+    refreshSessions();
+  }, [refreshSessions]);
+
+  // Most important: check if the task is completed, and if so, stop the timer
+  useEffect(() => {
+    if (activeTask && activeTask.status === 'completed' && timerState.status !== 'idle') {
+      console.log('Task is completed but timer is still running, stopping it');
+      stopTimer('completed');
+      // Force refresh both sessions and tasks
+      refreshSessions();
+      refreshTasks();
+    }
+  }, [activeTask, timerState.status, stopTimer, refreshSessions, refreshTasks]);
   
   // Don't render the component if user is being impersonated by an admin
   // as we don't want to show/modify real timer state in impersonation mode
@@ -123,7 +139,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
             
             <button
               onClick={() => {
-                stopTimer();
+                stopTimer('completed');
                 if (onTimerStateChange) onTimerStateChange();
               }}
               className="p-2 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
@@ -215,13 +231,24 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
             
             <button
               onClick={() => {
-                stopTimer();
+                stopTimer('completed');
                 if (onTimerStateChange) onTimerStateChange();
               }}
               className="py-1.5 px-4 rounded-md bg-red-700 hover:bg-red-600 flex items-center space-x-2 transition-colors"
             >
               <Icon name="Square" size={18} />
               <span>Stop</span>
+            </button>
+            
+            <button
+              onClick={() => {
+                completeTask(activeTask.id);
+                if (onTimerStateChange) onTimerStateChange();
+              }}
+              className="py-1.5 px-4 rounded-md bg-green-700 hover:bg-green-600 flex items-center space-x-2 transition-colors"
+            >
+              <Icon name="CheckSquare" size={18} />
+              <span>Complete</span>
             </button>
           </div>
         </div>

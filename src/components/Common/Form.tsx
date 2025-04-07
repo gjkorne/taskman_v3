@@ -26,7 +26,7 @@ const FormBase: React.FC<FormBaseProps> = ({
   const formClassName = cn(
     densityClasses.container,
     "bg-white rounded-lg",
-    fullWidth ? 'w-full' : 'max-w-2xl mx-auto',
+    fullWidth ? 'w-full' : 'max-w-5xl mx-auto',
     className
   );
 
