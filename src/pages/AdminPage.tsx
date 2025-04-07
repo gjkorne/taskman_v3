@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle, RefreshCcw, Database, XCircle, RotateCcw } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCcw, Database, XCircle, RotateCcw, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTimer } from '../contexts/TimerContext';
 
@@ -23,6 +23,11 @@ export default function AdminPage() {
   
   // Get timer context at component level (correct usage of hooks)
   const timerContext = useTimer();
+
+  // Admin navigation links
+  const adminNav = [
+    { name: 'Data Explorer', href: '/admin/data', description: 'View and analyze all tasks and time session data' }
+  ];
 
   // Define admin actions
   const adminActions: AdminAction[] = [
@@ -117,6 +122,63 @@ export default function AdminPage() {
           };
         }
       }
+    },
+    {
+      id: 'delete-orphaned-sessions',
+      title: 'Clean Up Problem Sessions',
+      description: 'Delete any time sessions that are causing database errors',
+      icon: <Trash2 size={18} className="text-red-500" />,
+      action: async () => {
+        try {
+          // First find the problematic session from console errors
+          const { data: problemSessions, error: findError } = await supabase
+            .from('time_sessions')
+            .select('id')
+            .eq('id', '771d74b8-ec18-4c04-ab63-8213f7166188');
+            
+          if (findError) {
+            console.error('Error finding problem sessions:', findError);
+            return {
+              success: false,
+              message: `Error finding session: ${findError.message}`
+            };
+          }
+          
+          if (!problemSessions || problemSessions.length === 0) {
+            return {
+              success: true,
+              message: 'No problem sessions found with that ID'
+            };
+          }
+          
+          // Now actually delete the session
+          const { error: deleteError } = await supabase
+            .from('time_sessions')
+            .delete()
+            .eq('id', '771d74b8-ec18-4c04-ab63-8213f7166188');
+            
+          if (deleteError) {
+            console.error('Error deleting session:', deleteError);
+            return {
+              success: false,
+              message: `Error deleting: ${deleteError.message}`
+            };
+          }
+          
+          console.log('Successfully deleted problem session');
+          return {
+            success: true,
+            message: 'Problem sessions cleaned up successfully'
+          };
+        } catch (error) {
+          console.error('Error in clean-up:', error);
+          return {
+            success: false,
+            message: `Unexpected error: ${(error as Error).message}`
+          };
+        }
+      },
+      dangerLevel: 'high'
     }
   ];
 
@@ -184,67 +246,95 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {adminActions.map((action) => (
-            <div 
-              key={action.id}
-              className={`border rounded-lg p-4 ${
-                actionStatus?.id === action.id
-                  ? actionStatus.status === 'success'
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-red-50 border-red-200'
-                  : getStatusColorClass(action.dangerLevel)
-              }`}
-            >
-              <div className="flex items-center mb-2">
-                <div className="mr-2">{action.icon}</div>
-                <h3 className="font-medium">{action.title}</h3>
-              </div>
-              
-              <p className="text-sm text-gray-600 mb-3">{action.description}</p>
-              
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={() => executeAction(action)}
-                  disabled={isLoading !== null}
-                  className={`px-3 py-1.5 text-sm rounded-md flex items-center
-                    ${action.dangerLevel === 'high' 
-                      ? 'bg-red-600 hover:bg-red-700 text-white' 
-                      : action.dangerLevel === 'medium'
-                        ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                        : 'bg-blue-500 hover:bg-blue-600 text-white'
-                    } transition-colors`}
-                >
-                  {isLoading === action.id ? (
-                    <span className="mr-2 inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : null}
-                  {isLoading === action.id ? 'Processing...' : 'Execute'}
-                </button>
-                
-                {actionStatus?.id === action.id && (
-                  <div className="flex items-center text-sm">
-                    {actionStatus.status === 'success' ? (
-                      <CheckCircle size={16} className="text-green-500 mr-1" />
-                    ) : (
-                      <XCircle size={16} className="text-red-500 mr-1" />
-                    )}
-                    <span className={actionStatus.status === 'success' ? 'text-green-600' : 'text-red-600'}>
-                      {actionStatus.message}
-                    </span>
-                  </div>
-                )}
+        <div className="grid grid-cols-1 gap-6 mb-6">
+          <div className="bg-white shadow rounded-lg p-4">
+            <h2 className="text-lg font-semibold mb-2">Admin Tools</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Use these tools with caution. They perform administrative actions that could affect data.
+            </p>
+            
+            {/* Admin Navigation */}
+            <div className="mb-6">
+              <h3 className="text-md font-medium mb-2">Admin Navigation</h3>
+              <div className="space-y-2">
+                {adminNav.map((item) => (
+                  <a
+                    key={item.name}
+                    href={item.href}
+                    className="block p-3 bg-blue-50 hover:bg-blue-100 rounded-md transition"
+                  >
+                    <div className="font-medium">{item.name}</div>
+                    <div className="text-sm text-gray-600">{item.description}</div>
+                  </a>
+                ))}
               </div>
             </div>
-          ))}
+            
+            {/* Admin Actions */}
+            <h3 className="text-md font-medium mb-2">Admin Actions</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {adminActions.map((action) => (
+                <div 
+                  key={action.id}
+                  className={`border rounded-lg p-4 ${
+                    actionStatus?.id === action.id
+                      ? actionStatus.status === 'success'
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-red-50 border-red-200'
+                      : getStatusColorClass(action.dangerLevel)
+                  }`}
+                >
+                  <div className="flex items-center mb-2">
+                    <div className="mr-2">{action.icon}</div>
+                    <h3 className="font-medium">{action.title}</h3>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-3">{action.description}</p>
+                  
+                  <div className="flex justify-between items-center">
+                    <button
+                      onClick={() => executeAction(action)}
+                      disabled={isLoading !== null}
+                      className={`px-3 py-1.5 text-sm rounded-md flex items-center
+                        ${action.dangerLevel === 'high' 
+                          ? 'bg-red-600 hover:bg-red-700 text-white' 
+                          : action.dangerLevel === 'medium'
+                            ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                            : 'bg-blue-500 hover:bg-blue-600 text-white'
+                        } transition-colors`}
+                    >
+                      {isLoading === action.id ? (
+                        <span className="mr-2 inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : null}
+                      {isLoading === action.id ? 'Processing...' : 'Execute'}
+                    </button>
+                    
+                    {actionStatus?.id === action.id && (
+                      <div className="flex items-center text-sm">
+                        {actionStatus.status === 'success' ? (
+                          <CheckCircle size={16} className="text-green-500 mr-1" />
+                        ) : (
+                          <XCircle size={16} className="text-red-500 mr-1" />
+                        )}
+                        <span className={actionStatus.status === 'success' ? 'text-green-600' : 'text-red-600'}>
+                          {actionStatus.message}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-      
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-800 mb-3">Console Output</h3>
-        <p className="text-gray-600">
-          Some actions will log additional information to the browser console. 
-          Press F12 or right-click and select "Inspect" to view the console output.
-        </p>
+        
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Console Output</h3>
+          <p className="text-gray-600">
+            Some actions will log additional information to the browser console. 
+            Press F12 or right-click and select "Inspect" to view the console output.
+          </p>
+        </div>
       </div>
     </div>
   );

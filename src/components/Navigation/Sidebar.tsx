@@ -1,12 +1,13 @@
-import { BarChart3, Calendar, Clock, List, Settings, AlertTriangle, X, ChevronLeft, ChevronRight, Home } from 'lucide-react';
+import { BarChart3, Calendar, Clock, List, Settings, AlertTriangle, X, ChevronLeft, ChevronRight, Home, Database } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useEffect, useState } from 'react';
 import { authService } from '../../services/api/authService';
 import { User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 
 // Types
-export type ViewType = 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar' | 'home';
+export type ViewType = 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar' | 'home' | 'admin-data';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -45,6 +46,7 @@ export function Sidebar({
   onToggleSidebar
 }: SidebarProps) {
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const navigate = useNavigate();
 
@@ -53,6 +55,17 @@ export function Sidebar({
       const { user, error } = await authService.getUser();
       if (user && !error) {
         setUser(user);
+        
+        // Check admin status in the database
+        const { data, error: roleError } = await supabase
+          .from('user_role_assignments')
+          .select('user_roles(name)')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (!roleError && data?.user_roles?.name === 'admin') {
+          setIsAdmin(true);
+        }
       }
     };
     fetchUser();
@@ -172,14 +185,23 @@ export function Sidebar({
               onClick={() => handleNavigation('reports', '/reports')}
             />
             
-            {user?.user_metadata?.is_admin && (
-              <NavItem 
-                icon={<AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />} 
-                label="Admin" 
-                active={activeView === 'admin'}
-                collapsed={isCollapsed}
-                onClick={() => handleNavigation('admin', '/admin')}
-              />
+            {isAdmin && (
+              <>
+                <NavItem 
+                  icon={<AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />} 
+                  label="Admin" 
+                  active={activeView === 'admin'}
+                  collapsed={isCollapsed}
+                  onClick={() => handleNavigation('admin', '/admin')}
+                />
+                <NavItem 
+                  icon={<Database className="w-4 h-4 sm:w-5 sm:h-5" />} 
+                  label="Data Explorer" 
+                  active={activeView === 'admin-data'}
+                  collapsed={isCollapsed}
+                  onClick={() => handleNavigation('admin-data', '/admin/data')}
+                />
+              </>
             )}
 
             <div className="mt-auto pt-2 sm:pt-4 border-t border-gray-200 mt-2 sm:mt-4">

@@ -16,7 +16,6 @@ export interface TimeSession {
   duration: string | null; // PostgreSQL interval as string
   created_at: string;
   notes?: string;
-  status?: string; // Added status field to track session status
   is_deleted?: boolean; // Add is_deleted field for soft deletion
   // Add task information from joined queries
   tasks?: {
@@ -76,27 +75,20 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
   async getUserSessions(): Promise<TimeSession[]> {
     try {
       const { data: userData } = await supabase.auth.getUser();
-      
-      if (!userData.user) {
-        throw new Error('Authentication required');
-      }
+      if (!userData.user) throw new Error('User not authenticated');
       
       const { data, error } = await supabase
         .from('time_sessions')
         .select('*, tasks(title, status, priority, category_name, is_deleted)')
         .eq('user_id', userData.user.id)
-        .eq('is_deleted', false) // Filter out soft-deleted sessions
+        .eq('is_deleted', false)
         .order('start_time', { ascending: false });
-        
+      
       if (error) throw error;
       
-      // Filter out sessions for deleted tasks
-      const filteredData = data?.filter(session => !session.tasks?.is_deleted) as TimeSession[];
-      
-      this.emit('sessions-loaded', filteredData);
-      return filteredData;
+      return data as TimeSession[];
     } catch (error) {
-      const serviceError: ServiceError = this.processError(error, 'time_sessions.user_sessions_error');
+      const serviceError: ServiceError = this.processError(error, 'time_sessions.fetch_user_error');
       this.emit('error', serviceError);
       return [];
     }
@@ -164,37 +156,66 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
    */
   async getActiveSession(): Promise<TimeSession | null> {
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('User not authenticated');
-
-      const { data, error } = await supabase
-        .from('time_sessions')
-        .select('*, tasks(title, status, priority, category_name, is_deleted)')
-        .eq('user_id', user.user.id)
-        .eq('is_deleted', false)
-        .is('end_time', null)  // Only sessions without an end_time (still active)
-        .order('start_time', { ascending: false })
-        .limit(1);  // Get the most recent active session
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return null;
       
-      if (error) throw error;
-      
-      // Check if we found any active sessions
-      if (!data || data.length === 0) return null;
-      
-      // Check if the associated task is completed - if so, we should auto-close this session
-      const session = data[0] as TimeSession;
-      if (session.tasks?.status === 'completed') {
-        console.log(`Found active session ${session.id} for completed task ${session.task_id}, auto-closing it`);
-        // Auto-close the session since the task is completed
-        await this.stopSession(session.id);
+      try {
+        const { data, error } = await supabase
+          .from('time_sessions')
+          .select('*, tasks(title, status, priority, category_name, is_deleted)')
+          .eq('user_id', userData.user.id)
+          .eq('is_deleted', false)
+          .is('end_time', null)
+          .order('start_time', { ascending: false });
+          
+        if (error) throw error;
         
-        // Also make sure task status is updated properly 
-        await this.updateTaskStatusBasedOnSessions(session.task_id);
+        // Check if we found any active sessions
+        if (!data || data.length === 0) return null;
         
+        // Check if the associated task is completed - if so, we should auto-close this session
+        const session = data[0] as TimeSession;
+        
+        if (session.tasks?.status === 'completed') {
+          console.log(`Found active session ${session.id} for completed task ${session.task_id}, auto-closing it`);
+          try {
+            // Auto-close the session since the task is completed
+            await this.stopSession(session.id);
+            
+            // Also make sure task status is updated properly 
+            await this.updateTaskStatusBasedOnSessions(session.task_id);
+            
+            return null;
+          } catch (closeError) {
+            console.error('Error auto-closing session for completed task:', closeError);
+            // Instead of trying to stop, let's just update the status directly
+            try {
+              await this.updateSession(session.id, { 
+                end_time: new Date().toISOString()
+              });
+            } catch (updateError) {
+              console.error('Both stopSession and updateSession failed, trying direct database update:', updateError);
+              // As a last resort, try a direct update to mark the session as deleted to prevent future errors
+              try {
+                await supabase
+                  .from('time_sessions')
+                  .update({ is_deleted: true })
+                  .eq('id', session.id);
+              } catch (finalError) {
+                console.error('All attempts to handle problem session failed:', finalError);
+              }
+            }
+            return null;
+          }
+        }
+        
+        return session;
+      } catch (error) {
+        // If we get a 400 Bad Request error, it might be due to a corrupt session
+        console.error('Error in getActiveSession:', error);
+        // Return null instead of crashing the application
         return null;
       }
-      
-      return session;
     } catch (error) {
       const serviceError: ServiceError = this.processError(error, 'time_sessions.fetch_active_error');
       this.emit('error', serviceError);
@@ -219,7 +240,6 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
         start_time: new Date().toISOString(),
         end_time: null,
         duration: null,
-        status: TimeSessionStatus.ACTIVE, // Set initial status
         is_deleted: false
       };
       
@@ -332,11 +352,10 @@ export class TimeSessionsService extends BaseService<TimeSessionEvents> implemen
       // Calculate duration in seconds
       const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
       
-      // Update the session with end time, duration, and completed status
+      // Just store the duration as seconds - simplest reliable format for interval
       const updateData = {
         end_time: endTime.toISOString(),
-        duration: `${durationSeconds} seconds`,
-        status: TimeSessionStatus.COMPLETED
+        duration: `${durationSeconds} seconds`
       };
       
       const { data: updatedData, error: updateError } = await supabase

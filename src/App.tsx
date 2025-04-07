@@ -8,6 +8,7 @@ import { Timer } from './components/Timer';
 import { ReportsPage } from './pages/ReportsPage';
 import SettingsPageWrapper from './pages/SettingsPageWrapper';
 import AdminPage from './pages/AdminPage';
+import AdminDataViewPage from './pages/AdminDataViewPage';
 import { TaskDetailsPage } from './pages/TaskDetailsPage';
 import { TimeSessionsPage } from './pages/TimeSessionsPage';
 import { CalendarPage } from './components/Calendar/CalendarPage';
@@ -74,7 +75,7 @@ function TaskDataRefresher({ children }: { children: React.ReactNode }) {
 // Layout wrapper that handles the activeView based on the current route
 function RouteBasedLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const [activeView, setActiveView] = useState<'tasks' | 'timer' | 'reports' | 'admin' | 'time-sessions' | 'calendar' | 'home' | 'settings'>('home');
+  const [activeView, setActiveView] = useState<'tasks' | 'timer' | 'reports' | 'admin' | 'admin-data' | 'time-sessions' | 'calendar' | 'home' | 'settings'>('home');
   const taskListRef = useRef<TaskListRefType>(null);
   
   // Update activeView based on the current route path
@@ -90,6 +91,8 @@ function RouteBasedLayout({ children }: { children: React.ReactNode }) {
       setActiveView('reports');
     } else if (path === '/admin') {
       setActiveView('admin');
+    } else if (path === '/admin/data') {
+      setActiveView('admin-data');
     } else if (path === '/time-sessions') {
       setActiveView('time-sessions');
     } else if (path === '/calendar') {
@@ -149,6 +152,10 @@ function RouteBasedLayout({ children }: { children: React.ReactNode }) {
             window.history.pushState({}, '', '/admin');
             setActiveView('admin');
             break;
+          case 'admin-data':
+            window.history.pushState({}, '', '/admin/data');
+            setActiveView('admin-data');
+            break;
           case 'time-sessions':
             window.history.pushState({}, '', '/time-sessions');
             setActiveView('time-sessions');
@@ -191,6 +198,9 @@ function RouteBasedLayout({ children }: { children: React.ReactNode }) {
             break;
           case 'admin':
             window.history.pushState({}, '', '/admin');
+            break;
+          case 'admin-data':
+            window.history.pushState({}, '', '/admin/data');
             break;
           case 'time-sessions':
             window.history.pushState({}, '', '/time-sessions');
@@ -408,6 +418,16 @@ function App() {
                                                 <ProtectedRoute>
                                                   <RouteBasedLayout>
                                                     <AdminPage />
+                                                  </RouteBasedLayout>
+                                                </ProtectedRoute>
+                                              }
+                                            />
+                                            <Route
+                                              path="/admin/data"
+                                              element={
+                                                <ProtectedRoute>
+                                                  <RouteBasedLayout>
+                                                    <AdminDataViewPage />
                                                   </RouteBasedLayout>
                                                 </ProtectedRoute>
                                               }
