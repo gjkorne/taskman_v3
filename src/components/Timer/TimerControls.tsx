@@ -62,7 +62,7 @@ const TimerControlButtons = ({
   onResume: () => void,
   onStop: () => void
 }) => (
-  <div className="flex space-x-1">
+  <div className="flex space-x-2">
     {isRunning ? (
       <TimerButton
         onClick={onPause}
@@ -199,13 +199,13 @@ export function TimerControls({
           "px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200",
           "text-blue-700 border border-blue-200",
           "focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-          "min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group",
+          "min-w-[10px] shadow-sm transition-all duration-200 hover:shadow group",
           className
         )}
         title="Start timing this task"
       >
         <Play size={16} className="mr-1.5 transition-transform group-hover:scale-110" />
-        Start Task
+        Start
       </button>
     );
   }
@@ -367,7 +367,7 @@ export function TimerControls({
       title="Start timing this task"
     >
       <Play size={16} className="mr-1.5 transition-transform group-hover:scale-110" />
-      Start Task
+      Start
     </button>
   );
 }

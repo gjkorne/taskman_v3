@@ -4,6 +4,7 @@ import { Box } from '../UI/base/Box';
 import { Button } from '../UI/base/Button';
 import { Task, TaskStatus } from '../../types/task';
 import { withDensity, WithDensityProps } from '../UI/hoc/withDensity';
+import { CompleteButton } from './TaskStatusButtons';
 
 /**
  * Props for the TaskCard component
@@ -42,15 +43,13 @@ const TaskCardBase: React.FC<TaskCardProps> = ({
   const headerActions = (
     <div className="task-card-actions">
       {!isCompleted && onComplete && (
-        <Button
-          onClick={() => onComplete(task.id)}
-          variant="success"
-          size="small"
-          title="Mark as complete"
-        >
-          Complete
-        </Button>
+        <CompleteButton
+          taskId={task.id}
+          status={task.status}
+          variant="compact"
+        />
       )}
+      
       {onEdit && (
         <Button
           onClick={() => onEdit(task.id)}
@@ -61,6 +60,7 @@ const TaskCardBase: React.FC<TaskCardProps> = ({
           Edit
         </Button>
       )}
+      
       {onDelete && (
         <Button
           onClick={() => onDelete(task.id)}
@@ -74,49 +74,30 @@ const TaskCardBase: React.FC<TaskCardProps> = ({
     </div>
   );
   
-  // Generate the priority badge with appropriate styling
-  const PriorityBadge = () => {
-    const priorityClass = `priority-badge priority-${task.priority.toLowerCase()}`;
-    
-    return (
-      <span className={priorityClass} style={{ padding: densitySpacing.padding }}>
-        {task.priority}
-      </span>
-    );
-  };
-  
-  // Generate status badge with appropriate styling
-  const StatusBadge = () => {
-    const statusClass = `status-badge status-${task.status.toLowerCase()}`;
-    
-    return (
-      <span className={statusClass} style={{ padding: densitySpacing.padding }}>
-        {task.status}
-      </span>
-    );
-  };
-  
   return (
     <Card
+      className={`task-card ${densityClass} ${isCompleted ? 'line-through text-gray-500' : ''}`}
+      style={cardStyle}
       title={task.title}
       headerActions={headerActions}
       bordered
       hoverable
-      className={`task-card ${isCompleted ? 'task-completed' : ''} ${densityClass}`}
-      elevation={1}
-      style={cardStyle}
     >
-      <Box className="task-card-content">
+      <Box
+        className={`task-content ${densityClass}`}
+        style={{ padding: densitySpacing.padding }}
+      >
         {task.description && (
-          <div className="task-description">
+          <div className={`task-description ${isCompleted ? 'text-gray-500' : ''}`}>
             {task.description}
           </div>
         )}
         
         <div className="task-metadata">
-          <div className="task-badges">
-            <PriorityBadge />
-            <StatusBadge />
+          <div className="task-status">
+            Status: <span className={`status-${task.status.toLowerCase()}`}>
+              {task.status}
+            </span>
           </div>
           
           {task.due_date && (
@@ -125,19 +106,9 @@ const TaskCardBase: React.FC<TaskCardProps> = ({
             </div>
           )}
           
-          {task.category_name && (
-            <div className="task-category">
-              Category: {task.category_name}
-            </div>
-          )}
-          
-          {task.tags && task.tags.length > 0 && (
-            <div className="task-tags">
-              {task.tags.map((tag, index) => (
-                <span key={index} className="task-tag">
-                  {tag}
-                </span>
-              ))}
+          {task.priority && (
+            <div className={`task-priority priority-${task.priority.toLowerCase()}`}>
+              Priority: {task.priority}
             </div>
           )}
         </div>

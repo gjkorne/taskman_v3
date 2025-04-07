@@ -12,7 +12,7 @@ import {
   TaskCreateDTO, 
   TaskUpdateDTO 
 } from '../../repositories/taskRepository';
-import { ServiceError } from '../BaseService';
+import { ServiceErrorImpl } from '../error/ServiceError';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -20,39 +20,71 @@ import { v4 as uuidv4 } from 'uuid';
  * This allows tests to control task behavior and verify task operations
  */
 export class MockTaskService implements ITaskService {
-  // In-memory task storage
   private tasks: Task[] = [];
+  private eventCallbacks: Map<string, Set<Function>> = new Map();
+  private _isOffline: boolean = false;
   
-  // Track method calls for assertions
-  methodCalls: Record<string, any[]> = {
+  // Track method calls for testing
+  methodCalls: {
+    getTasks: any[];
+    getTaskById: any[];
+    createTask: any[];
+    updateTask: any[];
+    deleteTask: any[];
+    completeTask: any[];
+    updateTaskStatus: any[];
+    getTasksByStatus: any[];
+    getTasksByProject: any[];
+    getTasksByCategory: any[];
+    getTasksForToday: any[];
+    getTasksForWeek: any[];
+    getFilteredTasks: any[];
+    on: any[];
+    off: any[];
+    emit: any[];
+    initialize: any[];
+    sync: any[];
+    forceRefresh: any[];
+    refreshTasks: any[];
+    startTask: any[];
+    [key: string]: any[]; // Add index signature
+  } = {
     getTasks: [],
     getTaskById: [],
     createTask: [],
     updateTask: [],
     deleteTask: [],
-    updateTaskStatus: [],
-    refreshTasks: [],
-    startTask: [],
     completeTask: [],
-    hasUnsyncedChanges: [],
-    syncChanges: [],
+    updateTaskStatus: [],
+    getTasksByStatus: [],
+    getTasksByProject: [],
+    getTasksByCategory: [],
+    getTasksForToday: [],
+    getTasksForWeek: [],
+    getFilteredTasks: [],
     on: [],
     off: [],
     emit: [],
-    initialize: []
+    initialize: [],
+    sync: [],
+    forceRefresh: [],
+    refreshTasks: [],
+    startTask: []
   };
   
   // Mock return values for various methods
-  mockReturnValues: Record<string, any> = {};
-  
-  // Event handlers
-  private eventHandlers: Partial<Record<keyof TaskServiceEvents, Array<(data: any) => void>>> = {};
-  
-  // Network status simulation
-  private _isOffline: boolean = false;
+  mockReturnValues: {
+    [key: string]: any;
+  } = {};
   
   // Sync status simulation
   private _hasUnsyncedChanges: boolean = false;
+  
+  // Simulated latency
+  private _simulatedLatency: number = 0;
+  
+  // Fail next operation
+  private _failNextOperation: boolean = false;
   
   /**
    * Create a new MockTaskService with optional initial tasks
@@ -65,13 +97,16 @@ export class MockTaskService implements ITaskService {
    * Initialize the service
    */
   async initialize(): Promise<void> {
+    // Nothing to do for the mock implementation
     this.methodCalls.initialize.push({});
-    
-    if (this.mockReturnValues.initialize instanceof Error) {
-      return Promise.reject(this.mockReturnValues.initialize);
-    }
-    
     return Promise.resolve();
+  }
+  
+  /**
+   * Check if there are unsynchronized changes
+   */
+  async hasUnsyncedChanges(): Promise<boolean> {
+    return this._hasUnsyncedChanges;
   }
   
   /**
@@ -79,6 +114,22 @@ export class MockTaskService implements ITaskService {
    */
   async getTasks(): Promise<Task[]> {
     this.methodCalls.getTasks.push({});
+    
+    // Simulate network latency
+    if (this._simulatedLatency > 0) {
+      await new Promise(resolve => setTimeout(resolve, this._simulatedLatency));
+    }
+    
+    // Emit loading event - use type assertion to avoid TypeScript error
+    this.emit('loading' as unknown as keyof TaskServiceEvents, true as any);
+    
+    // Fail if next operation should fail
+    if (this._failNextOperation) {
+      this._failNextOperation = false;
+      this.emit('loading' as unknown as keyof TaskServiceEvents, false as any);
+      this.emit('error', new ServiceErrorImpl('mock_error', 'Simulated task fetch error'));
+      throw new Error('Simulated task fetch error');
+    }
     
     if (this.mockReturnValues.getTasks instanceof Error) {
       return Promise.reject(this.mockReturnValues.getTasks);
@@ -89,7 +140,9 @@ export class MockTaskService implements ITaskService {
     }
     
     // Default behavior: return non-deleted tasks
-    return Promise.resolve(this.tasks.filter(task => !task.is_deleted));
+    const activeTasks = this.tasks.filter(task => !task.is_deleted);
+    this.emit('loading' as unknown as keyof TaskServiceEvents, false as any);
+    return [...activeTasks];
   }
   
   /**
@@ -102,11 +155,11 @@ export class MockTaskService implements ITaskService {
       return Promise.reject(this.mockReturnValues.getTaskById);
     }
     
-    if (this.mockReturnValues.getTaskById !== undefined) {
+    if (this.mockReturnValues.getTaskById) {
       return Promise.resolve(this.mockReturnValues.getTaskById);
     }
     
-    // Default behavior: find by ID
+    // Default behavior: find task by ID
     const task = this.tasks.find(t => t.id === id && !t.is_deleted);
     return Promise.resolve(task || null);
   }
@@ -117,38 +170,58 @@ export class MockTaskService implements ITaskService {
   async createTask(taskData: TaskCreateDTO): Promise<Task | null> {
     this.methodCalls.createTask.push({ taskData });
     
+    // Simulate network latency
+    if (this._simulatedLatency > 0) {
+      await new Promise(resolve => setTimeout(resolve, this._simulatedLatency));
+    }
+    
+    // Emit loading event
+    this.emit('loading' as unknown as keyof TaskServiceEvents, true as any);
+    
+    // Fail if next operation should fail
+    if (this._failNextOperation) {
+      this._failNextOperation = false;
+      this.emit('loading' as unknown as keyof TaskServiceEvents, false as any);
+      this.emit('error', new ServiceErrorImpl('mock_error', 'Simulated task creation error'));
+      throw new Error('Simulated task creation error');
+    }
+    
     if (this.mockReturnValues.createTask instanceof Error) {
       return Promise.reject(this.mockReturnValues.createTask);
     }
     
-    if (this.mockReturnValues.createTask !== undefined) {
+    if (this.mockReturnValues.createTask) {
       return Promise.resolve(this.mockReturnValues.createTask);
     }
     
     // Default behavior: create a new task
     const now = new Date().toISOString();
-    const newTask: Task = {
+    
+    // Create a new task with the data provided
+    // Map field names from TaskSubmitData to Task
+    const newTask = {
       id: uuidv4(),
       title: taskData.title,
       description: taskData.description || '',
       status: taskData.status || TaskStatus.PENDING,
       priority: taskData.priority || TaskPriority.MEDIUM,
-      due_date: taskData.due_date || null,
-      estimated_time: taskData.estimated_time || null,
+      // Map to database field names
+      due_date: taskData.dueDate || null,
+      estimated_time: taskData.estimatedTime || null,
       actual_time: null,
-      tags: taskData.tags || null,
+      tags: taskData.tags || [],
       created_at: now,
       updated_at: now,
-      created_by: 'mock-user',
-      is_deleted: false,
-      list_id: taskData.list_id || null,
-      category_name: taskData.category_name || null,
-      notes: taskData.notes || null,
-      checklist_items: taskData.checklist_items || null,
-      note_type: taskData.note_type || null,
+      created_by: taskData.created_by || 'mock-user',
+      is_deleted: taskData.isDeleted || false,
+      list_id: taskData.listId || null,
+      category_name: taskData.category || null,
+      // Use undefined instead of null for category to match Task type
+      category: taskData.category || undefined,
+      // Additional fields not in TaskSubmitData but required for the database
       _is_synced: !this._isOffline,
       _sync_status: this._isOffline ? 'pending' : 'synced'
-    };
+    } as Task;
     
     this.tasks.push(newTask);
     
@@ -161,7 +234,8 @@ export class MockTaskService implements ITaskService {
       this._hasUnsyncedChanges = true;
     }
     
-    return Promise.resolve(newTask);
+    this.emit('loading' as unknown as keyof TaskServiceEvents, false as any);
+    return newTask;
   }
   
   /**
@@ -170,11 +244,27 @@ export class MockTaskService implements ITaskService {
   async updateTask(id: string, taskData: TaskUpdateDTO): Promise<Task | null> {
     this.methodCalls.updateTask.push({ id, taskData });
     
+    // Simulate network latency
+    if (this._simulatedLatency > 0) {
+      await new Promise(resolve => setTimeout(resolve, this._simulatedLatency));
+    }
+    
+    // Emit loading event
+    this.emit('loading' as unknown as keyof TaskServiceEvents, true as any);
+    
+    // Fail if next operation should fail
+    if (this._failNextOperation) {
+      this._failNextOperation = false;
+      this.emit('loading' as unknown as keyof TaskServiceEvents, false as any);
+      this.emit('error', new ServiceErrorImpl('mock_error', 'Simulated task update error'));
+      throw new Error('Simulated task update error');
+    }
+    
     if (this.mockReturnValues.updateTask instanceof Error) {
       return Promise.reject(this.mockReturnValues.updateTask);
     }
     
-    if (this.mockReturnValues.updateTask !== undefined) {
+    if (this.mockReturnValues.updateTask) {
       return Promise.resolve(this.mockReturnValues.updateTask);
     }
     
@@ -182,16 +272,17 @@ export class MockTaskService implements ITaskService {
     const taskIndex = this.tasks.findIndex(t => t.id === id && !t.is_deleted);
     
     if (taskIndex === -1) {
+      this.emit('loading' as unknown as keyof TaskServiceEvents, false as any);
       return Promise.resolve(null);
     }
     
-    const updatedTask: Task = {
+    const updatedTask = {
       ...this.tasks[taskIndex],
       ...taskData,
       updated_at: new Date().toISOString(),
       _is_synced: !this._isOffline,
       _sync_status: this._isOffline ? 'pending' : 'synced'
-    };
+    } as Task;
     
     this.tasks[taskIndex] = updatedTask;
     
@@ -204,7 +295,8 @@ export class MockTaskService implements ITaskService {
       this._hasUnsyncedChanges = true;
     }
     
-    return Promise.resolve(updatedTask);
+    this.emit('loading' as unknown as keyof TaskServiceEvents, false as any);
+    return updatedTask;
   }
   
   /**
@@ -212,6 +304,22 @@ export class MockTaskService implements ITaskService {
    */
   async deleteTask(id: string): Promise<boolean> {
     this.methodCalls.deleteTask.push({ id });
+    
+    // Simulate network latency
+    if (this._simulatedLatency > 0) {
+      await new Promise(resolve => setTimeout(resolve, this._simulatedLatency));
+    }
+    
+    // Emit loading event
+    this.emit('loading' as unknown as keyof TaskServiceEvents, true as any);
+    
+    // Fail if next operation should fail
+    if (this._failNextOperation) {
+      this._failNextOperation = false;
+      this.emit('loading' as unknown as keyof TaskServiceEvents, false as any);
+      this.emit('error', new ServiceErrorImpl('mock_error', 'Simulated task delete error'));
+      throw new Error('Simulated task delete error');
+    }
     
     if (this.mockReturnValues.deleteTask instanceof Error) {
       return Promise.reject(this.mockReturnValues.deleteTask);
@@ -225,6 +333,7 @@ export class MockTaskService implements ITaskService {
     const taskIndex = this.tasks.findIndex(t => t.id === id && !t.is_deleted);
     
     if (taskIndex === -1) {
+      this.emit('loading' as unknown as keyof TaskServiceEvents, false as any);
       return Promise.resolve(false);
     }
     
@@ -234,7 +343,7 @@ export class MockTaskService implements ITaskService {
       updated_at: new Date().toISOString(),
       _is_synced: !this._isOffline,
       _sync_status: this._isOffline ? 'pending' : 'synced'
-    };
+    } as Task;
     
     // Emit task deleted event
     this.emit('task-deleted', id);
@@ -245,7 +354,8 @@ export class MockTaskService implements ITaskService {
       this._hasUnsyncedChanges = true;
     }
     
-    return Promise.resolve(true);
+    this.emit('loading' as unknown as keyof TaskServiceEvents, false as any);
+    return true;
   }
   
   /**
@@ -267,10 +377,15 @@ export class MockTaskService implements ITaskService {
   }
   
   /**
-   * Refresh all tasks from the data source
+   * Refresh tasks from the data source
    */
   async refreshTasks(): Promise<Task[]> {
     this.methodCalls.refreshTasks.push({});
+    
+    // Simulate network latency
+    if (this._simulatedLatency > 0) {
+      await new Promise(resolve => setTimeout(resolve, this._simulatedLatency));
+    }
     
     if (this.mockReturnValues.refreshTasks instanceof Error) {
       return Promise.reject(this.mockReturnValues.refreshTasks);
@@ -285,8 +400,9 @@ export class MockTaskService implements ITaskService {
     
     // Emit tasks loaded event
     this.emit('tasks-loaded', tasks);
+    this.emit('tasks-changed');
     
-    return Promise.resolve(tasks);
+    return tasks;
   }
   
   /**
@@ -308,7 +424,7 @@ export class MockTaskService implements ITaskService {
   }
   
   /**
-   * Complete a task (change status to COMPLETED)
+   * Mark a task as complete
    */
   async completeTask(id: string): Promise<Task | null> {
     this.methodCalls.completeTask.push({ id });
@@ -326,42 +442,192 @@ export class MockTaskService implements ITaskService {
   }
   
   /**
-   * Check if there are unsynchronized changes
+   * Get tasks by status
    */
-  async hasUnsyncedChanges(): Promise<boolean> {
-    this.methodCalls.hasUnsyncedChanges.push({});
+  async getTasksByStatus(status: TaskStatusType): Promise<Task[]> {
+    this.methodCalls.getTasksByStatus.push({ status });
     
-    if (this.mockReturnValues.hasUnsyncedChanges !== undefined) {
-      return Promise.resolve(this.mockReturnValues.hasUnsyncedChanges);
+    if (this.mockReturnValues.getTasksByStatus instanceof Error) {
+      return Promise.reject(this.mockReturnValues.getTasksByStatus);
     }
     
-    return Promise.resolve(this._hasUnsyncedChanges);
+    if (this.mockReturnValues.getTasksByStatus !== undefined) {
+      return Promise.resolve(this.mockReturnValues.getTasksByStatus);
+    }
+    
+    // Default behavior: filter by status
+    return this.tasks.filter(task => task.status === status && !task.is_deleted);
   }
   
   /**
-   * Synchronize local changes with remote storage
+   * Get tasks by project
    */
-  async syncChanges(): Promise<void> {
-    this.methodCalls.syncChanges.push({});
+  async getTasksByProject(projectId: string): Promise<Task[]> {
+    this.methodCalls.getTasksByProject.push({ projectId });
     
-    if (this.mockReturnValues.syncChanges instanceof Error) {
-      return Promise.reject(this.mockReturnValues.syncChanges);
+    if (this.mockReturnValues.getTasksByProject instanceof Error) {
+      return Promise.reject(this.mockReturnValues.getTasksByProject);
     }
     
-    // Default behavior: simulate sync
-    if (!this._isOffline) {
-      this._hasUnsyncedChanges = false;
-      
-      // Set all tasks as synced
-      this.tasks = this.tasks.map(task => ({
-        ...task,
-        _is_synced: true,
-        _sync_status: 'synced'
-      }));
+    if (this.mockReturnValues.getTasksByProject !== undefined) {
+      return Promise.resolve(this.mockReturnValues.getTasksByProject);
     }
     
-    return Promise.resolve();
+    // Default behavior: filter by project (using list_id)
+    return this.tasks.filter(task => task.list_id === projectId && !task.is_deleted);
   }
+  
+  /**
+   * Get tasks by category
+   */
+  async getTasksByCategory(categoryName: string): Promise<Task[]> {
+    this.methodCalls.getTasksByCategory.push({ categoryName });
+    
+    if (this.mockReturnValues.getTasksByCategory instanceof Error) {
+      return Promise.reject(this.mockReturnValues.getTasksByCategory);
+    }
+    
+    if (this.mockReturnValues.getTasksByCategory !== undefined) {
+      return Promise.resolve(this.mockReturnValues.getTasksByCategory);
+    }
+    
+    // Default behavior: filter by category
+    return this.tasks.filter(task => task.category_name === categoryName && !task.is_deleted);
+  }
+  
+  /**
+   * Get tasks due today
+   */
+  async getTasksForToday(): Promise<Task[]> {
+    this.methodCalls.getTasksForToday.push({});
+    
+    if (this.mockReturnValues.getTasksForToday instanceof Error) {
+      return Promise.reject(this.mockReturnValues.getTasksForToday);
+    }
+    
+    if (this.mockReturnValues.getTasksForToday !== undefined) {
+      return Promise.resolve(this.mockReturnValues.getTasksForToday);
+    }
+    
+    // Default behavior: filter by due date being today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    return this.tasks.filter(task => {
+      if (task.is_deleted || !task.due_date) return false;
+      
+      const dueDate = new Date(task.due_date);
+      return dueDate >= today && dueDate < tomorrow;
+    });
+  }
+  
+  /**
+   * Get tasks due this week
+   */
+  async getTasksForWeek(): Promise<Task[]> {
+    this.methodCalls.getTasksForWeek.push({});
+    
+    if (this.mockReturnValues.getTasksForWeek instanceof Error) {
+      return Promise.reject(this.mockReturnValues.getTasksForWeek);
+    }
+    
+    if (this.mockReturnValues.getTasksForWeek !== undefined) {
+      return Promise.resolve(this.mockReturnValues.getTasksForWeek);
+    }
+    
+    // Default behavior: filter by due date being this week
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const weekStart = new Date(today);
+    const day = weekStart.getDay();
+    const diff = weekStart.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+    weekStart.setDate(diff);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    
+    return this.tasks.filter(task => {
+      if (task.is_deleted || !task.due_date) return false;
+      
+      const dueDate = new Date(task.due_date);
+      return dueDate >= weekStart && dueDate < weekEnd;
+    });
+  }
+  
+  /**
+   * Filter tasks by criteria
+   */
+  async getFilteredTasks(criteria: any): Promise<Task[]> {
+    this.methodCalls.getFilteredTasks.push({ criteria });
+    
+    if (this.mockReturnValues.getFilteredTasks instanceof Error) {
+      return Promise.reject(this.mockReturnValues.getFilteredTasks);
+    }
+    
+    if (this.mockReturnValues.getFilteredTasks !== undefined) {
+      return Promise.resolve(this.mockReturnValues.getFilteredTasks);
+    }
+    
+    // Default behavior: apply filter criteria
+    return this.tasks.filter(task => {
+      if (task.is_deleted) return false;
+      
+      // Match each criterion
+      for (const [key, value] of Object.entries(criteria)) {
+        if (key === 'status' && task.status !== value) return false;
+        if (key === 'priority' && task.priority !== value) return false;
+        if (key === 'category' && task.category_name !== value) return false;
+        if (key === 'listId' && task.list_id !== value) return false;
+      }
+      
+      return true;
+    });
+  }
+  
+  /**
+   * Sync tasks with the remote storage
+   */
+  async sync(): Promise<void> {
+    this.methodCalls.sync.push({});
+    
+    if (this._failNextOperation) {
+      this._failNextOperation = false;
+      throw new Error('Simulated sync failure');
+    }
+    
+    // Simulate network delay
+    if (this._simulatedLatency > 0) {
+      await new Promise(resolve => setTimeout(resolve, this._simulatedLatency));
+    }
+    
+    this._hasUnsyncedChanges = false;
+    this._isOffline = false;
+  }
+  
+  /**
+   * Force a refresh of tasks from remote storage
+   */
+  async forceRefresh(): Promise<void> {
+    this.methodCalls.forceRefresh.push({});
+    
+    if (this._failNextOperation) {
+      this._failNextOperation = false;
+      throw new Error('Simulated refresh failure');
+    }
+    
+    // Simulate network delay
+    if (this._simulatedLatency > 0) {
+      await new Promise(resolve => setTimeout(resolve, this._simulatedLatency));
+    }
+    
+    // Emit tasks changed event
+    this.emit('tasks-changed');
+  }
+  
+  // Event handling methods
   
   /**
    * Subscribe to service events
@@ -372,11 +638,12 @@ export class MockTaskService implements ITaskService {
   ): () => void {
     this.methodCalls.on.push({ event, callback });
     
-    if (!this.eventHandlers[event]) {
-      this.eventHandlers[event] = [];
+    if (!this.eventCallbacks.has(event as string)) {
+      this.eventCallbacks.set(event as string, new Set());
     }
     
-    this.eventHandlers[event]!.push(callback);
+    const callbacks = this.eventCallbacks.get(event as string)!;
+    callbacks.add(callback as Function);
     
     // Return unsubscribe function
     return () => this.off(event, callback);
@@ -391,13 +658,15 @@ export class MockTaskService implements ITaskService {
   ): void {
     this.methodCalls.off.push({ event, callback });
     
-    if (!this.eventHandlers[event]) {
+    if (!this.eventCallbacks.has(event as string)) {
       return;
     }
     
-    const index = this.eventHandlers[event]!.indexOf(callback as any);
-    if (index !== -1) {
-      this.eventHandlers[event]!.splice(index, 1);
+    const callbacks = this.eventCallbacks.get(event as string)!;
+    callbacks.delete(callback as Function);
+    
+    if (callbacks.size === 0) {
+      this.eventCallbacks.delete(event as string);
     }
   }
   
@@ -410,19 +679,21 @@ export class MockTaskService implements ITaskService {
   ): void {
     this.methodCalls.emit.push({ event, data });
     
-    if (!this.eventHandlers[event]) {
+    if (!this.eventCallbacks.has(event as string)) {
       return;
     }
     
-    for (const handler of this.eventHandlers[event]!) {
+    const callbacks = this.eventCallbacks.get(event as string)!;
+    
+    for (const callback of callbacks) {
       try {
-        handler(data);
+        callback(data);
       } catch (error) {
         console.error(`Error in event handler for ${String(event)}:`, error);
         
-        // Emit error event
+        // Emit error event if this isn't already the error event
         if (event !== 'error') {
-          const serviceError = new ServiceError(
+          const serviceError = new ServiceErrorImpl(
             'event_handler_error',
             `Error in ${String(event)} event handler`,
             { originalError: error }
@@ -433,6 +704,8 @@ export class MockTaskService implements ITaskService {
     }
   }
   
+  // Test helper methods
+  
   /**
    * Simulate going offline
    */
@@ -441,10 +714,17 @@ export class MockTaskService implements ITaskService {
   }
   
   /**
-   * Simulate unsynchronized changes
+   * Simulate the next operation failing
    */
-  simulateUnsyncedChanges(hasChanges: boolean = true): void {
-    this._hasUnsyncedChanges = hasChanges;
+  simulateNextOperationFailing(): void {
+    this._failNextOperation = true;
+  }
+  
+  /**
+   * Set simulated network latency in milliseconds
+   */
+  setSimulatedLatency(latencyMs: number): void {
+    this._simulatedLatency = latencyMs;
   }
   
   /**
@@ -454,45 +734,14 @@ export class MockTaskService implements ITaskService {
     this.tasks = [...initialTasks];
     this._isOffline = false;
     this._hasUnsyncedChanges = false;
+    this._failNextOperation = false;
+    this._simulatedLatency = 0;
     this.mockReturnValues = {};
+    this.eventCallbacks.clear();
     
     // Reset method call tracking
     Object.keys(this.methodCalls).forEach(method => {
       this.methodCalls[method] = [];
     });
-    
-    // Clear event handlers
-    this.eventHandlers = {};
-  }
-  
-  /**
-   * Set a mock return value for a method
-   */
-  mockMethod(methodName: string, returnValue: any): void {
-    this.mockReturnValues[methodName] = returnValue;
-  }
-  
-  /**
-   * Simulate task error
-   */
-  simulateError(errorCode: string, message: string, context?: any): void {
-    const error = new ServiceError(errorCode, message, context);
-    this.emit('error', error);
-  }
-  
-  /**
-   * Helper to get tasks in a specific status
-   */
-  getTasksByStatus(status: TaskStatusType): Task[] {
-    return this.tasks.filter(task => 
-      task.status === status && !task.is_deleted
-    );
-  }
-  
-  /**
-   * Helper to set all tasks at once - useful for test setup
-   */
-  setTasks(tasks: Task[]): void {
-    this.tasks = [...tasks];
   }
 }
