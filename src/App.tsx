@@ -327,9 +327,9 @@ function App() {
               <AuthProvider>
                 <BrowserRouter>
                   <SettingsProvider>
-                    <SettingsDataProvider>
-                      <SettingsUIProvider>
-                        <UnifiedCategoryProvider>
+                    <UnifiedCategoryProvider>
+                      <SettingsDataProvider>
+                        <SettingsUIProvider>
                           <TaskProvider>
                             <FilterSortProvider>
                               <TaskDataRefresher>
@@ -474,9 +474,9 @@ function App() {
                               </TaskDataRefresher>
                             </FilterSortProvider>
                           </TaskProvider>
-                        </UnifiedCategoryProvider>
-                      </SettingsUIProvider>
-                    </SettingsDataProvider>
+                        </SettingsUIProvider>
+                      </SettingsDataProvider>
+                    </UnifiedCategoryProvider>
                   </SettingsProvider>
                 </BrowserRouter>
               </AuthProvider>

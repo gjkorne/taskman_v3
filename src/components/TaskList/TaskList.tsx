@@ -1,11 +1,10 @@
 import { forwardRef, useImperativeHandle, useEffect } from 'react';
 import { TaskContainer } from './TaskContainer';
 import { useTaskData, useTaskUI } from '../../contexts/task';
-import { QuickTaskEntry, TaskForm } from '../TaskForm';
+import { TaskForm } from '../TaskForm';
 import { FilterBar } from '../FilterBar';
 import { useFilterSort } from '../../contexts/filterSort';
 import { Portal } from '../UI/Portal';
-import { SearchPanel } from './SearchPanel';
 import { Task } from '../../types/task';
 
 // Define ref type for external access to TaskList methods
@@ -138,52 +137,36 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
   const groupedTasks = getGroupedTasks();
   const totalTaskCount = filteredTasks.length;
 
-  // Simple handler for task creation success
+  // Handle task creation/update success from TaskForm (used by Edit Modal)
   const handleTaskSuccess = () => {
-    refreshTasks();
+    console.log('Task operation success.');
+    refreshTasks(); // Refresh the list on success
+    closeEditModal(); // Close modal if it was an edit
   };
 
   // Show loading state
   if (isLoading && !isRefreshing) {
     return (
-      <div className="w-full mx-auto px-0 py-1 sm:px-6 sm:py-8 relative bg-gray-50">
-        <TaskContainer 
-          tasks={[]}
-          isLoading={true}
-          onEdit={openEditModal}
-          onDelete={openDeleteModal}
-          onTimerStateChange={onTimerStateChange}
-          viewMode={viewMode}
-          groupedTasks={null}
-        />
+      <div className="flex justify-center items-center h-full">
+        <p>Loading tasks...</p>
       </div>
     );
   }
 
   return (
     <div className="h-full flex flex-col">
-      {/* Search and filter section */}
-      <div className="sticky top-0 bg-gray-50 z-10 p-4 shadow-sm">
-        <SearchPanel />
-        
-        {/* Responsive filter bar - appears below search on mobile, beside on larger screens */}
-        <div className="mt-4">
-          <FilterBar 
-            showTaskCount={true}
-            taskCount={totalTaskCount}
-            filteredCount={groupedTasks ? Object.values(groupedTasks).reduce((count, tasks) => count + tasks.length, 0) : filteredTasks.length}
-          />
-        </div>
-        
-        {/* Mobile-only simple filter dropdown (legacy) */}
-        <div className="md:hidden mt-4">
-          {/* Additional mobile filters here if needed */}
-        </div>
+      {/* Search/Filter Section - Now at the top */}
+      <div className="sticky top-0 bg-white z-10 p-2 shadow-sm border-b border-gray-200"> 
+        <FilterBar 
+          showTaskCount={true}
+          taskCount={totalTaskCount}
+          filteredCount={groupedTasks ? Object.values(groupedTasks).reduce((count, tasks) => count + tasks.length, 0) : filteredTasks.length}
+        />
       </div>
-      
+        
       {/* Error state */}
       {error && (
-        <div className="bg-red-50 p-4 rounded-md border border-red-200 mt-4">
+        <div className="bg-red-50 p-4 rounded-md border border-red-200 mt-4 mx-4">
           <h3 className="text-red-800 font-medium">Error loading tasks</h3>
           <p className="text-red-600 mt-1 text-sm">{String(error)}</p>
           <button 
@@ -194,71 +177,52 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
           </button>
         </div>
       )}
-      
-      {/* Quick task creation */}
-      <div className="my-4 mx-4">
-        <QuickTaskEntry 
-          onTaskCreated={handleTaskSuccess}
-        />
-      </div>
-      
+        
       {/* Main content area with scrolling */}
       <div className="flex-1 overflow-auto px-4 pb-4">
+        {/* Task List Header */}
+        <div className="py-2 mb-2 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-800">Tasks</h2>
+          {/* Add view mode toggles or other controls here if needed */}
+        </div>
+
         {/* Task Container */}
         <TaskContainer 
           tasks={filteredTasks}
-          isLoading={isRefreshing}
+          isLoading={isLoading}
           onEdit={openEditModal}
           onDelete={openDeleteModal}
           onTimerStateChange={onTimerStateChange}
           viewMode={viewMode}
-          groupedTasks={groupBy && groupBy.field ? groupedTasks : null}
+          groupedTasks={groupedTasks}
         />
       </div>
-      
-      {/* Task Modals */}
+
+      {/* Edit Task Modal */}
       {isEditModalOpen && editTaskId && (
         <Portal>
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[1000] p-2">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-              <TaskForm 
-                taskId={editTaskId}
-                onCancel={closeEditModal}
-                onSuccess={handleTaskSuccess}
-                mode="edit"
-              />
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-start justify-center">
+            <div className="bg-white p-8 rounded-lg shadow-xl max-w-2xl w-full mx-4">
+              <h2 className="text-2xl font-bold mb-6">Edit Task</h2>
+              <TaskForm taskId={editTaskId} onSuccess={handleTaskSuccess} onCancel={closeEditModal} mode="edit" />
             </div>
           </div>
         </Portal>
       )}
 
-      {/* Delete confirmation modal */}
+      {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <Portal>
-          <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-[1000] p-2">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-              <div className="p-4">
-                <h2 className="text-xl font-semibold mb-1">Delete Task</h2>
-                <p className="text-gray-600 mb-4">Are you sure you want to delete this task? This action cannot be undone.</p>
-                <div className="flex space-x-2 justify-end">
-                  <button
-                    onClick={closeDeleteModal}
-                    className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmDelete}
-                    className="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+          {/* Simplified delete confirmation for brevity */}
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded shadow-lg">
+              <p>Are you sure you want to delete?</p>
+              <button onClick={confirmDelete}>Yes</button>
+              <button onClick={closeDeleteModal}>No</button>
             </div>
           </div>
         </Portal>
-        )}
+      )}
     </div>
   );
 });

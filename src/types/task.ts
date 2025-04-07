@@ -10,7 +10,8 @@ export enum TaskStatus {
   ARCHIVED = 'archived'
 }
 
-export type TaskStatusType = 'pending' | 'active' | 'paused' | 'completed' | 'archived';
+// Make this consistent with TaskForm/schema.ts which includes 'in_progress'
+export type TaskStatusType = 'pending' | 'active' | 'in_progress' | 'paused' | 'completed' | 'archived';
 
 /**
  * Task status options as an object for component usage

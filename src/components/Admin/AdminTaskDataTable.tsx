@@ -24,12 +24,16 @@ interface Task {
 
 export function AdminTaskDataTable() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [totalTasks, setTotalTasks] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [tasksPerPage, setTasksPerPage] = useState(10); // Default tasks per page
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<string>('updated_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'all' | 'my'>('all'); // 'all' or 'my'
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
   
   // List of all available task fields to display
@@ -55,21 +59,75 @@ export function AdminTaskDataTable() {
     fields.filter(field => field.display).map(field => field.id)
   );
   
-  // Fetch all tasks
+  // Fetch tasks with pagination, sorting, and filtering
   useEffect(() => {
     const fetchTasks = async () => {
       setLoading(true);
+      setError(null);
+      let currentUserId: string | null = null;
+
+      // Get user ID only if viewing 'my' tasks
+      if (viewMode === 'my') {
+        try {
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError) throw userError;
+          currentUserId = user?.id || null;
+          if (!currentUserId) {
+            throw new Error('Could not get user ID.');
+          }
+        } catch (err) {
+          console.error("Error getting user ID for 'My Tasks' view:", err);
+          setError(err instanceof Error ? err.message : 'Could not verify user.');
+          setTasks([]);
+          setTotalTasks(0);
+          setLoading(false);
+          return; // Stop fetching if user ID is required but unavailable
+        }
+      }
+      
+      // Calculate range for pagination
+      const from = (currentPage - 1) * tasksPerPage;
+      const to = from + tasksPerPage - 1;
+      
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('tasks')
-          .select('*')
-          .eq('is_deleted', false)
-          .order(sortField, { ascending: sortDirection === 'asc' });
+          .select('*', { count: 'exact' }); // Request total count
+          //.eq('is_deleted', false); // Assuming we always want non-deleted tasks
+
+        // Conditionally filter by user ID
+        if (viewMode === 'my' && currentUserId) {
+          query = query.eq('created_by', currentUserId);
+        }
+        
+        // Apply status filter
+        if (statusFilter !== 'all') {
+          query = query.eq('status', statusFilter);
+        }
+        
+        // Apply search term (across multiple fields)
+        if (searchTerm) {
+          const searchLower = `%${searchTerm.toLowerCase()}%`;
+          query = query.or(
+            `title.ilike.${searchLower},description.ilike.${searchLower},category_name.ilike.${searchLower}`
+            // Note: Filtering by tags directly in Supabase might require different approach
+            // if 'tags' is an array type. For now, searching text fields.
+          );
+        }
+        
+        // Apply sorting and pagination
+        query = query
+          .order(sortField, { ascending: sortDirection === 'asc' })
+          .range(from, to);
+        
+        const { data, error, count } = await query;
         
         if (error) throw error;
         
-        console.log('Tasks loaded:', data ? data.length : 0);
+        console.log('Tasks loaded:', data ? data.length : 0, 'Total:', count);
         setTasks(data || []);
+        setTotalTasks(count || 0);
+        
       } catch (err) {
         console.error('Error fetching tasks:', err);
         setError('Failed to load tasks. Please try again later.');
@@ -79,29 +137,10 @@ export function AdminTaskDataTable() {
     };
     
     fetchTasks();
-  }, [sortField, sortDirection]);
+  }, [viewMode, sortField, sortDirection, currentPage, tasksPerPage, searchTerm, statusFilter]); // Added viewMode dependency
   
-  // Filter and sort tasks
-  const filteredTasks = tasks
-    .filter(task => {
-      // Apply status filter
-      if (statusFilter !== 'all' && task.status !== statusFilter) {
-        return false;
-      }
-      
-      // Apply search term
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        return (
-          task.title?.toLowerCase().includes(searchLower) ||
-          task.description?.toLowerCase().includes(searchLower) ||
-          task.category_name?.toLowerCase().includes(searchLower) ||
-          (task.tags && task.tags.some(tag => tag.toLowerCase().includes(searchLower)))
-        );
-      }
-      
-      return true;
-    });
+  // Derived state for pagination
+  const totalPages = Math.ceil(totalTasks / tasksPerPage);
   
   // Toggle sort
   const handleSort = (field: string) => {
@@ -130,9 +169,10 @@ export function AdminTaskDataTable() {
       .map(field => field.label);
     
     // Create rows
-    const rows = filteredTasks.map(task => {
+    const rows = tasks.map(task => {
       return visibleFields.map(fieldId => {
         // Handle special cases
+        // TODO: Ensure filteredTasks is replaced by 'tasks' if client-side filtering is fully removed
         if (fieldId === 'tags' && Array.isArray(task[fieldId])) {
           return task[fieldId].join(', ');
         }
@@ -287,10 +327,28 @@ export function AdminTaskDataTable() {
             <span>Export</span>
           </button>
         </div>
+        
+        {/* View Mode Toggle */}
+        <div className="flex items-center border border-gray-300 rounded-md p-0.5">
+          <button
+            onClick={() => setViewMode('all')}
+            disabled={viewMode === 'all' || loading}
+            className={`px-3 py-1 text-sm rounded-md ${viewMode === 'all' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'} disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            All Tasks
+          </button>
+          <button
+            onClick={() => setViewMode('my')}
+            disabled={viewMode === 'my' || loading}
+            className={`px-3 py-1 text-sm rounded-md ${viewMode === 'my' ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-100'} disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            My Tasks
+          </button>
+        </div>
       </div>
       
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Table Wrapper for Horizontal Scroll */}
+      <div className="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -319,16 +377,18 @@ export function AdminTaskDataTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredTasks.length === 0 ? (
+            {tasks.length === 0 ? (
               <tr>
                 <td colSpan={visibleFields.length + 1} className="px-6 py-4 text-center text-gray-500">
                   No tasks found.
                 </td>
               </tr>
             ) : (
-              filteredTasks.map(task => (
+              tasks.map(task => (
                 <React.Fragment key={task.id}>
-                  <tr className={`hover:bg-gray-50 ${expandedTaskId === task.id ? 'bg-gray-50' : ''}`}>
+                  <tr 
+                    className={`hover:bg-gray-50 ${expandedTaskId === task.id ? 'bg-blue-50' : ''}`}
+                  >
                     <td className="px-6 py-4">
                       <button 
                         onClick={() => toggleTaskExpansion(task.id)}
@@ -369,8 +429,55 @@ export function AdminTaskDataTable() {
         </table>
       </div>
       
+      {/* Pagination Controls */}
+      <div className="mt-4 flex items-center justify-between px-2">
+        <div className="text-sm text-gray-700">
+          Showing{' '}
+          <span className="font-medium">{(currentPage - 1) * tasksPerPage + 1}</span>
+          {' '}to{' '}
+          <span className="font-medium">{Math.min(currentPage * tasksPerPage, totalTasks)}</span>
+          {' '}of{' '}
+          <span className="font-medium">{totalTasks}</span>
+          {' '}results
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1 || loading}
+            className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-500">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages || loading}
+            className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Next
+          </button>
+          {/* Optional: Tasks per page selector */}
+          <select 
+             value={tasksPerPage}
+             onChange={(e) => {
+               setTasksPerPage(Number(e.target.value));
+               setCurrentPage(1); // Reset to page 1 when changing page size
+             }}
+             disabled={loading}
+             className="px-2 py-1 text-sm border border-gray-300 rounded disabled:opacity-50"
+           >
+             <option value={10}>10 / page</option>
+             <option value={25}>25 / page</option>
+             <option value={50}>50 / page</option>
+             <option value={100}>100 / page</option>
+           </select>
+        </div>
+      </div>
+      
       <div className="p-4 border-t border-gray-200 text-sm text-gray-500">
-        {filteredTasks.length} tasks found
+        {tasks.length} tasks found
       </div>
     </div>
   );

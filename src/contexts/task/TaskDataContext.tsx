@@ -7,16 +7,17 @@ import { useToast } from '../../components/Toast/ToastContext';
 import { filterTasks } from '../../lib/taskUtils';
 import { TaskFilter, defaultFilters } from '../../components/TaskList/FilterPanel';
 import debugTaskStatuses from '../../utils/debug-task-statuses';
+import { useAuth } from '../../lib/auth';
 
 // Cache keys for React Query
 export const TASK_QUERY_KEYS = {
-  all: ['tasks'] as const,
-  lists: () => [...TASK_QUERY_KEYS.all, 'list'] as const,
-  list: (filters?: string) => [...TASK_QUERY_KEYS.lists(), filters] as const,
-  details: () => [...TASK_QUERY_KEYS.all, 'detail'] as const,
-  detail: (id: string) => [...TASK_QUERY_KEYS.details(), id] as const,
-  metrics: () => [...TASK_QUERY_KEYS.all, 'metrics'] as const,
-  metric: (name: string) => [...TASK_QUERY_KEYS.metrics(), name] as const,
+  all: (userId: string | null) => ['tasks', userId] as const,
+  lists: (userId: string | null) => [...TASK_QUERY_KEYS.all(userId), 'list'] as const,
+  list: (userId: string | null, filters?: string) => [...TASK_QUERY_KEYS.lists(userId), filters] as const,
+  details: (userId: string | null) => [...TASK_QUERY_KEYS.all(userId), 'detail'] as const,
+  detail: (userId: string | null, id: string) => [...TASK_QUERY_KEYS.details(userId), id] as const,
+  metrics: (userId: string | null) => [...TASK_QUERY_KEYS.all(userId), 'metrics'] as const,
+  metric: (userId: string | null, name: string) => [...TASK_QUERY_KEYS.metrics(userId), name] as const,
 };
 
 // Types for the data context
@@ -57,6 +58,10 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
   // Get query client from React Query
   const queryClient = useQueryClient();
   
+  // Get current user ID (assuming useAuth provides it)
+  const { user } = useAuth();
+  const userId = user?.id || null;
+
   // Search and filtering state
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<TaskFilter>(defaultFilters);
@@ -77,8 +82,14 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     refetch,
     isRefetching: isRefreshing
   } = useQuery({
-    queryKey: TASK_QUERY_KEYS.list(JSON.stringify(filters)),
+    // Include userId in the query key
+    queryKey: TASK_QUERY_KEYS.list(userId, JSON.stringify(filters)),
     queryFn: async () => {
+      // Guard against fetching if userId is not available (e.g., logged out)
+      if (!userId) {
+        console.log('No user ID available, skipping task fetch.');
+        return []; // Return empty array if not logged in
+      }
       try {
         const tasks = await taskService.getTasks();
         return tasks;
@@ -94,6 +105,7 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
+    enabled: !!userId, // Only run the query if userId exists
   });
   
   // Error state handling
@@ -106,12 +118,12 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     onSuccess: (updatedTask) => {
       // Only proceed if we have a valid task returned
       if (updatedTask) {
-        // Invalidate affected queries
-        queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.lists() });
+        // Invalidate affected queries using userId
+        queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.lists(userId) });
         
-        // Optimistically update the cache for better UX
+        // Optimistically update the cache for better UX using userId
         queryClient.setQueryData(
-          TASK_QUERY_KEYS.detail(updatedTask.id),
+          TASK_QUERY_KEYS.detail(userId, updatedTask.id),
           updatedTask
         );
         
@@ -128,11 +140,11 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
   const deleteTaskMutation = useMutation({
     mutationFn: (taskId: string) => taskService.deleteTask(taskId),
     onSuccess: (_, taskId) => {
-      // Invalidate affected queries
-      queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.lists() });
+      // Invalidate affected queries using userId
+      queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.lists(userId) });
       
-      // Optimistically remove from cache
-      queryClient.removeQueries({ queryKey: TASK_QUERY_KEYS.detail(taskId) });
+      // Optimistically remove from cache using userId
+      queryClient.removeQueries({ queryKey: TASK_QUERY_KEYS.detail(userId, taskId) });
       
       // Show success toast
       addToast('Task deleted successfully', 'success');
@@ -149,8 +161,8 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
       await taskService.sync();
       setHasPendingChanges(false);
       
-      // Refetch after sync to get the latest data
-      await queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
+      // Refetch after sync to get the latest data using userId
+      await queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all(userId) });
       
       addToast('Tasks synchronized successfully', 'success');
     } catch (error) {
@@ -159,7 +171,7 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsSyncing(false);
     }
-  }, [taskService, queryClient, addToast]);
+  }, [taskService, queryClient, addToast, userId]);
   
   // Helper function to fetch tasks (just triggers refetch)
   const fetchTasks = useCallback(async (): Promise<void> => {

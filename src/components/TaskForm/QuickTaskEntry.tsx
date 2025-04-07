@@ -86,44 +86,8 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
 
   return (
     <form className="w-full" onSubmit={handleSubmit}>
-      {/* Category Radio Buttons */}
-      {settings.quickTaskCategories.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          <div className="w-full mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Choose category:</h3>
-          </div>
-          {settings.quickTaskCategories.map(category => (
-            <label 
-              key={category}
-              className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
-                selectedCategory === category 
-                  ? 'bg-opacity-10 border-opacity-50' 
-                  : 'bg-white border-gray-200 hover:bg-gray-50'
-              }`}
-              style={{
-                backgroundColor: selectedCategory === category ? `${getCategoryColor(category)}20` : '',
-                borderColor: selectedCategory === category ? getCategoryColor(category) : ''
-              }}
-            >
-              <input
-                type="radio"
-                name="quick-category"
-                value={category}
-                checked={selectedCategory === category}
-                onChange={() => setSelectedCategory(category)}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
-              />
-              <span 
-                className="inline-block w-3 h-3 rounded-full mr-2"
-                style={{ backgroundColor: getCategoryColor(category) }}
-              ></span>
-              <span className="text-sm font-medium capitalize">{category}</span>
-            </label>
-          ))}
-        </div>
-      )}
-
-      <div className="flex items-center">
+      {/* Task Input Section */}
+      <div className="flex items-center mb-3">
         {/* Mobile: Large prominent icon */}
         <div className="md:hidden flex justify-center w-full py-2">
           <button
@@ -164,6 +128,43 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
           Add Task
         </button>
       </div>
+
+      {/* Category Radio Buttons */}
+      {settings.quickTaskCategories.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <div className="w-full mb-2">
+            <h3 className="text-sm font-medium text-gray-600">Choose category:</h3>
+          </div>
+          {settings.quickTaskCategories.map(category => (
+            <label 
+              key={category}
+              className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
+                selectedCategory === category 
+                  ? 'bg-opacity-10 border-opacity-50' 
+                  : 'bg-white border-gray-200 hover:bg-gray-50'
+              }`}
+              style={{
+                backgroundColor: selectedCategory === category ? `${getCategoryColor(category)}20` : '',
+                borderColor: selectedCategory === category ? getCategoryColor(category) : ''
+              }}
+            >
+              <input
+                type="radio"
+                name="quick-category"
+                value={category}
+                checked={selectedCategory === category}
+                onChange={() => setSelectedCategory(category)}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
+              />
+              <span 
+                className="inline-block w-3 h-3 rounded-full mr-2"
+                style={{ backgroundColor: getCategoryColor(category) }}
+              ></span>
+              <span className="text-sm font-medium capitalize">{category}</span>
+            </label>
+          ))}
+        </div>
+      )}
     </form>
   );
 }

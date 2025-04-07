@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle, RefreshCcw, Database, XCircle, RotateCcw, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCcw, Database, XCircle, RotateCcw, Trash2, Calendar, BarChart3 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTimer } from '../contexts/TimerContext';
+import { Link } from 'react-router-dom';
 
 interface AdminAction {
   id: string;
@@ -26,7 +27,9 @@ export default function AdminPage() {
 
   // Admin navigation links
   const adminNav = [
-    { name: 'Data Explorer', href: '/admin/data', description: 'View and analyze all tasks and time session data' }
+    { name: 'Data Explorer', href: '/admin/data', description: 'View and analyze all tasks and time session data', icon: <Database size={24} className="text-indigo-600" /> },
+    { name: 'Calendar View', href: '/calendar', description: 'View tasks and sessions on a calendar', icon: <Calendar size={24} className="text-purple-600" /> },
+    { name: 'Reports', href: '/reports', description: 'Visualize task completion and time tracking data', icon: <BarChart3 size={24} className="text-green-600" /> },
   ];
 
   // Define admin actions
@@ -258,14 +261,17 @@ export default function AdminPage() {
               <h3 className="text-md font-medium mb-2">Admin Navigation</h3>
               <div className="space-y-2">
                 {adminNav.map((item) => (
-                  <a
+                  <Link 
                     key={item.name}
-                    href={item.href}
-                    className="block p-3 bg-blue-50 hover:bg-blue-100 rounded-md transition"
+                    to={item.href}
+                    className="group block p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow duration-200 hover:border-indigo-300"
                   >
-                    <div className="font-medium">{item.name}</div>
-                    <div className="text-sm text-gray-600">{item.description}</div>
-                  </a>
+                    <div className="flex items-center mb-2">
+                      <div className="mr-3 flex-shrink-0">{item.icon}</div>
+                      <h3 className="text-lg font-medium text-gray-800 group-hover:text-indigo-600">{item.name}</h3>
+                    </div>
+                    <p className="text-sm text-gray-600">{item.description}</p>
+                  </Link>
                 ))}
               </div>
             </div>

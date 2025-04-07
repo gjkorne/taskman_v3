@@ -1,5 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
 import { userPreferencesService } from '../../services/userPreferencesService';
+// Import hooks for category data and toast notifications
+import { useCategoryData } from '../category/CategoryDataContext'; 
+import { useToast } from '../../components/Toast';
 
 // Define the shape of our settings
 export interface Settings {
@@ -54,6 +57,11 @@ export const SettingsDataProvider = ({ children }: SettingsDataProviderProps) =>
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  
+  // Get category data and loading state
+  const { categories, isLoading: categoriesLoading } = useCategoryData();
+  // Get toast function
+  const { addToast } = useToast();
 
   // Load settings from database on initial render
   useEffect(() => {
@@ -98,6 +106,36 @@ export const SettingsDataProvider = ({ children }: SettingsDataProviderProps) =>
 
   // Update a single setting
   const updateSetting = <K extends keyof Settings>(key: K, value: Settings[K]) => {
+    
+    // --- Category Visibility Validation --- START
+    if (!categoriesLoading && (key === 'hideDefaultCategories' || key === 'hiddenCategories')) {
+      const currentHideDefaults = settings.hideDefaultCategories;
+      const currentHiddenCustom = settings.hiddenCategories;
+      const allCustomCategoryIds = categories.map(cat => cat.id);
+
+      let potentialHideDefaults = currentHideDefaults;
+      let potentialHiddenCustom = [...currentHiddenCustom]; // Clone the array
+
+      if (key === 'hideDefaultCategories') {
+        potentialHideDefaults = value as boolean;
+      } else { // key === 'hiddenCategories'
+        potentialHiddenCustom = value as string[];
+      }
+      
+      // Check if *all* categories would be hidden
+      const allCustomHidden = allCustomCategoryIds.length > 0 && 
+                              potentialHiddenCustom.length === allCustomCategoryIds.length &&
+                              allCustomCategoryIds.every(id => potentialHiddenCustom.includes(id));
+                              
+      // Prevent update if trying to hide defaults AND (all custom are also hidden OR there are no custom categories)
+      if (potentialHideDefaults && (allCustomHidden || allCustomCategoryIds.length === 0)) {
+        addToast('Cannot hide all categories. At least one category (default or custom) must remain visible.', 'warning');
+        return; // Prevent the update
+      }
+    }
+    // --- Category Visibility Validation --- END
+    
+    // Proceed with the update if validation passed
     setSettings(prevSettings => ({
       ...prevSettings,
       [key]: value

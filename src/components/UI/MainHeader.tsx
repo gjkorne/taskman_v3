@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../lib/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useRefresh } from '../../contexts/RefreshContext';
 
 interface MainHeaderProps {
@@ -49,10 +49,10 @@ export function MainHeader({ onToggleSidebar }: MainHeaderProps) {
       <div className="container mx-auto px-4 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            {/* Hamburger menu for mobile */}
+            {/* Hamburger menu for mobile/tablet - hide on large screens */}
             <button 
               onClick={onToggleSidebar}
-              className="md:hidden mr-4 p-1.5 rounded hover:bg-taskman-blue-600 transition duration-250 flex items-center justify-center"
+              className="lg:hidden mr-4 p-1.5 rounded hover:bg-taskman-blue-600 transition duration-250 flex items-center justify-center"
               aria-label="Toggle navigation menu"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,7 +60,10 @@ export function MainHeader({ onToggleSidebar }: MainHeaderProps) {
               </svg>
             </button>
             
-            <div className="text-3xl font-bold mr-8">TaskMan</div>
+            {/* Wrap TaskMan title with a Link to home */}
+            <Link to="/" className="text-3xl font-bold mr-8 hover:text-gray-200 transition duration-150">
+              TaskMan
+            </Link>
             <nav className="hidden md:flex space-x-4">
             </nav>
           </div>

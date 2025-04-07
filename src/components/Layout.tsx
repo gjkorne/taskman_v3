@@ -90,16 +90,6 @@ export function Layout({
         {/* Main Content */}
         <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none">
           <div className="py-2">
-            {/* Mobile header with menu button only */}
-            <div className="md:hidden px-4 mb-3 flex items-center">
-              <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none"
-                aria-label="Open sidebar"
-              >
-                <Icon name="Menu" size={24} />
-              </button>
-            </div>
             
             {/* Main content area */}
             <div className="px-4 sm:px-6 md:px-8">

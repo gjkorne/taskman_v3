@@ -28,7 +28,6 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
   onCustomCategorySelect,
   disabled = false,
   error,
-  required = false,
   className = ''
 }) => {
   const { categories } = useCategories();
@@ -126,9 +125,10 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      {/* The label is now provided by the parent FormGroup */}
+      {/* <label className="block text-sm font-medium text-gray-700 mb-1">
         Category {required && <span className="text-red-500">*</span>}
-      </label>
+      </label> */}
       
       {/* Radio button options for main categories */}
       <div className="flex flex-row gap-3 mb-3">

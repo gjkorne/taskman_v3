@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, Clock, List, Settings, AlertTriangle, X, ChevronLeft, ChevronRight, Home, Database } from 'lucide-react';
+import { Clock, List, Settings, AlertTriangle, X, ChevronLeft, ChevronRight, Home, Database } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useEffect, useState } from 'react';
 import { authService } from '../../services/api/authService';
@@ -155,35 +155,11 @@ export function Sidebar({
             />
             
             <NavItem 
-              icon={<Calendar className="w-4 h-4 sm:w-5 sm:h-5" />} 
-              label="Calendar" 
-              active={activeView === 'calendar'}
-              collapsed={isCollapsed}
-              onClick={() => handleNavigation('calendar', '/calendar')}
-            />
-            
-            <NavItem 
-              icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5" />} 
-              label="Timer" 
-              active={activeView === 'timer'}
-              collapsed={isCollapsed}
-              onClick={() => handleNavigation('timer', '/timer')}
-            />
-            
-            <NavItem 
               icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5" />} 
               label="Time Sessions" 
               active={activeView === 'time-sessions'}
               collapsed={isCollapsed}
               onClick={() => handleNavigation('time-sessions', '/time-sessions')}
-            />
-            
-            <NavItem 
-              icon={<BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />} 
-              label="Reports" 
-              active={activeView === 'reports'}
-              collapsed={isCollapsed}
-              onClick={() => handleNavigation('reports', '/reports')}
             />
             
             {isAdmin && (
