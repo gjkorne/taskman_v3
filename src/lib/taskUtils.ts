@@ -156,11 +156,12 @@ function taskMatchesSearch(task: Task, searchQuery: string = ''): boolean {
  */
 export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: string = ''): Task[] {
   // IMPORTANT: Always extract active tasks first so they're always visible
+  // Active tasks = currently being timed
   const activeTasks = tasks.filter(task => task.status === 'active');
-  const otherTasks = tasks.filter(task => task.status !== 'active');
+  const nonActiveTasks = tasks.filter(task => task.status !== 'active');
   
-  // Filter the non-active tasks
-  const filteredOtherTasks = otherTasks.filter(task => {
+  // Filter the non-active tasks (including in_progress tasks)
+  const filteredNonActiveTasks = nonActiveTasks.filter(task => {
     // Search query filter
     if (!taskMatchesSearch(task, searchQuery)) {
       if (DEBUG_FILTERING) console.log('Filtering out task:', task.id, 'due to search query mismatch');
@@ -203,10 +204,17 @@ export function filterTasks(tasks: Task[], filters: TaskFilter, searchQuery: str
     return true;
   });
 
-  // Combine active tasks with filtered other tasks
-  const combinedTasks = [...activeTasks, ...filteredOtherTasks];
+  // Combine active tasks with filtered non-active tasks
+  const combinedTasks = [...activeTasks, ...filteredNonActiveTasks];
   if (DEBUG_FILTERING) {
-    console.log('Active tasks:', activeTasks.length, 'Filtered other tasks:', filteredOtherTasks.length);
+    console.log('Active tasks:', activeTasks.length, 'Filtered non-active tasks:', filteredNonActiveTasks.length);
+    
+    // Log tasks by status for debugging
+    const statusCounts = {} as Record<string, number>;
+    filteredNonActiveTasks.forEach(task => {
+      statusCounts[task.status] = (statusCounts[task.status] || 0) + 1;
+    });
+    console.log('Non-active tasks by status:', statusCounts);
   }
   
   return combinedTasks;

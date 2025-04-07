@@ -6,6 +6,7 @@ import { ServiceRegistry } from '../../services/ServiceRegistry';
 import { useToast } from '../../components/Toast/ToastContext';
 import { filterTasks } from '../../lib/taskUtils';
 import { TaskFilter, defaultFilters } from '../../components/TaskList/FilterPanel';
+import debugTaskStatuses from '../../utils/debug-task-statuses';
 
 // Cache keys for React Query
 export const TASK_QUERY_KEYS = {
@@ -215,10 +216,13 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
   }, []);
   
   // Derived state - filtered and sorted tasks - using useMemo to prevent unnecessary recalculations
-  const filteredTasks = useMemo(() => 
-    filterTasks(tasks, filters, searchQuery),
-    [tasks, filters, searchQuery]
-  );
+  const filteredTasks = useMemo(() => {
+    // Run debug utility to check status counts
+    if (tasks.length > 0) {
+      debugTaskStatuses(tasks, filters, searchQuery);
+    }
+    return filterTasks(tasks, filters, searchQuery);
+  }, [tasks, filters, searchQuery]);
   
   // Context value - memoized to prevent unnecessary re-renders
   const value = useMemo<TaskDataContextType>(() => ({

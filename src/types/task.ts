@@ -72,6 +72,9 @@ export interface Task {
   is_deleted: boolean;
   list_id: string | null;
   category_name: string | null;
+  category?: string; // Alias for category_name for backward compatibility
+  last_active_at?: string | null; // When the task was last interacted with
+  last_timer_stop?: string | null; // When the timer was last stopped for this task
   
   // Notes and checklist fields - these can co-exist now
   notes: any | null;              // JSONB in database - stores rich text notes
