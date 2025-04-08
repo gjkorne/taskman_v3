@@ -63,4 +63,21 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id: string): string | undefined => {
+          // Group node_modules dependencies into a vendor chunk
+          if (id.includes('node_modules')) {
+            // You could add more specific chunking here if needed, 
+            // e.g., separate large libraries like react, react-dom
+            // For now, a single vendor chunk is usually sufficient.
+            return 'vendor';
+          }
+        },
+      },
+    },
+    // Optional: Increase the warning limit if the vendor chunk is expected to be large
+    // chunkSizeWarningLimit: 1000, 
+  },
 });

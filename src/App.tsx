@@ -1,19 +1,12 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/Auth/AuthProvider';
-import { LoginForm } from './components/Auth/LoginForm';
+import { LoginForm } from './components/Auth/LoginForm'; 
 import { RegisterForm } from './components/Auth/RegisterForm';
-import { TaskList, TaskListRefType } from './components/TaskList';
-import { Timer } from './components/Timer';
-import { ReportsPage } from './pages/ReportsPage';
-import SettingsPageWrapper from './pages/SettingsPageWrapper';
-import AdminPage from './pages/AdminPage';
-import AdminDataViewPage from './pages/AdminDataViewPage';
-import { TaskDetailsPage } from './pages/TaskDetailsPage';
-import { TimeSessionsPage } from './pages/TimeSessionsPage';
-import { CalendarPage } from './components/Calendar/CalendarPage';
-import HomePage from './pages/HomePage';
 import { useAuth } from './lib/auth';
+
+import type { TaskListRefType } from './components/TaskList';
+
 import { TimeSessionProvider } from './contexts/timeSession';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { TaskProvider } from './contexts/task';
@@ -321,6 +314,27 @@ function App() {
     console.log('Tasks refresh triggered via global refresh button');
   };
 
+  // Lazy load page components - MUST be declared at the top level
+  const HomePage = lazy(() => import('./pages/HomePage'));
+  const TaskListComponent = lazy(() => import('./components/TaskList').then(module => ({ default: module.TaskList })) ); 
+  const TimerComponent = lazy(() => import('./components/Timer').then(module => ({ default: module.Timer })) ); 
+  const ReportsPageComponent = lazy(() => import('./pages/ReportsPage').then(module => ({ default: module.ReportsPage })) ); 
+  const SettingsPageWrapper = lazy(() => import('./pages/SettingsPageWrapper'));
+  const AdminPageComponent = lazy(() => import('./pages/AdminPage')); 
+  const AdminDataViewPageComponent = lazy(() => import('./pages/AdminDataViewPage')); 
+  const TaskDetailsPageComponent = lazy(() => import('./pages/TaskDetailsPage').then(module => ({ default: module.TaskDetailsPage })) ); 
+  const TimeSessionsPageComponent = lazy(() => import('./pages/TimeSessionsPage').then(module => ({ default: module.TimeSessionsPage })) ); 
+  const CalendarPageComponent = lazy(() => import('./components/Calendar/CalendarPage').then(module => ({ default: module.CalendarPage })) );
+
+  function LoadingFallback() {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="ml-4 text-gray-600">Loading page...</div>
+      </div>
+    );
+  }
+
   return (
     <NetworkStatusProvider>
       <QueryProvider>
@@ -347,131 +361,134 @@ function App() {
                                           <ProtectedRoute>
                                             <AppInitializer />
                                           </ProtectedRoute>
-                                          <Routes>
-                                            {/* Authentication Routes */}
-                                            <Route path="/login" element={<LoginForm />} />
-                                            <Route path="/register" element={<RegisterForm />} />
-                                            
-                                            {/* Settings Route */}
-                                            <Route path="/settings" element={
-                                              <ProtectedRoute>
-                                                <RouteBasedLayout>
-                                                  <SettingsPageWrapper />
-                                                </RouteBasedLayout>
-                                              </ProtectedRoute>
-                                            } />
-                                            
-                                            {/* Task Details Route */}
-                                            <Route 
-                                              path="/tasks/:taskId" 
-                                              element={
-                                                <ProtectedRoute>
-                                                  <TaskDetailsPage />
-                                                </ProtectedRoute>
-                                              } 
-                                            />
-                                            
-                                            {/* Task Edit Route */}
-                                            <Route 
-                                              path="/tasks/edit/:taskId" 
-                                              element={
-                                                <ProtectedRoute>
-                                                  <TaskDetailsPage isEditMode={true} />
-                                                </ProtectedRoute>
-                                              } 
-                                            />
-                                            
-                                            {/* Legacy URL redirects */}
-                                            <Route 
-                                              path="/app/task/:taskId" 
-                                              element={<RedirectWithParams newPathPattern="/tasks/:taskId" />}
-                                            />
-                                            
-                                            {/* Main App Routes */}
-                                            <Route
-                                              path="/"
-                                              element={
+                                          {/* Wrap Routes with Suspense for lazy loading */}
+                                          <Suspense fallback={<LoadingFallback />}>
+                                            <Routes>
+                                              {/* Authentication Routes */}
+                                              <Route path="/login" element={<LoginForm />} />
+                                              <Route path="/register" element={<RegisterForm />} />
+                                              
+                                              {/* Settings Route */}
+                                              <Route path="/settings" element={
                                                 <ProtectedRoute>
                                                   <RouteBasedLayout>
-                                                    <HomePage />
+                                                    <SettingsPageWrapper />
                                                   </RouteBasedLayout>
                                                 </ProtectedRoute>
-                                              }
-                                            />
-                                            <Route
-                                              path="/tasks"
-                                              element={
-                                                <ProtectedRoute>
-                                                  <RouteBasedLayout>
-                                                    <TaskList ref={taskListRef} />
-                                                  </RouteBasedLayout>
-                                                </ProtectedRoute>
-                                              }
-                                            />
-                                            <Route
-                                              path="/timer"
-                                              element={
-                                                <ProtectedRoute>
-                                                  <RouteBasedLayout>
-                                                    <Timer />
-                                                  </RouteBasedLayout>
-                                                </ProtectedRoute>
-                                              }
-                                            />
-                                            <Route
-                                              path="/reports"
-                                              element={
-                                                <ProtectedRoute>
-                                                  <RouteBasedLayout>
-                                                    <ReportsPage />
-                                                  </RouteBasedLayout>
-                                                </ProtectedRoute>
-                                              }
-                                            />
-                                            <Route
-                                              path="/admin"
-                                              element={
-                                                <ProtectedRoute>
-                                                  <RouteBasedLayout>
-                                                    <AdminPage />
-                                                  </RouteBasedLayout>
-                                                </ProtectedRoute>
-                                              }
-                                            />
-                                            <Route
-                                              path="/admin/data"
-                                              element={
-                                                <ProtectedRoute>
-                                                  <RouteBasedLayout>
-                                                    <AdminDataViewPage />
-                                                  </RouteBasedLayout>
-                                                </ProtectedRoute>
-                                              }
-                                            />
-                                            <Route
-                                              path="/time-sessions"
-                                              element={
-                                                <ProtectedRoute>
-                                                  <RouteBasedLayout>
-                                                    <TimeSessionsPage />
-                                                  </RouteBasedLayout>
-                                                </ProtectedRoute>
-                                              }
-                                            />
-                                            <Route
-                                              path="/calendar"
-                                              element={
-                                                <ProtectedRoute>
-                                                  <RouteBasedLayout>
-                                                    <CalendarPage />
-                                                  </RouteBasedLayout>
-                                                </ProtectedRoute>
-                                              }
-                                            />
-                                            
-                                            {/* Fallback route - Redirect any unmatched routes to home */}
-                                            <Route path="*" element={<Navigate to="/" replace />} />
-                                          </Routes>
+                                              } />
+                                              
+                                              {/* Task Details Route */}
+                                              <Route 
+                                                path="/tasks/:taskId" 
+                                                element={
+                                                  <ProtectedRoute>
+                                                    <TaskDetailsPageComponent />
+                                                  </ProtectedRoute>
+                                                } 
+                                              />
+                                              
+                                              {/* Task Edit Route */}
+                                              <Route 
+                                                path="/tasks/edit/:taskId" 
+                                                element={
+                                                  <ProtectedRoute>
+                                                    <TaskDetailsPageComponent isEditMode={true} />
+                                                  </ProtectedRoute>
+                                                } 
+                                              />
+                                              
+                                              {/* Legacy URL redirects */}
+                                              <Route 
+                                                path="/app/task/:taskId" 
+                                                element={<RedirectWithParams newPathPattern="/tasks/:taskId" />}
+                                              />
+                                              
+                                              {/* Main App Routes */}
+                                              <Route
+                                                path="/"
+                                                element={
+                                                  <ProtectedRoute>
+                                                    <RouteBasedLayout>
+                                                      <HomePage />
+                                                    </RouteBasedLayout>
+                                                  </ProtectedRoute>
+                                                }
+                                              />
+                                              <Route
+                                                path="/tasks"
+                                                element={
+                                                  <ProtectedRoute>
+                                                    <RouteBasedLayout>
+                                                      <TaskListComponent ref={taskListRef} />
+                                                    </RouteBasedLayout>
+                                                  </ProtectedRoute>
+                                                }
+                                              />
+                                              <Route
+                                                path="/timer"
+                                                element={
+                                                  <ProtectedRoute>
+                                                    <RouteBasedLayout>
+                                                      <TimerComponent />
+                                                    </RouteBasedLayout>
+                                                  </ProtectedRoute>
+                                                }
+                                              />
+                                              <Route
+                                                path="/reports"
+                                                element={
+                                                  <ProtectedRoute>
+                                                    <RouteBasedLayout>
+                                                      <ReportsPageComponent />
+                                                    </RouteBasedLayout>
+                                                  </ProtectedRoute>
+                                                }
+                                              />
+                                              <Route
+                                                path="/admin"
+                                                element={
+                                                  <ProtectedRoute>
+                                                    <RouteBasedLayout>
+                                                      <AdminPageComponent />
+                                                    </RouteBasedLayout>
+                                                  </ProtectedRoute>
+                                                }
+                                              />
+                                              <Route
+                                                path="/admin/data"
+                                                element={
+                                                  <ProtectedRoute>
+                                                    <RouteBasedLayout>
+                                                      <AdminDataViewPageComponent />
+                                                    </RouteBasedLayout>
+                                                  </ProtectedRoute>
+                                                }
+                                              />
+                                              <Route
+                                                path="/time-sessions"
+                                                element={
+                                                  <ProtectedRoute>
+                                                    <RouteBasedLayout>
+                                                      <TimeSessionsPageComponent />
+                                                    </RouteBasedLayout>
+                                                  </ProtectedRoute>
+                                                }
+                                              />
+                                              <Route
+                                                path="/calendar"
+                                                element={
+                                                  <ProtectedRoute>
+                                                    <RouteBasedLayout>
+                                                      <CalendarPageComponent />
+                                                    </RouteBasedLayout>
+                                                  </ProtectedRoute>
+                                                }
+                                              />
+                                              
+                                              {/* Fallback route - Redirect any unmatched routes to home */}
+                                              <Route path="*" element={<Navigate to="/" replace />} />
+                                            </Routes>
+                                          </Suspense>
                                         </DensityProvider>
                                       </RefreshProvider>
                                     </AdminProvider>
