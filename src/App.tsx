@@ -23,8 +23,8 @@ import { ErrorProvider } from './contexts/ErrorContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { NetworkStatusProvider } from './contexts/NetworkStatusContext';
 import { OfflineIndicator } from './components/UI/OfflineIndicator';
-import { AppInitializer } from './services/AppInitializer';
-import { AppError } from './utils/errorHandling';
+import { AppInitializer } from './components/AppInitializer';
+import { AppError, ErrorType } from './utils/errorHandling';
 import { QueryProvider } from './contexts/query/QueryProvider';
 import { useQueryClient } from '@tanstack/react-query';
 import { AdminProvider } from './contexts/AdminContext';
@@ -243,33 +243,36 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function App() {
   const taskListRef = useRef<TaskListRefType>(null);
   const [appInitialized, setAppInitialized] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
+  const [appError, setAppError] = useState<AppError | null>(null);
 
-  // Initialize the application
   useEffect(() => {
     const initApp = async () => {
       try {
-        await AppInitializer.initialize();
+        // Application is now initialized through component tree
         setAppInitialized(true);
         console.log('Application initialization complete');
       } catch (error) {
-        const appError = AppError.from(error);
-        console.error('Failed to initialize application:', appError);
-        setInitError(appError.getUserMessage());
+        if (error instanceof AppError) {
+          console.error(`Application initialization error: ${error.message}`, error);
+          setAppError(error);
+        } else {
+          console.error('Application initialization error:', error);
+          setAppError(new AppError(ErrorType.UNKNOWN, 'Failed to initialize the application'));
+        }
       }
     };
-
+    
     initApp();
   }, []);
 
   // Display initialization error if any
-  if (initError) {
+  if (appError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8 max-w-md bg-white rounded-lg shadow-lg">
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-red-600 mb-4">Initialization Error</h1>
-          <p className="text-gray-700 mb-6">{initError}</p>
+          <p className="text-gray-700 mb-6">{appError.getUserMessage()}</p>
           <p className="text-gray-500 text-sm">
             Please refresh the page or contact support if the problem persists.
           </p>
@@ -341,6 +344,9 @@ function App() {
                                           <DensityStyleInjector />
                                           <OfflineIndicator />
                                           <RefreshRegistrator />
+                                          <ProtectedRoute>
+                                            <AppInitializer />
+                                          </ProtectedRoute>
                                           <Routes>
                                             {/* Authentication Routes */}
                                             <Route path="/login" element={<LoginForm />} />

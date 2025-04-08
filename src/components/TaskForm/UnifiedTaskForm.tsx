@@ -31,6 +31,7 @@ export interface UnifiedTaskFormProps {
     status?: string;
     subcategory?: string;
   };
+  visibleCategories?: string[]; // List of category names to display as buttons
 }
 
 /**
@@ -43,7 +44,8 @@ export function UnifiedTaskForm({
   onSuccess,
   onCancel,
   onClose,
-  initialValues
+  initialValues,
+  visibleCategories
 }: UnifiedTaskFormProps) {
   // Merge callbacks for simpler interaction with different parent components
   const handleSuccess = () => {
@@ -172,6 +174,7 @@ export function UnifiedTaskForm({
                 onChange={(value) => setValue('category_name', value)}
                 error={errors.category_name?.message}
                 required={true}
+                visibleCategories={visibleCategories}
               />
             </FormGroup>
             

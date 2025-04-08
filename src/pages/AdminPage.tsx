@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle, RefreshCcw, Database, XCircle, RotateCcw, T
 import { supabase } from '../lib/supabase';
 import { useTimer } from '../contexts/TimerContext';
 import { Link } from 'react-router-dom';
+import { AdminCategoryManager } from '../components/Admin/AdminCategoryManager';
 
 interface AdminAction {
   id: string;
@@ -276,8 +277,12 @@ export default function AdminPage() {
               </div>
             </div>
             
+            {/* Category Management Section */}
+            <h2 className="text-md font-medium mb-4 mt-8">Category Management</h2>
+            <AdminCategoryManager />
+            
             {/* Admin Actions */}
-            <h3 className="text-md font-medium mb-2">Admin Actions</h3>
+            <h2 className="text-md font-medium mb-4 mt-8">Admin Actions</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {adminActions.map((action) => (
                 <div 

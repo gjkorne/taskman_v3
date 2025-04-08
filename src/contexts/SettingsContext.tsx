@@ -24,11 +24,11 @@ export const defaultSettings: Settings = {
   defaultTaskSort: 'due_date',
   notificationsEnabled: true,
   autoSave: true,
-  allowTaskSwitching: false, // Default to the safe behavior of not auto-switching
+  allowTaskSwitching: true, // Enable auto-switching by default
   hiddenCategories: [], // No hidden categories by default
   hideDefaultCategories: false, // Don't hide default categories by default
-  quickTaskCategories: ['work', 'personal', 'childcare', 'other'], // Default categories for quick task entry
-  defaultQuickTaskCategory: 'work', // Default to work category
+  quickTaskCategories: ['personal', 'family', 'work'], // Updated default categories
+  defaultQuickTaskCategory: 'personal', // Default to personal category
   uiDensity: 'default', // Default to regular spacing and font size
 };
 
