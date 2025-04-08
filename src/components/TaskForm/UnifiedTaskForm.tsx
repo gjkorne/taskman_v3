@@ -32,6 +32,11 @@ export interface UnifiedTaskFormProps {
     subcategory?: string;
   };
   visibleCategories?: string[]; // List of category names to display as buttons
+  defaultExpandedNotes?: boolean; // Whether notes section should be expanded by default
+  defaultExpandedPriorityTiming?: boolean; // Whether priority & timing section should be expanded by default
+  defaultExpandedMetadata?: boolean; // Whether metadata section should be expanded by default
+  defaultExpandedFlags?: boolean; // Whether flags section should be expanded by default
+  isQuickTask?: boolean; // Whether this is a quick task from home screen
 }
 
 /**
@@ -45,7 +50,12 @@ export function UnifiedTaskForm({
   onCancel,
   onClose,
   initialValues,
-  visibleCategories
+  visibleCategories,
+  defaultExpandedNotes = false,
+  defaultExpandedPriorityTiming = true,
+  defaultExpandedMetadata = true,
+  defaultExpandedFlags = true,
+  isQuickTask = false
 }: UnifiedTaskFormProps) {
   // Merge callbacks for simpler interaction with different parent components
   const handleSuccess = () => {
@@ -100,7 +110,43 @@ export function UnifiedTaskForm({
   const watchedTags = watch('tags') || [];
   
   // Track expanded/collapsed state for the notes field
-  const [isNotesExpanded, setIsNotesExpanded] = useState(mode === 'edit');
+  const [isNotesExpanded, setIsNotesExpanded] = useState(defaultExpandedNotes);
+  const [isPriorityTimingExpanded, setIsPriorityTimingExpanded] = useState(defaultExpandedPriorityTiming);
+  const [isMetadataExpanded, setIsMetadataExpanded] = useState(defaultExpandedMetadata);
+  const [isFlagsExpanded, setIsFlagsExpanded] = useState(defaultExpandedFlags);
+  
+  // Save user preferences for section expansion state (only for regular form, not quick tasks)
+  useEffect(() => {
+    if (!isQuickTask) {
+      try {
+        localStorage.setItem('taskform_notes_expanded', isNotesExpanded.toString());
+        localStorage.setItem('taskform_prioritytiming_expanded', isPriorityTimingExpanded.toString());
+        localStorage.setItem('taskform_metadata_expanded', isMetadataExpanded.toString());
+        localStorage.setItem('taskform_flags_expanded', isFlagsExpanded.toString());
+      } catch (e) {
+        // Ignore localStorage errors
+      }
+    }
+  }, [isNotesExpanded, isPriorityTimingExpanded, isMetadataExpanded, isFlagsExpanded, isQuickTask]);
+  
+  // Load user preferences for section expansion state (only for regular form, not quick tasks)
+  useEffect(() => {
+    if (!isQuickTask) {
+      try {
+        const notesExpanded = localStorage.getItem('taskform_notes_expanded');
+        const priorityTimingExpanded = localStorage.getItem('taskform_prioritytiming_expanded');
+        const metadataExpanded = localStorage.getItem('taskform_metadata_expanded');
+        const flagsExpanded = localStorage.getItem('taskform_flags_expanded');
+        
+        if (notesExpanded !== null) setIsNotesExpanded(notesExpanded === 'true');
+        if (priorityTimingExpanded !== null) setIsPriorityTimingExpanded(priorityTimingExpanded === 'true');
+        if (metadataExpanded !== null) setIsMetadataExpanded(metadataExpanded === 'true');
+        if (flagsExpanded !== null) setIsFlagsExpanded(flagsExpanded === 'true');
+      } catch (e) {
+        // Ignore localStorage errors
+      }
+    }
+  }, [isQuickTask]);
   
   // Ref for the form container to detect outside clicks
   const formRef = useRef<HTMLDivElement>(null);
@@ -160,7 +206,9 @@ export function UnifiedTaskForm({
           
           {/* Classification Fields */}
           <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Classification</h3>
+            <h3 className="text-sm font-medium text-gray-700">
+              Classification
+            </h3>
             
             {/* Category Selection */}
             <FormGroup 
@@ -180,36 +228,38 @@ export function UnifiedTaskForm({
             
             {/* Subcategory Selection - Only shown when a category is selected */}
             {categoryName && (
-              <FormGroup
-                label="Subcategory"
-                htmlFor="subcategory"
-              >
-                <select
-                  id="subcategory"
-                  value={getValues('subcategory') || ''}
-                  onChange={(e) => {
-                    setValue('subcategory', e.target.value);
-                    
-                    // Update tags with the subcategory information
-                    const currentTags = getValues('tags') || [];
-                    const updatedTags = currentTags.filter(tag => !tag.startsWith('subcategory:'));
-                    
-                    if (e.target.value) {
-                      updatedTags.push(`subcategory:${e.target.value}`);
-                    }
-                    
-                    setValue('tags', updatedTags);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              <div className="hidden">
+                <FormGroup
+                  label="Subcategory"
+                  htmlFor="subcategory"
                 >
-                  <option value="">-- Select Subcategory --</option>
-                  {categoryName && getSubcategoriesForCategory(categoryName).map((subcat) => (
-                    <option key={subcat} value={subcat}>
-                      {subcat}
-                    </option>
-                  ))}
-                </select>
-              </FormGroup>
+                  <select
+                    id="subcategory"
+                    value={getValues('subcategory') || ''}
+                    onChange={(e) => {
+                      setValue('subcategory', e.target.value);
+                      
+                      // Update tags with the subcategory information
+                      const currentTags = getValues('tags') || [];
+                      const updatedTags = currentTags.filter(tag => !tag.startsWith('subcategory:'));
+                      
+                      if (e.target.value) {
+                        updatedTags.push(`subcategory:${e.target.value}`);
+                      }
+                      
+                      setValue('tags', updatedTags);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <option value="">-- Select Subcategory --</option>
+                    {categoryName && getSubcategoriesForCategory(categoryName).map((subcat) => (
+                      <option key={subcat} value={subcat}>
+                        {subcat}
+                      </option>
+                    ))}
+                  </select>
+                </FormGroup>
+              </div>
             )}
             
             {/* Status Field - Only show in edit mode */}
@@ -280,81 +330,164 @@ export function UnifiedTaskForm({
         
         {/* PRIORITY & TIMING SECTION */}
         <FormSection title="Priority & Timing" useGradient={true} hideTitle={true}>
-          {/* Priority Selection */}
-          <FormGroup
-            label="Priority"
-            htmlFor="priority"
-            error={errors.priority?.message}
-          >
-            <PrioritySelector
-              value={watch('priority') || 'medium'}
-              onChange={(value) => setValue('priority', value)}
-              layout="radio"
-            />
-          </FormGroup>
-          
-          {/* Estimated Time */}
-          <FormGroup
-            label="Estimated Time (minutes)"
-            htmlFor="estimatedTime"
-            error={errors.estimatedTime?.message}
-          >
-            <input
-              type="number"
-              min="0"
-              {...register('estimatedTime')}
-              placeholder="e.g., 60"
-              className={cn(
-                "w-full px-3 py-2 border rounded-md",
-                errors.estimatedTime ? "border-red-500" : "border-gray-300"
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-gray-700">
+              Priority & Timing
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsPriorityTimingExpanded(!isPriorityTimingExpanded)}
+              className="flex items-center text-xs text-gray-500 hover:text-gray-700"
+            >
+              {isPriorityTimingExpanded ? (
+                <>
+                  <ChevronUp className="w-3 h-3 mr-1" />
+                  Collapse
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3 h-3 mr-1" />
+                  Expand
+                </>
               )}
-            />
-            <p className="mt-1 text-xs text-gray-500">Enter total minutes (e.g., 300 for 5 hours)</p>
-          </FormGroup>
+            </button>
+          </div>
           
-          {/* Due Date Field */}
-          <FormGroup
-            label="Due Date"
-            htmlFor="dueDate"
-            error={errors.due_date?.message}
-          >
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                {...register('hasDueDate')}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          <div className={cn(!isPriorityTimingExpanded && 'hidden')}>
+            {/* Priority Selection */}
+            <FormGroup
+              label="Priority"
+              htmlFor="priority"
+              error={errors.priority?.message}
+            >
+              <PrioritySelector
+                value={watch('priority') || 'medium'}
+                onChange={(value) => setValue('priority', value)}
+                layout="radio"
               />
-              <span className="text-sm font-medium text-gray-700">Has due date</span>
-            </div>
+            </FormGroup>
             
-            {hasDueDate && (
-              <div className="mt-2">
+            {/* Estimated Time */}
+            <FormGroup
+              label="Estimated Time (minutes)"
+              htmlFor="estimatedTime"
+              error={errors.estimatedTime?.message}
+            >
+              <input
+                type="number"
+                min="0"
+                {...register('estimatedTime')}
+                placeholder="e.g., 60"
+                className={cn(
+                  "w-full px-3 py-2 border rounded-md",
+                  errors.estimatedTime ? "border-red-500" : "border-gray-300"
+                )}
+              />
+              <p className="mt-1 text-xs text-gray-500">Enter total minutes (e.g., 300 for 5 hours)</p>
+            </FormGroup>
+            
+            {/* Due Date Field */}
+            <FormGroup
+              label="Due Date"
+              htmlFor="dueDate"
+              error={errors.due_date?.message}
+            >
+              <div className="flex items-center space-x-2">
                 <input
-                  type="date"
-                  {...register('due_date')}
-                  className={cn(
-                    'w-full px-3 py-2 border rounded-md',
-                    errors.due_date ? 'border-red-500' : 'border-gray-300'
-                  )}
+                  type="checkbox"
+                  {...register('hasDueDate')}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
+                <span className="text-sm font-medium text-gray-700">Has due date</span>
               </div>
-            )}
-          </FormGroup>
-          
-          {/* Tags Field */}
-          <FormGroup
-            label="Tags"
-            htmlFor="tags"
-          >
-            <TagsInput
-              value={watchedTags}
-              onChange={(tags) => setValue('tags', tags)}
-            />
-          </FormGroup>
+              
+              {hasDueDate && (
+                <div className="mt-2">
+                  <input
+                    type="date"
+                    {...register('due_date')}
+                    className={cn(
+                      'w-full px-3 py-2 border rounded-md',
+                      errors.due_date ? 'border-red-500' : 'border-gray-300'
+                    )}
+                  />
+                </div>
+              )}
+            </FormGroup>
+            
+            {/* Tags Field */}
+            <FormGroup
+              label="Tags"
+              htmlFor="tags"
+            >
+              <TagsInput
+                value={watchedTags}
+                onChange={(tags) => setValue('tags', tags)}
+              />
+            </FormGroup>
+          </div>
         </FormSection>
         
-        {/* Task Creation Diagnostic - Only shown in development */}
-        {isDevelopment && <TaskDebug />}
+        {/* METADATA SECTION */}
+        <FormSection title="Metadata" useGradient={true} hideTitle={true}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-gray-700">
+              Metadata
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsMetadataExpanded(!isMetadataExpanded)}
+              className="flex items-center text-xs text-gray-500 hover:text-gray-700"
+            >
+              {isMetadataExpanded ? (
+                <>
+                  <ChevronUp className="w-3 h-3 mr-1" />
+                  Collapse
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3 h-3 mr-1" />
+                  Expand
+                </>
+              )}
+            </button>
+          </div>
+          
+          <div className={cn(!isMetadataExpanded && 'hidden')}>
+            {/* Task Creation Diagnostic - Only shown in development */}
+            {isDevelopment && <TaskDebug />}
+          </div>
+        </FormSection>
+        
+        {/* FLAGS SECTION */}
+        <FormSection title="Flags" useGradient={true} hideTitle={true}>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-medium text-gray-700">
+              Flags
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsFlagsExpanded(!isFlagsExpanded)}
+              className="flex items-center text-xs text-gray-500 hover:text-gray-700"
+            >
+              {isFlagsExpanded ? (
+                <>
+                  <ChevronUp className="w-3 h-3 mr-1" />
+                  Collapse
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3 h-3 mr-1" />
+                  Expand
+                </>
+              )}
+            </button>
+          </div>
+          
+          <div className={cn(!isFlagsExpanded && 'hidden')}>
+            {/* No flags for now */}
+          </div>
+        </FormSection>
         
         {/* FORM ACTIONS */}
         <div className="flex justify-end space-x-3">

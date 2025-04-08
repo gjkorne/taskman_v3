@@ -114,7 +114,7 @@ export function Sidebar({
         <div className="flex h-full flex-col">
           {/* Sidebar Header */}
           <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 border-b border-gray-200">
-            {!isCollapsed && <h1 className="text-lg sm:text-xl font-semibold text-gray-800">TaskMan</h1>}
+            {!isCollapsed && <div className="w-24"></div>}
             <div className="flex items-center ml-auto">
               {/* Collapse toggle button - only visible on desktop */}
               <button 

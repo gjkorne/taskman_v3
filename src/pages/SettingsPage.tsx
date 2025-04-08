@@ -64,8 +64,6 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
-      
       {/* Account Settings */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Account</h2>
@@ -108,7 +106,7 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
                   </>
                 ) : (
                   <>
-                    <span className="font-medium text-blue-700">Standard User:</span> You can only see and manage your own tasks.
+                    <span className="font-medium text-blue-700">Standard User:</span> Hi Tom! I think you are above standard.
                   </>
                 )}
               </p>

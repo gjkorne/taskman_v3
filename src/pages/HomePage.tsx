@@ -1,14 +1,22 @@
+import { useState } from 'react';
 import { TaskOverviewWidget } from '../components/Dashboard/TaskOverviewWidget';
 import { UpcomingTasksWidget } from '../components/Dashboard/UpcomingTasksWidget';
 import { RecentTasksWidget } from '../components/Dashboard/RecentTasksWidget';
 import { useNavigate } from 'react-router-dom';
+import { QuickTaskModal } from '../components/TaskForm/QuickTaskModal';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [isQuickTaskModalOpen, setIsQuickTaskModalOpen] = useState(false);
 
   // Function to navigate to a specific route
   const handleNavigation = (route: string) => {
     navigate(route);
+  };
+
+  // Function to handle task creation success
+  const handleTaskCreated = () => {
+    // Refresh data or show notification if needed
   };
 
   return (
@@ -29,7 +37,7 @@ const HomePage = () => {
             <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
             <div className="space-y-2">
               <button 
-                onClick={() => handleNavigation('/tasks')}
+                onClick={() => setIsQuickTaskModalOpen(true)}
                 className="w-full py-2 px-4 bg-taskman-blue-500 text-white rounded hover:bg-taskman-blue-600 transition duration-250 flex items-center justify-center"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -60,6 +68,13 @@ const HomePage = () => {
           <UpcomingTasksWidget />
         </div>
       </div>  
+
+      {/* Quick Task Modal */}
+      <QuickTaskModal 
+        isOpen={isQuickTaskModalOpen}
+        onClose={() => setIsQuickTaskModalOpen(false)}
+        onTaskCreated={handleTaskCreated}
+      />
     </div>
   );
 }

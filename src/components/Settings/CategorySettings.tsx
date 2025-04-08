@@ -214,139 +214,141 @@ export function CategorySettings() {
           <div className="col-span-3 font-medium text-sm text-gray-600">Actions</div>
         </div>
         
-        {categories.map((category) => {
-          const isEditing = editingCategory === category.id;
-          const isVisible = !hiddenCategories.includes(category.id);
-          const isDefault = category.is_default;
-          const isQuickTask = quickTaskCategories.includes(category.name.toLowerCase());
-          const isDefaultQuickTask = defaultQuickTaskCategory === category.name.toLowerCase();
-          
-          return (
-            <div key={category.id} className="grid grid-cols-12 px-4 py-3 border-b items-center">
-              {/* Category Name */}
-              <div className="col-span-3">
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editedName}
-                    onChange={(e) => setEditedName(e.target.value)}
-                    className="w-full px-2 py-1 border border-gray-300 rounded"
-                  />
-                ) : (
-                  <div className="flex items-center">
-                    <span 
-                      className="w-3 h-3 rounded-full mr-2" 
+        {categories
+          .filter(category => !category.name.startsWith('z_')) // Filter out categories with z_ prefix
+          .map((category) => {
+            const isEditing = editingCategory === category.id;
+            const isVisible = !hiddenCategories.includes(category.id);
+            const isDefault = category.is_default;
+            const isQuickTask = quickTaskCategories.includes(category.name.toLowerCase());
+            const isDefaultQuickTask = defaultQuickTaskCategory === category.name.toLowerCase();
+            
+            return (
+              <div key={category.id} className="grid grid-cols-12 px-4 py-3 border-b items-center">
+                {/* Category Name */}
+                <div className="col-span-3">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded"
+                    />
+                  ) : (
+                    <div className="flex items-center">
+                      <span 
+                        className="w-3 h-3 rounded-full mr-2" 
+                        style={{ backgroundColor: category.color || '#9CA3AF' }}
+                      />
+                      <span className={isDefault ? "font-medium" : ""}>
+                        {category.name}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Color Picker */}
+                <div className="col-span-2">
+                  {isEditing ? (
+                    <div className="flex gap-1 flex-wrap">
+                      {CATEGORY_COLORS.map(color => (
+                        <button
+                          key={color}
+                          onClick={() => setEditedColor(color)}
+                          className={`w-6 h-6 rounded-full ${editedColor === color ? 'ring-2 ring-offset-2 ring-indigo-500' : ''}`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div 
+                      className="w-6 h-6 rounded-full"
                       style={{ backgroundColor: category.color || '#9CA3AF' }}
                     />
-                    <span className={isDefault ? "font-medium" : ""}>
-                      {category.name}
-                    </span>
-                  </div>
-                )}
-              </div>
-              
-              {/* Color Picker */}
-              <div className="col-span-2">
-                {isEditing ? (
-                  <div className="flex gap-1 flex-wrap">
-                    {CATEGORY_COLORS.map(color => (
-                      <button
-                        key={color}
-                        onClick={() => setEditedColor(color)}
-                        className={`w-6 h-6 rounded-full ${editedColor === color ? 'ring-2 ring-offset-2 ring-indigo-500' : ''}`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div 
-                    className="w-6 h-6 rounded-full"
-                    style={{ backgroundColor: category.color || '#9CA3AF' }}
-                  />
-                )}
-              </div>
-              
-              {/* Visibility Toggle */}
-              <div className="col-span-2">
-                <Tooltip content={isVisible ? "Hide this category" : "Show this category"}>
-                  <button 
-                    onClick={() => toggleCategoryVisibility(category.id)}
-                    className="p-1 rounded-full hover:bg-gray-100"
-                    disabled={isDefault} // Can't hide default category
-                  >
-                    {isVisible ? (
-                      <Eye className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <EyeOff className="w-5 h-5 text-gray-400" />
-                    )}
-                  </button>
-                </Tooltip>
-              </div>
-              
-              {/* Quick Task Toggle */}
-              <div className="col-span-2">
-                <div className="flex items-center space-x-2">
-                  <Switch 
-                    checked={isQuickTask}
-                    onChange={() => toggleQuickTaskCategory(category.name)}
-                    hideLabel
-                  />
-                  {isQuickTask && !isDefaultQuickTask && (
-                    <button
-                      onClick={() => setAsDefaultQuickTask(category.name)}
-                      className="text-gray-400 hover:text-yellow-500"
-                      title="Set as default quick task category"
-                    >
-                      <span className="w-4 h-4 text-gray-400 hover:text-yellow-500">★</span>
-                    </button>
                   )}
-                  {isDefaultQuickTask && (
-                    <span className="w-4 h-4 text-yellow-500">★</span>
+                </div>
+                
+                {/* Visibility Toggle */}
+                <div className="col-span-2">
+                  <Tooltip content={isVisible ? "Hide this category" : "Show this category"}>
+                    <button 
+                      onClick={() => toggleCategoryVisibility(category.id)}
+                      className="p-1 rounded-full hover:bg-gray-100"
+                      disabled={isDefault} // Can't hide default category
+                    >
+                      {isVisible ? (
+                        <Eye className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <EyeOff className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+                  </Tooltip>
+                </div>
+                
+                {/* Quick Task Toggle */}
+                <div className="col-span-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      checked={isQuickTask}
+                      onChange={() => toggleQuickTaskCategory(category.name)}
+                      hideLabel
+                    />
+                    {isQuickTask && !isDefaultQuickTask && (
+                      <button
+                        onClick={() => setAsDefaultQuickTask(category.name)}
+                        className="text-gray-400 hover:text-yellow-500"
+                        title="Set as default quick task category"
+                      >
+                        <span className="w-4 h-4 text-gray-400 hover:text-yellow-500">★</span>
+                      </button>
+                    )}
+                    {isDefaultQuickTask && (
+                      <span className="w-4 h-4 text-yellow-500">★</span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Actions */}
+                <div className="col-span-3 flex space-x-2">
+                  {isEditing ? (
+                    <>
+                      <button
+                        onClick={() => handleEditCategory(category.id)}
+                        className="p-1 text-green-600 hover:text-green-800"
+                      >
+                        <Check className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={cancelEditing}
+                        className="p-1 text-red-600 hover:text-red-800"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => startEditing(category)}
+                        className="p-1 text-blue-600 hover:text-blue-800"
+                        title="Edit category"
+                      >
+                        <Pencil className="w-5 h-5" />
+                      </button>
+                      {!isDefault && (
+                        <button
+                          onClick={() => confirmDeleteCategory(category)}
+                          className="p-1 text-red-600 hover:text-red-800"
+                          title="Delete category"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
-              
-              {/* Actions */}
-              <div className="col-span-3 flex space-x-2">
-                {isEditing ? (
-                  <>
-                    <button
-                      onClick={() => handleEditCategory(category.id)}
-                      className="p-1 text-green-600 hover:text-green-800"
-                    >
-                      <Check className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={cancelEditing}
-                      className="p-1 text-red-600 hover:text-red-800"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => startEditing(category)}
-                      className="p-1 text-blue-600 hover:text-blue-800"
-                      title="Edit category"
-                    >
-                      <Pencil className="w-5 h-5" />
-                    </button>
-                    {!isDefault && (
-                      <button
-                        onClick={() => confirmDeleteCategory(category)}
-                        className="p-1 text-red-600 hover:text-red-800"
-                        title="Delete category"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
 
       {/* Info box */}
@@ -369,7 +371,6 @@ export function CategorySettings() {
         title="Delete Category"
         message={`Are you sure you want to delete the "${deletionConfirmation.categoryName}" category? This action cannot be undone and all tasks associated with this category will be set to the default category.`}
         confirmButtonText="Delete"
-        confirmButtonColor="red"
         onConfirm={handleDeleteConfirmed}
         onCancel={handleCancelDelete}
       />

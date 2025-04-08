@@ -35,9 +35,9 @@ export function LoginForm() {
         <div className="form-card p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">
-              Welcome to TaskStream
+              Welcome to TaskMan
             </h1>
-            <p className="mt-2 text-gray-600">Sign in to manage your tasks</p>
+            <p className="mt-2 text-gray-600">Sign in to manage your tasks man</p>
           </div>
 
           {error && (
@@ -97,16 +97,25 @@ export function LoginForm() {
               )}
             </button>
 
-            <p className="text-center text-sm text-gray-600">
-              Don't have an account?{' '}
-              <button
-                type="button"
-                onClick={() => navigate('/register')}
-                className="text-indigo-600 hover:text-indigo-500 font-medium"
+            <div className="flex justify-between items-center">
+              <button 
+                type="button" 
+                onClick={() => alert('Password reset functionality will be implemented soon!')}
+                className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
               >
-                Sign up
+                Forgot password?
               </button>
-            </p>
+              <p className="text-sm text-gray-600">
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate('/register')}
+                  className="text-indigo-600 hover:text-indigo-500 font-medium"
+                >
+                  Sign up
+                </button>
+              </p>
+            </div>
           </form>
         </div>
       </div>
