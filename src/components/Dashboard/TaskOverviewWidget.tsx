@@ -6,7 +6,7 @@ interface TaskOverviewWidgetProps {
 }
 
 export const TaskOverviewWidget: React.FC<TaskOverviewWidgetProps> = ({
-  title = "Task Overview"
+  title = "Overview"
 }) => {
   const metrics = useTaskMetrics();
 

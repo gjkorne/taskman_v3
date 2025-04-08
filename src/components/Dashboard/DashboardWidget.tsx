@@ -22,7 +22,7 @@ export function DashboardWidget({
   actions
 }: DashboardWidgetProps) {
   return (
-    <div className={`bg-white rounded-lg shadow-md p-4 ${className}`}>
+    <div className={`bg-white rounded-lg shadow-md border border-gray-200 p-4 ${className}`}>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold text-gray-700">{title}</h2>
         {actions && (
@@ -45,7 +45,7 @@ export function DashboardWidget({
       </div>
       
       {footer && (
-        <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500">
+        <div className="mt-4 pt-3 border-t border-gray-200 text-xs text-gray-500">
           {footer}
         </div>
       )}

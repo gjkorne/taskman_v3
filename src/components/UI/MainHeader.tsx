@@ -45,14 +45,14 @@ export function MainHeader({ onToggleSidebar }: MainHeaderProps) {
   };
 
   return (
-    <div className="bg-taskman-blue-500 text-white shadow-header">
+    <div className="bg-gradient-to-r from-taskman-green-600 via-taskman-cyan-700 to-taskman-blue-800 text-white shadow-header">
       <div className="container mx-auto px-4 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             {/* Hamburger menu for mobile/tablet - hide on large screens */}
             <button 
               onClick={onToggleSidebar}
-              className="lg:hidden mr-4 p-1.5 rounded hover:bg-taskman-blue-600 transition duration-250 flex items-center justify-center"
+              className="lg:hidden mr-4 p-1.5 rounded hover:bg-taskman-blue-600/30 transition duration-250 flex items-center justify-center"
               aria-label="Toggle navigation menu"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,9 +60,11 @@ export function MainHeader({ onToggleSidebar }: MainHeaderProps) {
               </svg>
             </button>
             
-            {/* Wrap TaskMan title with a Link to home */}
-            <Link to="/" className="text-3xl font-bold mr-8 hover:text-gray-200 transition duration-150">
-              TaskMan
+            {/* Logo and app name */}
+            <Link to="/" className="flex items-center">
+              <span className="text-xl font-bold tracking-tight">TaskMan</span>
+              {/* Optional: Add a small version tag */}
+              <span className="ml-1 text-xs bg-taskman-cyan-400/20 px-1.5 py-0.5 rounded">v3</span>
             </Link>
             <nav className="hidden md:flex space-x-4">
             </nav>
@@ -72,7 +74,7 @@ export function MainHeader({ onToggleSidebar }: MainHeaderProps) {
             {/* Add a refresh button in the header next to other controls */}
             <button 
               onClick={refreshData}
-              className="mr-4 p-1.5 rounded hover:bg-taskman-blue-600 transition duration-250 flex items-center justify-center"
+              className="mr-4 p-1.5 rounded hover:bg-taskman-cyan-600/30 transition duration-250 flex items-center justify-center"
               aria-label="Refresh data"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

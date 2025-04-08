@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-  <line x1="16" y1="2" x2="16" y2="6"></line>
-  <line x1="8" y1="2" x2="8" y2="6"></line>
-  <line x1="3" y1="10" x2="21" y2="10"></line>
-  <path d="M9 16l2 2 4-4"></path>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <!-- Safe zone for maskable icons is the inner 80% of the canvas -->
+  <!-- Adding padding to ensure content is visible when cropped to circle -->
+  <rect width="512" height="512" fill="#002A43"/>
+  <path d="M105 120H244V165H205V380H150V165H105V120Z" fill="white"/>
+  <path d="M270 210C270 190.67 285.67 175 305 175H370C389.33 175 405 190.67 405 210V300C405 319.33 389.33 335 370 335H330V375H385V420H290V290C290 280.06 298.06 272 308 272H345C354.94 272 363 263.94 363 254V221C363 211.06 354.94 203 345 203H328C318.06 203 310 211.06 310 221V245H270V210Z" fill="#37CC6F"/>
 </svg>

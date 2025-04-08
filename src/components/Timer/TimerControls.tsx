@@ -36,7 +36,7 @@ const TimerButton = ({
   title, 
   className 
 }: { 
-  onClick: () => void, 
+  onClick: (e: React.MouseEvent) => void, 
   icon: React.ReactNode, 
   title: string, 
   className?: string 
@@ -49,6 +49,8 @@ const TimerButton = ({
     {icon}
   </button>
 );
+
+export { TimerButton };
 
 /**
  * Group of control buttons for running timers (pause/resume/stop)

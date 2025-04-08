@@ -42,7 +42,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
         
         {/* Main content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="flex-1 overflow-y-auto p-2 md:p-6">
           <OfflineIndicator />
           
           {/* Sidebar toggle for mobile */}
@@ -56,7 +56,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </button>
 
           {/* Dashboard content */}
-          <div className="bg-white rounded-lg shadow-card p-6 mb-6 animate-fade-in">
+          <div className="bg-white rounded-lg shadow-card p-4 md:p-6 mb-6 animate-fade-in">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-2xl font-bold">Dashboard</h1>
             </div>

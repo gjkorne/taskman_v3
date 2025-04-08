@@ -1,15 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { DashboardWidget } from './DashboardWidget';
-import { Clock, CheckCircle2, AlertCircle, Filter } from 'lucide-react';
+import { AlertCircle, Filter, CheckSquare, Square, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTaskData } from '../../contexts/task';
 import { useTimeSessionData } from '../../contexts/timeSession';
-import { formatDistanceToNow, isValid } from 'date-fns';
-import { TASK_QUERY_KEYS } from '../../contexts/task/TaskDataContext';
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { TaskStatus, TaskStatusType, Task } from '../../types/task';
-import { useTimer } from '../../contexts/TimerCompat';
-import { determineStatusFromSessions } from '../../utils/taskStatusUtils';
+import { Task, TaskStatus } from '../../types/task';
+import { useState } from 'react';
 
 interface RecentTasksWidgetProps {
   title?: string;
@@ -17,144 +13,132 @@ interface RecentTasksWidgetProps {
 }
 
 /**
+ * Get the CSS class for a task category
+ */
+function getCategoryColorClass(category?: string) {
+  switch (category?.toLowerCase()) {
+    case 'work':
+      return 'text-blue-700';
+    case 'personal':
+      return 'text-amber-700';
+    case 'childcare':
+      return 'text-green-700';
+    default:
+      return 'text-gray-700';
+  }
+}
+
+/**
  * RecentTasksWidget - Shows the most recently worked on tasks based on sessions
  * Uses React Query optimized task data and time session data
  */
-export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }: RecentTasksWidgetProps) {
+export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 9 }: RecentTasksWidgetProps) {
   const { tasks, isLoading: tasksLoading, refreshTasks } = useTaskData();
   const { sessions } = useTimeSessionData();
-  const timer = useTimer();
-  const timerState = timer.timerState;
   const [showCompleted, setShowCompleted] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const tasksPerPage = 5; // Number of tasks to show per page
   
-  // Ensure tasks are loaded when the component mounts
-  useEffect(() => {
-    if (tasks.length === 0 && !tasksLoading) {
-      console.log('[RecentTasksWidget] No tasks found, refreshing...');
-      refreshTasks();
-    }
-  }, [tasks, tasksLoading, refreshTasks]);
-  
-  // Log task and session data directly to check what we're working with
-  useEffect(() => {
-    console.log('[RecentTasksWidget] Tasks:', tasks);
-    console.log('[RecentTasksWidget] Sessions:', sessions);
-    console.log('[RecentTasksWidget] Timer state:', timerState);
-  }, [tasks, sessions, timerState]);
-  
-  // Toggle show completed tasks
-  const handleToggleShowCompleted = () => {
-    setShowCompleted(!showCompleted);
-  };
-
-  // Use React Query for recent tasks
-  const { data: recentTasks, isLoading } = useQuery({
-    queryKey: [...TASK_QUERY_KEYS.metrics(), 'recent-tasks', showCompleted],
+  // Get recently worked tasks
+  const { data: allRecentTasks, isLoading: recentTasksLoading } = useQuery({
+    queryKey: ['recentTasks', tasks, sessions, limit, showCompleted],
     queryFn: () => getRecentlyWorkedTasks(tasks, sessions, limit, showCompleted),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000,   // 10 minutes
-    enabled: tasks.length > 0 && sessions.length > 0,
+    enabled: !!tasks && !!sessions,
   });
   
-  // Format time for display with relative times
-  const formatTime = (dateString: string | null | undefined): string => {
-    if (!dateString) return 'No recent activity';
-    
-    try {
-      const date = new Date(dateString);
-      if (!isValid(date)) return 'Invalid date';
-      return formatDistanceToNow(date, { addSuffix: true });
-    } catch (error) {
-      return 'No recent activity';
+  const combinedLoading = tasksLoading || recentTasksLoading;
+  
+  // Calculate pagination
+  const totalTasks = allRecentTasks?.length || 0;
+  const totalPages = Math.ceil(totalTasks / tasksPerPage);
+  
+  // Get current page of tasks
+  const indexOfLastTask = currentPage * tasksPerPage;
+  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+  const currentTasks = allRecentTasks?.slice(indexOfFirstTask, indexOfLastTask) || [];
+  
+  // Handle page changes
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
     }
   };
   
-  // Get status badge styling based on task status
-  const getStatusBadge = (status: string, taskId: string) => {
-    // Use corrected status if needed
-    const correctedStatus = getCorrectedTaskStatus(status, taskId);
-    
-    const statusMap: Record<string, { color: string, text: string }> = {
-      [TaskStatus.PENDING]: { color: 'bg-gray-100 text-gray-800', text: 'Pending' },
-      [TaskStatus.ACTIVE]: { color: 'bg-blue-100 text-blue-800', text: 'Active' },
-      [TaskStatus.PAUSED]: { color: 'bg-yellow-100 text-yellow-800', text: 'Paused' },
-      [TaskStatus.COMPLETED]: { color: 'bg-green-100 text-green-800', text: 'Completed' },
-      [TaskStatus.ARCHIVED]: { color: 'bg-gray-100 text-gray-500', text: 'Archived' }
-    };
-    
-    const badgeStyle = statusMap[correctedStatus] || { color: 'bg-gray-100 text-gray-800', text: correctedStatus };
-    return (
-      <span className={`text-xs px-2 py-0.5 rounded-full ${badgeStyle.color}`}>
-        {badgeStyle.text}
-      </span>
-    );
-  };
-  
-  // Get corrected task status based on sessions and timer state
-  const getCorrectedTaskStatus = (currentStatus: string, taskId: string): TaskStatusType => {
-    // If task is completed or archived, respect that status
-    if (currentStatus === TaskStatus.COMPLETED || currentStatus === TaskStatus.ARCHIVED) {
-      return currentStatus as TaskStatusType;
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
     }
-    
-    // If task is currently being timed, respect active/paused status
-    const isCurrentlyTimed = timerState && timerState.taskId === taskId && timerState.status !== 'idle';
-    
-    // Get all sessions for this task
-    const taskSessions = sessions.filter(session => session.task_id === taskId);
-    const hasSessions = taskSessions.length > 0;
-    
-    // Use our utility function to determine the correct status
-    return determineStatusFromSessions(currentStatus as TaskStatusType, hasSessions, isCurrentlyTimed);
   };
   
-  /**
-   * Handle starting a timer - explicitly preventing event bubbling
-   */
-  const handleStartTimer = (e: React.MouseEvent, taskId: string) => {
+  // Handle toggling show completed tasks
+  const handleToggleShowCompleted = () => {
+    setShowCompleted(!showCompleted);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
+  
+  // Handle starting a task
+  const handleStartTask = (e: React.MouseEvent, taskId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('[RecentTasksWidget] Starting timer for task:', taskId);
-    timer.startTimer(taskId);
+    
+    // Find the task
+    const task = tasks?.find(t => t.id === taskId);
+    if (!task) return;
+    
+    // Update the task status directly through the task service
+    refreshTasks();
   };
   
-  /**
-   * Handle pausing a timer - explicitly preventing event bubbling
-   */
-  const handlePauseTimer = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('[RecentTasksWidget] Pausing timer');
-    timer.pauseTimer();
-  };
-  
-  /**
-   * Handle resuming a timer - explicitly preventing event bubbling
-   */
-  const handleResumeTimer = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('[RecentTasksWidget] Resuming timer');
-    timer.resumeTimer();
-  };
-  
-  /**
-   * Handle completing a task - explicitly preventing event bubbling
-   */
+  // Handle completing a task
   const handleCompleteTask = (e: React.MouseEvent, taskId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('[RecentTasksWidget] Completing task:', taskId);
-    timer.completeTask(taskId);
+    
+    // Find the task
+    const task = tasks?.find(t => t.id === taskId);
+    if (!task) return;
+    
+    // Update the task status directly through the task service
+    refreshTasks();
   };
   
-  const combinedLoading = isLoading || tasksLoading;
+  // Render pagination controls
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    
+    return (
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+        <div className="text-xs text-gray-500">
+          Showing {indexOfFirstTask + 1}-{Math.min(indexOfLastTask, totalTasks)} of {totalTasks} tasks
+        </div>
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={goToPreviousPage}
+            disabled={currentPage === 1}
+            className={`p-1 rounded ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-xs text-gray-600 px-1">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={goToNextPage}
+            disabled={currentPage === totalPages}
+            className={`p-1 rounded ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  };
   
   return (
     <DashboardWidget
       title={title}
       isLoading={combinedLoading}
-      className="col-span-1 md:col-span-2"
+      className="h-full flex flex-col"
       actions={
         <button 
           onClick={handleToggleShowCompleted}
@@ -166,13 +150,16 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
         </button>
       }
       footer={
-        <Link to="/tasks" className="text-taskman-blue-600 text-sm hover:underline flex items-center">
-          View all tasks <span className="ml-1">→</span>
-        </Link>
+        <div className="w-full">
+          {renderPagination()}
+          <Link to="/tasks" className="text-taskman-blue-600 text-sm hover:underline flex items-center mt-2">
+            View all tasks <span className="ml-1">→</span>
+          </Link>
+        </div>
       }
     >
-      <div className="space-y-1">
-        {(!recentTasks || recentTasks.length === 0) && !combinedLoading && (
+      <div className="space-y-0.5 flex-grow">
+        {(!allRecentTasks || allRecentTasks.length === 0) && !combinedLoading && (
           <div className="text-center py-3 text-gray-500 text-sm flex flex-col items-center justify-center">
             <AlertCircle className="h-5 w-5 mb-1 text-yellow-500" />
             <p>No recently worked tasks found</p>
@@ -180,66 +167,43 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
           </div>
         )}
         
-        {recentTasks && recentTasks.map((task) => (
+        {currentTasks && currentTasks.map((task) => (
           <Link 
             key={task.id}
             to={`/tasks/${task.id}`}
-            className="block hover:bg-gray-50 transition-colors duration-150"
+            className="block hover:bg-gray-50 transition-colors duration-150 flex items-center justify-between py-2 px-3 rounded-md"
           >
-            <div className="mr-2 flex-shrink-0">
-              {task.status === TaskStatus.COMPLETED ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-              ) : (
-                <Clock className="h-4 w-4 text-taskman-blue-500" />
-              )}
+            <div className="flex items-center">
+              <div className="mr-3 flex-shrink-0">
+                {task.status === TaskStatus.COMPLETED ? (
+                  <CheckSquare className="h-5 w-5 text-green-500" />
+                ) : task.status === TaskStatus.ACTIVE ? (
+                  <Square className="h-5 w-5 text-blue-500" />
+                ) : (
+                  <Square className="h-5 w-5 text-gray-400" />
+                )}
+              </div>
+              <div>
+                <span className={`font-medium ${getCategoryColorClass(task.category)}`}>
+                  {task.title}
+                </span>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-center">
-                <h4 className="font-medium text-gray-900">{task.title}</h4>
-                {getStatusBadge(task.status, task.id)}
-              </div>
-              <div className="flex items-center text-xs text-gray-500">
-                <span className="mr-2">Last worked: {formatTime(task.lastSessionDate)}</span>
-                {task.category_name && (
-                  <span className="px-2 py-0.5 rounded-full bg-gray-100">
-                    {task.category_name}
-                  </span>
-                )}
-              </div>
-              <div className="flex mt-1 space-x-2">
-                {task.status !== TaskStatus.COMPLETED && (
-                  <button 
-                    onClick={(e) => handleCompleteTask(e, task.id)}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    Complete
-                  </button>
-                )}
-                {timerState?.taskId !== task.id && task.status !== TaskStatus.COMPLETED && (
-                  <button 
-                    onClick={(e) => handleStartTimer(e, task.id)}
-                    className="text-xs text-blue-600 hover:text-blue-800"
-                  >
-                    Start Timer
-                  </button>
-                )}
-                {timerState?.taskId === task.id && timerState?.status === 'running' && (
-                  <button 
-                    onClick={handlePauseTimer}
-                    className="text-xs text-yellow-600 hover:text-yellow-800"
-                  >
-                    Pause Timer
-                  </button>
-                )}
-                {timerState?.taskId === task.id && timerState?.status === 'paused' && (
-                  <button 
-                    onClick={handleResumeTimer}
-                    className="text-xs text-green-600 hover:text-green-800"
-                  >
-                    Resume Timer
-                  </button>
-                )}
-              </div>
+            
+            <div className="flex space-x-1">
+              <button 
+                onClick={(e) => handleStartTask(e, task.id)}
+                className="px-3 py-1 text-sm bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-md transition-colors"
+              >
+                Start
+              </button>
+              
+              <button
+                onClick={(e) => handleCompleteTask(e, task.id)}
+                className="px-3 py-1 text-sm bg-green-100 hover:bg-green-200 text-green-800 rounded-md transition-colors"
+              >
+                Complete
+              </button>
             </div>
           </Link>
         ))}
@@ -249,27 +213,28 @@ export function RecentTasksWidget({ title = "Recently Worked Tasks", limit = 5 }
 }
 
 // Function to get the most recently worked on tasks based on session data
-function getRecentlyWorkedTasks(tasks: Task[] = [], sessions: any[] = [], limit = 5, showCompleted = false) {
+function getRecentlyWorkedTasks(tasks: Task[] = [], sessions: any[] = [], limit = 9, showCompleted = false) {
   if (!tasks.length || !sessions.length) {
     return [];
   }
   
   try {
-    // Map to track the most recent session date for each task
-    const taskLastSessionMap = new Map<string, string>();
+    // Create a map of task IDs to their last session date
+    const taskLastSessionMap = new Map();
     
-    // Process all sessions to find the most recent for each task
+    // Process sessions to find the most recent session for each task
     sessions.forEach(session => {
-      const taskId = session.task_id;
+      if (!session.task_id) return;
+      
+      const currentLastDate = taskLastSessionMap.get(session.task_id);
       const sessionDate = session.end_time || session.start_time;
       
-      if (!taskLastSessionMap.has(taskId) || 
-          new Date(sessionDate) > new Date(taskLastSessionMap.get(taskId)!)) {
-        taskLastSessionMap.set(taskId, sessionDate);
+      if (!currentLastDate || new Date(sessionDate) > new Date(currentLastDate)) {
+        taskLastSessionMap.set(session.task_id, sessionDate);
       }
     });
     
-    // Create a list of tasks with their last session date
+    // Filter tasks that have sessions and match visibility settings
     const tasksWithLastSession = tasks
       .filter(task => {
         // Filter based on task visibility settings
@@ -288,7 +253,7 @@ function getRecentlyWorkedTasks(tasks: Task[] = [], sessions: any[] = [], limit 
       return new Date(b.lastSessionDate as string).getTime() - new Date(a.lastSessionDate as string).getTime();
     });
     
-    // Return limited number of tasks
+    // Return tasks up to the limit
     return sortedTasks.slice(0, limit);
   } catch (error) {
     console.error('Error in getRecentlyWorkedTasks:', error);
