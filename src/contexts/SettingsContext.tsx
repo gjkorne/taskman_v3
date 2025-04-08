@@ -15,6 +15,8 @@ export interface Settings {
   quickTaskCategories: string[]; // Categories to show in quick task entry
   defaultQuickTaskCategory: string; // Default selected category for quick task entry
   uiDensity: 'default' | 'compact'; // UI density preference
+  pomodoroWorkDuration: number; // Duration of a work session in minutes
+  pomodoroBreakDuration: number; // Duration of a break session in minutes
 }
 
 // Default settings
@@ -30,6 +32,8 @@ export const defaultSettings: Settings = {
   quickTaskCategories: ['personal', 'family', 'work'], // Updated default categories
   defaultQuickTaskCategory: 'personal', // Default to personal category
   uiDensity: 'default', // Default to regular spacing and font size
+  pomodoroWorkDuration: 25, // Default Pomodoro work duration (minutes)
+  pomodoroBreakDuration: 5, // Default Pomodoro break duration (minutes)
 };
 
 // Context type definition

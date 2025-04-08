@@ -68,13 +68,24 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
       visible: true
     },
     {
+      id: 'pomodoro-timer',
+      type: WidgetType.POMODORO,
+      title: 'Pomodoro Timer',
+      position: {
+        row: 2,
+        column: 1,
+        size: WidgetSize.MEDIUM
+      },
+      visible: true
+    },
+    {
       id: 'recent-tasks',
       type: WidgetType.RECENT_TASKS,
       title: 'Recent Tasks',
       position: {
         row: 2,
-        column: 1,
-        size: WidgetSize.LARGE
+        column: 3,
+        size: WidgetSize.MEDIUM
       },
       props: {
         limit: 9
@@ -85,9 +96,9 @@ export const DEFAULT_DASHBOARD_CONFIG: DashboardConfig = {
       id: 'upcoming-tasks',
       type: WidgetType.UPCOMING_TASKS,
       position: {
-        row: 2,
-        column: 4,
-        size: WidgetSize.SMALL
+        row: 3,
+        column: 1,
+        size: WidgetSize.FULL
       },
       visible: true
     }

@@ -221,9 +221,79 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
         </div>
       </div>
       
-      {/* Categories Section */}
+      {/* Pomodoro Timer Settings */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Task Categories</h2>
+        <h2 className="text-xl font-semibold mb-4">Pomodoro Timer</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="pomodoroWorkDuration" className="block text-sm font-medium text-gray-700">
+              Work Duration (minutes)
+            </label>
+            <input
+              type="number"
+              id="pomodoroWorkDuration"
+              name="pomodoroWorkDuration"
+              min="1"
+              max="120" // Allow up to 2 hours
+              value={settings.pomodoroWorkDuration ?? 25} // Provide default fallback
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                if (!isNaN(value) && value >= 1 && value <= 120) {
+                  updateSetting('pomodoroWorkDuration', value);
+                }
+              }}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+            <p className="mt-1 text-xs text-gray-500">Duration of a single work session (1-120 minutes).</p>
+          </div>
+          <div>
+            <label htmlFor="pomodoroBreakDuration" className="block text-sm font-medium text-gray-700">
+              Break Duration (minutes)
+            </label>
+            <input
+              type="number"
+              id="pomodoroBreakDuration"
+              name="pomodoroBreakDuration"
+              min="1"
+              max="60" // Allow up to 1 hour break
+              value={settings.pomodoroBreakDuration ?? 5} // Provide default fallback
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                if (!isNaN(value) && value >= 1 && value <= 60) {
+                  updateSetting('pomodoroBreakDuration', value);
+                }
+              }}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+            <p className="mt-1 text-xs text-gray-500">Duration of a single break session (1-60 minutes).</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Task Management Section */}
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Task Management</h2>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Default Task Sort</label>
+          <select
+            value={settings.defaultTaskSort}
+            onChange={(e) => updateSetting('defaultTaskSort', e.target.value as 'due_date' | 'priority' | 'created_at')}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          >
+            <option value="due_date">Due Date</option>
+            <option value="priority">Priority</option>
+            <option value="created_at">Creation Date</option>
+          </select>
+        </div>
+
+        <h3 className="text-lg font-medium text-gray-900 mb-3">Category Management</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Manage all your task categories in one place. Add, edit, or remove categories, adjust visibility, and set default preferences.
+        </p>
+        
+        {/* Category Settings Component */}
         <CategorySettings />
       </div>
       
@@ -251,19 +321,6 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
         <h2 className="text-xl font-semibold mb-4">Task Management</h2>
         
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Default Task Sort</label>
-            <select
-              value={settings.defaultTaskSort}
-              onChange={(e) => updateSetting('defaultTaskSort', e.target.value as 'due_date' | 'priority' | 'created_at')}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            >
-              <option value="due_date">Due Date</option>
-              <option value="priority">Priority</option>
-              <option value="created_at">Creation Date</option>
-            </select>
-          </div>
-          
           <div>
             <label className="flex items-center">
               <input 

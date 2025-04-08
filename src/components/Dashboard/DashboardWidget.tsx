@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 
 interface DashboardWidgetProps {
-  title: string;
+  title: ReactNode;
   children: ReactNode;
   className?: string;
   isLoading?: boolean;
@@ -24,7 +24,7 @@ export function DashboardWidget({
   return (
     <div className={`bg-white rounded-lg shadow-md border border-gray-200 p-4 ${className}`}>
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold text-gray-700">{title}</h2>
+        {title}
         {actions && (
           <div className="flex items-center">
             {actions}

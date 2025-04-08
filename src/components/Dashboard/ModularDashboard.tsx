@@ -10,6 +10,7 @@ import { RecentTasksWidget } from './RecentTasksWidget';
 import { TaskOverviewWidget } from './TaskOverviewWidget';
 import { UpcomingTasksWidget } from './UpcomingTasksWidget';
 import { QuickActionsWidget } from './QuickActionsWidget';
+import { PomodoroWidget } from './PomodoroWidget';
 import { Settings, X } from 'lucide-react';
 import { QuickTaskModal } from '../TaskForm/QuickTaskModal';
 
@@ -80,6 +81,12 @@ export function ModularDashboard({
             <QuickActionsWidget 
               onCreateTask={() => setIsQuickTaskModalOpen(true)} 
             />
+          </div>
+        );
+      case WidgetType.POMODORO:
+        return (
+          <div key={widget.id} className={columnSpanClass}>
+            <PomodoroWidget />
           </div>
         );
       default:

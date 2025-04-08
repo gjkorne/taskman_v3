@@ -23,7 +23,7 @@ export const RECOMMENDED_CATEGORIES = [
 
 /**
  * Initialize the recommended categories if they don't exist
- * Will also handle conflicts by renaming legacy categories
+ * Will also handle conflicts by merging legacy categories
  */
 export async function initializeRecommendedCategories(): Promise<void> {
   try {
@@ -36,7 +36,7 @@ export async function initializeRecommendedCategories(): Promise<void> {
     let hiddenCategories = [...(preferences.hiddenCategories || [])];
 
     // Track which recommended categories we need to create
-    const categoriesToCreate = [...RECOMMENDED_CATEGORIES];
+    let categoriesToCreate = [...RECOMMENDED_CATEGORIES];
     
     // Check for name conflicts and handle legacy categories
     const conflictingCategories: Category[] = [];
@@ -52,38 +52,51 @@ export async function initializeRecommendedCategories(): Promise<void> {
         conflictingCategories.push(category);
         
         // If the existing category has the same name but in a different case,
-        // or if it's already a default category, we'll rename it
+        // or if it's already a default category, we'll merge it
         if (category.name !== categoriesToCreate[matchIndex].name || category.is_default) {
-          // Remove the need to create this one since it exists but will be renamed
-          categoriesToCreate.splice(matchIndex, 1);
+          // Remove the need to create this one since it exists but will be merged
+          categoriesToCreate = categoriesToCreate.filter(
+            c => c.name.toLowerCase() !== category.name.toLowerCase()
+          );
         }
       }
     });
     
-    // Rename conflicting categories with z_$ prefix
+    // Handle conflicting categories by merging them instead of renaming
     for (const category of conflictingCategories) {
-      const updatedCategory = await categoryService.updateCategory(category.id, {
-        name: `z_${category.name}`,
-        color: category.color || '#9CA3AF' // Ensure there's always a color
-      });
+      // Find the recommended category that conflicts with this one
+      const recommendedMatch = RECOMMENDED_CATEGORIES.find(
+        rec => rec.name.toLowerCase() === category.name.toLowerCase()
+      );
       
-      // Hide this z_ prefixed category by default
-      if (updatedCategory.data && updatedCategory.data.id) {
-        if (!hiddenCategories.includes(updatedCategory.data.id)) {
-          hiddenCategories.push(updatedCategory.data.id);
+      if (recommendedMatch) {
+        console.log(`Merging conflicting category: ${category.name}`);
+        
+        // Update the existing category with the recommended color if needed
+        if (!category.color || category.color === '#9CA3AF') {
+          await categoryService.updateCategory(category.id, {
+            color: recommendedMatch.color
+          });
         }
+        
+        // Skip creating this recommended category since we're keeping the existing one
+        categoriesToCreate = categoriesToCreate.filter(
+          c => c.name.toLowerCase() !== category.name.toLowerCase()
+        );
       }
     }
     
-    // Also hide any existing z_ categories
-    existingCategories.forEach(category => {
-      if (category.name.startsWith('z_') && !hiddenCategories.includes(category.id)) {
-        hiddenCategories.push(category.id);
-      }
+    // Remove any existing z_ categories from the hidden list
+    const cleanedHiddenCategories = hiddenCategories.filter(id => {
+      const category = existingCategories.find(c => c.id === id);
+      return !(category && category.name.startsWith('z_'));
     });
     
-    // Update settings to hide z_ categories
-    await userPreferencesService.setPreference('hiddenCategories', hiddenCategories);
+    // Update settings with cleaned hidden categories
+    if (cleanedHiddenCategories.length !== hiddenCategories.length) {
+      await userPreferencesService.setPreference('hiddenCategories', cleanedHiddenCategories);
+      hiddenCategories = cleanedHiddenCategories;
+    }
     
     // Create the recommended categories that don't exist yet
     for (const category of categoriesToCreate) {

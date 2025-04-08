@@ -27,7 +27,7 @@ export const useTimer = () => {
     sessions,
     createSession,
     stopSession,
-    refreshSessions
+    // refreshSessions // Removed as it's no longer used in the effect
   } = useTimeSessionData();
   
   // We don't actually use these in the compatibility layer
@@ -46,29 +46,51 @@ export const useTimer = () => {
   
   // Check if we have an active task that's already completed
   useEffect(() => {
-    if (!activeSession) return;
-    
+    // Store the active session ID when the effect runs to avoid stale closure issues
+    const currentActiveSessionId = activeSession?.id;
+    const currentActiveTaskId = activeSession?.task_id;
+
+    if (!currentActiveSessionId || !currentActiveTaskId) {
+        // If there's no active session when this effect runs, do nothing.
+        // This prevents trying to stop an already stopped session.
+        return;
+    }
+
     const checkForCompletedTasks = async () => {
       try {
         // Get the task directly from Supabase to ensure we have latest status
-        const { data: taskData } = await supabase
+        const { data: taskData, error: taskError } = await supabase
           .from('tasks')
           .select('status')
-          .eq('id', activeSession.task_id)
+          .eq('id', currentActiveTaskId) // Use the captured task ID
           .single();
-          
+
+        if (taskError) {
+          console.error('Error fetching task status:', taskError);
+          return;
+        }
+
+        // Check again if the session is still active before stopping
+        // This guards against race conditions if stopped manually between fetch and here
+        if (activeSession?.id !== currentActiveSessionId) {
+            console.log('[TimerCompat] Session changed or stopped manually while checking task status. Aborting automatic stop.');
+            return;
+        }
+        
         if (taskData && taskData.status === 'completed') {
-          console.log(`[TimerCompat] Found active session for completed task ${activeSession.task_id}, stopping it`);
-          await stopSession(activeSession.id);
-          refreshSessions();
+          console.log(`[TimerCompat] Found active session ${currentActiveSessionId} for completed task ${currentActiveTaskId}, stopping it automatically`);
+          // Pass the specific session ID to stop
+          await stopSession(currentActiveSessionId);
+          // No need to call refreshSessions here, query invalidation in stopSession handles it
         }
       } catch (error) {
-        console.error('Error checking task status:', error);
+        console.error('Error checking task status or stopping session:', error);
       }
     };
     
     checkForCompletedTasks();
-  }, [activeSession, stopSession, refreshSessions]);
+    // Depend only on activeSession?.id to re-run when the active session fundamentally changes
+  }, [activeSession?.id, stopSession, supabase]); // Ensure supabase is a dependency if used directly
   
   // Map the old TimerState structure to our new data
   const timerState = {

@@ -1,11 +1,12 @@
 import { useCategoryManager } from '../../hooks/useCategoryManager';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSettings } from '../../contexts/SettingsCompat';
 import { Pencil, Trash2, Check, X, Eye, EyeOff, Settings } from 'lucide-react';
 import Switch from '../UI/Switch';
 import { Tooltip } from '../UI/Tooltip';
 import { getUniqueColor } from '../../utils/categoryInitializer';
 import ConfirmationDialog from '../UI/ConfirmationDialog';
+import { forceDeleteZPrefixedCategories } from '../../debug/force-delete-duplicates';
 
 // Predefined colors for categories
 const CATEGORY_COLORS = [
@@ -52,12 +53,63 @@ export function CategorySettings() {
     categoryName: ''
   });
 
+  // Add state to track pending operations
+  const [pendingOperations, setPendingOperations] = useState<{[key: string]: NodeJS.Timeout}>({});
+  
+  // Cleanup pending operations on unmount
+  useEffect(() => {
+    return () => {
+      // Clear all pending timeouts when component unmounts
+      Object.values(pendingOperations).forEach(timeout => clearTimeout(timeout));
+    };
+  }, [pendingOperations]);
+
   // Get random color for new category
   const getRandomColor = () => {
     return getUniqueColor(categories);
   };
 
-  // Handler functions
+  // Create a debounced update function
+  const debouncedUpdateCategory = useCallback((id: string, updates: any) => {
+    // Cancel any existing pending operation for this category
+    if (pendingOperations[id]) {
+      clearTimeout(pendingOperations[id]);
+    }
+    
+    // Create a new pending operation
+    const timeoutId = setTimeout(async () => {
+      try {
+        await updateCategory(id, updates);
+        // Remove from pending operations after completion
+        setPendingOperations(prev => {
+          const newPending = {...prev};
+          delete newPending[id];
+          return newPending;
+        });
+      } catch (err) {
+        console.error(`Failed to update category ${id}:`, err);
+      }
+    }, 300); // 300ms debounce
+    
+    // Add to pending operations
+    setPendingOperations(prev => ({
+      ...prev,
+      [id]: timeoutId
+    }));
+  }, [updateCategory, pendingOperations]);
+
+  const handleEditCategory = async (id: string) => {
+    if (!editedName.trim()) return;
+    
+    // Use the debounced update function instead of direct call
+    debouncedUpdateCategory(id, { 
+      name: editedName,
+      color: editedColor
+    });
+    
+    setEditingCategory(null);
+  };
+
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return;
     
@@ -69,24 +121,14 @@ export function CategorySettings() {
       // Find the newly created category to update with color
       const newCategory = categories.find(cat => cat.name === newCategoryName);
       if (newCategory) {
-        await updateCategory(newCategory.id, { color: getRandomColor() });
+        // Use the debounced update function instead of direct call
+        debouncedUpdateCategory(newCategory.id, { color: getRandomColor() });
       }
       
       setNewCategoryName("");
     } catch (err) {
       console.error("Failed to create category:", err);
     }
-  };
-
-  const handleEditCategory = async (id: string) => {
-    if (!editedName.trim()) return;
-    
-    await updateCategory(id, { 
-      name: editedName,
-      color: editedColor
-    });
-    
-    setEditingCategory(null);
   };
 
   const startEditing = (category: any) => {
@@ -127,11 +169,37 @@ export function CategorySettings() {
 
   // Toggle visibility of a category
   const toggleCategoryVisibility = (categoryId: string) => {
-    const newHiddenCategories = hiddenCategories.includes(categoryId)
-      ? hiddenCategories.filter(id => id !== categoryId)
-      : [...hiddenCategories, categoryId];
+    const isCurrentlyHidden = hiddenCategories.includes(categoryId);
+    let newHiddenCategories: string[];
     
-    updateSetting('hiddenCategories', newHiddenCategories);
+    if (isCurrentlyHidden) {
+      // Remove from hidden categories
+      newHiddenCategories = hiddenCategories.filter(id => id !== categoryId);
+    } else {
+      // Add to hidden categories
+      newHiddenCategories = [...hiddenCategories, categoryId];
+    }
+    
+    // Debounce the settings update
+    if (pendingOperations['visibility']) {
+      clearTimeout(pendingOperations['visibility']);
+    }
+    
+    const timeoutId = setTimeout(() => {
+      updateSetting('hiddenCategories', newHiddenCategories);
+      // Remove from pending operations
+      setPendingOperations(prev => {
+        const newPending = {...prev};
+        delete newPending['visibility'];
+        return newPending;
+      });
+    }, 300);
+    
+    // Add to pending operations
+    setPendingOperations(prev => ({
+      ...prev,
+      ['visibility']: timeoutId
+    }));
   };
 
   // Toggle if a category appears in quick task buttons
@@ -141,11 +209,49 @@ export function CategorySettings() {
       ? quickTaskCategories.filter(cat => cat !== normalizedName)
       : [...quickTaskCategories, normalizedName];
     
-    updateSetting('quickTaskCategories', newQuickTaskCategories);
+    // Debounce the settings update
+    if (pendingOperations['quickTask']) {
+      clearTimeout(pendingOperations['quickTask']);
+    }
+    
+    const timeoutId = setTimeout(() => {
+      updateSetting('quickTaskCategories', newQuickTaskCategories);
+      // Remove from pending operations
+      setPendingOperations(prev => {
+        const newPending = {...prev};
+        delete newPending['quickTask'];
+        return newPending;
+      });
+    }, 300);
+    
+    // Add to pending operations
+    setPendingOperations(prev => ({
+      ...prev,
+      ['quickTask']: timeoutId
+    }));
     
     // If we're removing the default category, update the default
     if (normalizedName === defaultQuickTaskCategory && !newQuickTaskCategories.includes(normalizedName)) {
-      updateSetting('defaultQuickTaskCategory', newQuickTaskCategories[0] || 'work');
+      // Debounce the settings update
+      if (pendingOperations['defaultQuickTask']) {
+        clearTimeout(pendingOperations['defaultQuickTask']);
+      }
+      
+      const timeoutId = setTimeout(() => {
+        updateSetting('defaultQuickTaskCategory', newQuickTaskCategories[0] || 'work');
+        // Remove from pending operations
+        setPendingOperations(prev => {
+          const newPending = {...prev};
+          delete newPending['defaultQuickTask'];
+          return newPending;
+        });
+      }, 300);
+      
+      // Add to pending operations
+      setPendingOperations(prev => ({
+        ...prev,
+        ['defaultQuickTask']: timeoutId
+      }));
     }
   };
 
@@ -155,11 +261,48 @@ export function CategorySettings() {
     
     // If the category isn't in quickTaskCategories, add it
     if (!quickTaskCategories.includes(normalizedName)) {
-      updateSetting('quickTaskCategories', [...quickTaskCategories, normalizedName]);
+      // Debounce the settings update
+      if (pendingOperations['quickTask']) {
+        clearTimeout(pendingOperations['quickTask']);
+      }
+      
+      const timeoutId = setTimeout(() => {
+        updateSetting('quickTaskCategories', [...quickTaskCategories, normalizedName]);
+        // Remove from pending operations
+        setPendingOperations(prev => {
+          const newPending = {...prev};
+          delete newPending['quickTask'];
+          return newPending;
+        });
+      }, 300);
+      
+      // Add to pending operations
+      setPendingOperations(prev => ({
+        ...prev,
+        ['quickTask']: timeoutId
+      }));
     }
     
-    // Set as default
-    updateSetting('defaultQuickTaskCategory', normalizedName);
+    // Debounce the settings update
+    if (pendingOperations['defaultQuickTask']) {
+      clearTimeout(pendingOperations['defaultQuickTask']);
+    }
+    
+    const timeoutId = setTimeout(() => {
+      updateSetting('defaultQuickTaskCategory', normalizedName);
+      // Remove from pending operations
+      setPendingOperations(prev => {
+        const newPending = {...prev};
+        delete newPending['defaultQuickTask'];
+        return newPending;
+      });
+    }, 300);
+    
+    // Add to pending operations
+    setPendingOperations(prev => ({
+      ...prev,
+      ['defaultQuickTask']: timeoutId
+    }));
   };
 
   if (isLoading) {
@@ -179,6 +322,29 @@ export function CategorySettings() {
           adjust visibility, and set default preferences.
         </p>
       </div>
+
+      {/* Debug button for development mode only */}
+      {import.meta.env.DEV && (
+        <div className="p-2 mb-4 border border-yellow-500 bg-yellow-50 rounded">
+          <p className="text-sm text-yellow-700 mb-2">Developer Tools</p>
+          <button 
+            className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+            onClick={async () => {
+              try {
+                const result = await forceDeleteZPrefixedCategories();
+                alert(`Cleanup result: ${result.message}`);
+                // Refresh categories after cleanup
+                // fetchCategories(); // This function is not defined in the provided code
+              } catch (err) {
+                console.error('Error running cleanup:', err);
+                alert('Error running cleanup. Check console for details.');
+              }
+            }}
+          >
+            Clean Up Duplicate Categories
+          </button>
+        </div>
+      )}
 
       {/* Add New Category */}
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">

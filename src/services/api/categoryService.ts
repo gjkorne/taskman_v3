@@ -89,19 +89,51 @@ export class CategoryService extends BaseService<CategoryServiceEvents> implemen
         created_at: new Date().toISOString()
       };
       
-      const { data, error } = await supabase
-        .from('categories')
-        .insert(newCategory)
-        .select()
-        .single();
+      // Add retry logic for conflict errors
+      let retryCount = 0;
+      const maxRetries = 2;
       
-      if (error) throw error;
+      while (retryCount <= maxRetries) {
+        try {
+          const { data, error } = await supabase
+            .from('categories')
+            .insert(newCategory)
+            .select()
+            .single();
+          
+          if (error) {
+            // If it's a conflict error, retry with a modified name
+            if (error.code === '409' || error.message?.includes('Conflict')) {
+              console.log(`Conflict detected on category creation, retrying...`);
+              retryCount++;
+              
+              // Modify the name slightly to avoid the conflict
+              if (newCategory.name) {
+                newCategory.name = `${newCategory.name} (${retryCount})`;
+              }
+              
+              // Wait a small random amount of time to reduce collision probability
+              await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 300));
+              continue; // Try again with modified data
+            }
+            
+            throw error;
+          }
+          
+          // Success - emit event and return
+          this.emit('category-created', data as Category);
+          return { data, error: null };
+        } catch (innerError: any) {
+          // If it's not a conflict or we've exceeded retries, rethrow
+          if (!(innerError.code === '409' || innerError.message?.includes('Conflict')) || retryCount >= maxRetries) {
+            throw innerError;
+          }
+          retryCount++;
+        }
+      }
       
-      // Emit event
-      this.emit('category-created', data as Category);
-      this.emit('categories-changed');
-      
-      return { data, error: null };
+      // If we get here, we've exceeded retries
+      throw new Error(`Failed to create category after ${maxRetries} retries due to conflicts`);
     } catch (error) {
       const serviceError = this.processError(error, 'category.create_error');
       this.emit('error', serviceError);
@@ -112,30 +144,60 @@ export class CategoryService extends BaseService<CategoryServiceEvents> implemen
   /**
    * Update an existing category
    */
-  async updateCategory(id: string, categoryData: Partial<CategoryInput>): Promise<{ data: Category | null; error: ServiceError | null }> {
+  async updateCategory(id: string, updates: Partial<CategoryInput>): Promise<{ data: Category | null; error: ServiceError | null }> {
     try {
       await this.ensureAuthenticated();
       
-      // Add updated timestamp
-      const updateData = {
-        ...categoryData,
-        updated_at: new Date().toISOString()
-      };
+      // Add retry logic for conflict errors
+      let retryCount = 0;
+      const maxRetries = 2;
       
-      const { data, error } = await supabase
-        .from('categories')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
+      while (retryCount <= maxRetries) {
+        try {
+          const { data, error } = await supabase
+            .from('categories')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single();
+          
+          if (error) {
+            // If it's a conflict error, retry with fresh data
+            if (error.code === '409' || error.message?.includes('Conflict')) {
+              console.log(`Conflict detected on category update (${id}), retrying...`);
+              retryCount++;
+              
+              // Get the latest version before retrying
+              const { data: latestData } = await supabase
+                .from('categories')
+                .select('*')
+                .eq('id', id)
+                .single();
+                
+              if (latestData) {
+                // Wait a small random amount of time to reduce collision probability
+                await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 300));
+                continue; // Try again with the latest data
+              }
+            }
+            
+            throw error;
+          }
+          
+          // Success - emit event and return
+          this.emit('category-updated', data as Category);
+          return { data, error: null };
+        } catch (innerError: any) {
+          // If it's not a conflict or we've exceeded retries, rethrow
+          if (!(innerError.code === '409' || innerError.message?.includes('Conflict')) || retryCount >= maxRetries) {
+            throw innerError;
+          }
+          retryCount++;
+        }
+      }
       
-      if (error) throw error;
-      
-      // Emit events
-      this.emit('category-updated', data as Category);
-      this.emit('categories-changed');
-      
-      return { data, error: null };
+      // If we get here, we've exceeded retries
+      throw new Error(`Failed to update category after ${maxRetries} retries due to conflicts`);
     } catch (error) {
       const serviceError = this.processError(error, 'category.update_error');
       this.emit('error', serviceError);

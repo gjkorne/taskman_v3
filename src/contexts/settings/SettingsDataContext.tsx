@@ -17,6 +17,8 @@ export interface Settings {
   quickTaskCategories: string[];
   defaultQuickTaskCategory: string;
   uiDensity: 'default' | 'compact';
+  pomodoroWorkDuration: number; // Duration of a work session in minutes
+  pomodoroBreakDuration: number; // Duration of a break session in minutes
 }
 
 // Default settings
@@ -32,6 +34,8 @@ export const defaultSettings: Settings = {
   quickTaskCategories: ['work', 'personal', 'childcare', 'other'],
   defaultQuickTaskCategory: 'work',
   uiDensity: 'default',
+  pomodoroWorkDuration: 25, // Default Pomodoro work duration (minutes)
+  pomodoroBreakDuration: 5, // Default Pomodoro break duration (minutes)
 };
 
 // Settings Data Context type definition
