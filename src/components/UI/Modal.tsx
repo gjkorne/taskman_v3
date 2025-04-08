@@ -52,13 +52,13 @@ const ModalBase: React.FC<ModalBaseProps> = ({
 
   // Size classes based on the size prop
   const sizeClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-7xl',
-    '2xl': 'max-w-7xl',
-    '3xl': 'w-[96rem]',
-    full: 'max-w-full w-full h-full m-0 rounded-none'
+    sm: 'w-[400px]',
+    md: 'w-[500px]',
+    lg: 'w-[600px]',
+    xl: 'w-[800px]',
+    '2xl': 'w-[1000px]',
+    '3xl': 'w-[1200px]',
+    full: 'w-full h-full m-0 rounded-none'
   };
 
   // Adjust padding and spacing based on density level

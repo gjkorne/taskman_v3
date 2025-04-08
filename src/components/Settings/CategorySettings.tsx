@@ -500,7 +500,7 @@ export function CategorySettings() {
                       >
                         <Pencil className="w-5 h-5" />
                       </button>
-                      {!isDefault && (
+                      {(!isDefault || category.name === 'Personal') && (
                         <button
                           onClick={() => confirmDeleteCategory(category)}
                           className="p-1 text-red-600 hover:text-red-800"

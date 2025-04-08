@@ -42,7 +42,7 @@ const FormBase: React.FC<FormBaseProps> = ({
       className={formClassName}
       style={spacingStyle}
       noValidate={noValidate}
-      {...formProps}
+      {...Object.fromEntries(Object.entries(formProps).filter(([key]) => !key.startsWith('density')))}
     >
       {children}
     </form>
