@@ -203,9 +203,9 @@ export function TimeSessionDetails({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="sticky inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-auto animate-fadeIn">
-        <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+        <div className="p-4 border-b flex justify-between items-center fixed top-0 bg-white z-10">
           <h2 className="text-lg font-medium">Session Details</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X size={20} />

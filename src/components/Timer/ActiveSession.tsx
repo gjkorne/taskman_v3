@@ -62,7 +62,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   // show the loading state
   if (!activeTask) {
     return (
-      <div className="sticky top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
+      <div className="fixed top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
         <div className="mx-auto px-4 py-2">
           <div className="animate-pulse flex items-center space-x-2">
             <div className="rounded-full bg-indigo-600 h-4 w-4"></div>
