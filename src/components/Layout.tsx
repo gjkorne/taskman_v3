@@ -25,7 +25,6 @@ export function Layout({ children }: LayoutProps) {
     
     if (path === '/') return 'home';
     if (path.startsWith('/tasks')) return 'tasks';
-    if (path === '/timer') return 'timer';
     if (path === '/reports') return 'reports';
     if (path === '/settings') return 'settings';
     if (path === '/admin') return 'admin';

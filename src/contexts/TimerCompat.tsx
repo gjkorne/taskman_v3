@@ -86,7 +86,7 @@ export const useTimer = () => {
   
   // Updated to handle both boolean and string parameters for backwards compatibility
   const formatElapsedTime = (compactParam: boolean | string = false) => {
-    if (!activeSession) return '00:00:00';
+    if (!activeSession) return '00:00';
     
     // Normalize the parameter - both 'short' string and true boolean should result in compact format
     const compact = compactParam === true || compactParam === 'short';
@@ -104,7 +104,8 @@ export const useTimer = () => {
         : `${minutes}m ${seconds}s`;
     }
     
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    // Return in ~HH:MM format
+    return `${hours.toString().padStart(0, '')}:${minutes.toString().padStart(2, '0')}`;
   };
   
   const getDisplayTime = (task: Task) => {

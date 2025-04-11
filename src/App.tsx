@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './components/Auth/AuthProvider';
 import { LoginForm } from './components/Auth/LoginForm';
 import { RegisterForm } from './components/Auth/RegisterForm';
-import { Layout } from './components/Layout';
 import { TaskList, TaskListRefType } from './components/TaskList';
 import { Timer } from './components/Timer';
 import { ReportsPage } from './pages/ReportsPage';
@@ -16,18 +15,21 @@ import { TimeSessionProvider } from './contexts/timeSession';
 import { TaskProvider } from './contexts/task';
 import { ToastProvider } from './components/Toast';
 import { CategoryProvider } from './contexts/category';
-import { ErrorProvider } from './contexts/ErrorContext';
-import { LoadingProvider } from './contexts/LoadingContext';
-import { NetworkStatusProvider } from './contexts/NetworkStatusContext';
-import { LoadingIndicator } from './components/UI/LoadingIndicator';
-import { OfflineIndicator } from './components/UI/OfflineIndicator';
-import { AppInitializer } from './services/AppInitializer';
-import { AppError } from './utils/errorHandling';
-import { QueryProvider } from './contexts/query/QueryProvider';
 import { AdminProvider } from './contexts/AdminContext';
+import { Layout } from './components/Layout';
+import { LoadingProvider } from './contexts/LoadingContext';
+import { ErrorProvider } from './contexts/ErrorContext';
+import { QueryProvider } from './contexts/query/QueryProvider';
+import { OfflineIndicator } from './components/UI/OfflineIndicator';
+import { NetworkStatusProvider } from './contexts/NetworkStatusContext';
 
-// Import debug tools in development mode
-if (process.env.NODE_ENV === 'development') {
+// Import settings providers
+import { SettingsDataProvider } from './contexts/settings/SettingsDataContext';
+import { SettingsUIProvider } from './contexts/settings/SettingsUIContext';
+import { SettingsProvider } from './contexts/SettingsContext'; // Legacy provider for compatibility
+
+// Enable debug tools in development
+if (import.meta.env.DEV) {
   import('./utils/debugTools');
 }
 
@@ -41,19 +43,22 @@ export const timerStateChangeEvent = new Event('taskman:timer_state_changed');
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-
+  
+  // If still loading auth state, show nothing
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingIndicator size="lg" variant="primary" text="Loading authentication..." />
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
       </div>
     );
   }
-
+  
+  // If no user, redirect to login
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
-
+  
+  // If authenticated, show the protected content
   return children;
 }
 
@@ -62,18 +67,16 @@ function App() {
   const taskListRef = useRef<TaskListRefType>(null);
   const [appInitialized, setAppInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
-
-  // Initialize the application
+  
+  // Initialize app on mount
   useEffect(() => {
     const initApp = async () => {
       try {
-        await AppInitializer.initialize();
+        // App is initialized
         setAppInitialized(true);
-        console.log('Application initialization complete');
       } catch (error) {
-        const appError = AppError.from(error);
-        console.error('Failed to initialize application:', appError);
-        setInitError(appError.getUserMessage());
+        console.error('Failed to initialize app:', error);
+        setInitError('Failed to initialize the application. Please try again.');
       }
     };
 
@@ -108,31 +111,25 @@ function App() {
   }, []);
 
   // If app is still initializing, show loading screen
-  if (!appInitialized && !initError) {
+  if (!appInitialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <LoadingIndicator size="lg" variant="primary" />
           <div className="mt-4 text-gray-600">Initializing TaskMan...</div>
         </div>
       </div>
     );
   }
-
-  // If there was an initialization error, show error screen
+  
+  // If there was an error during initialization, show error screen
   if (initError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8 max-w-md bg-white rounded-lg shadow-lg">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Initialization Error</h1>
-          <p className="text-gray-700 mb-6">{initError}</p>
-          <p className="text-gray-500 text-sm">
-            Please refresh the page or contact support if the problem persists.
-          </p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        <div className="text-center">
+          <div className="text-red-500 font-medium text-lg">{initError}</div>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             Retry
           </button>
@@ -149,12 +146,16 @@ function App() {
             <ErrorProvider>
               <AuthProvider>
                 <BrowserRouter>
-                  <CategoryProvider>
-                    <TaskProvider>
-                      <TimeSessionProvider>
-                        <AdminProvider>
-                          <OfflineIndicator />
-                          <Routes>
+                  {/* Add back the Settings providers that were removed */}
+                  <SettingsProvider>
+                    <SettingsDataProvider>
+                      <SettingsUIProvider>
+                        <CategoryProvider>
+                          <TaskProvider>
+                            <TimeSessionProvider>
+                              <AdminProvider>
+                                <OfflineIndicator />
+                                <Routes>
                                   {/* Auth routes */}
                                   <Route path="/login" element={<LoginForm />} />
                                   <Route path="/register" element={<RegisterForm />} />
@@ -271,13 +272,16 @@ function App() {
                             </TimeSessionProvider>
                           </TaskProvider>
                         </CategoryProvider>
-                      </BrowserRouter>
-                    </AuthProvider>
-                  </ErrorProvider>
-                </ToastProvider>
-              </LoadingProvider>
-            </QueryProvider>
-          </NetworkStatusProvider>
+                      </SettingsUIProvider>
+                    </SettingsDataProvider>
+                  </SettingsProvider>
+                </BrowserRouter>
+              </AuthProvider>
+            </ErrorProvider>
+          </ToastProvider>
+        </LoadingProvider>
+      </QueryProvider>
+    </NetworkStatusProvider>
   );
 }
 

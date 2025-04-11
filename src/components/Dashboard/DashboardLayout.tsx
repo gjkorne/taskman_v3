@@ -85,16 +85,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
               </div>
 
-              {/* Dashboard tabs */}
-              <div className="border-b mb-6">
-                <nav className="flex space-x-8 -mb-px">
-                  <a href="#" className="py-4 px-1 border-b-2 border-taskman-blue-500 font-medium text-sm text-taskman-blue-600 transition duration-250">Overview</a>
-                  <a href="#" className="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 transition duration-250">Projects</a>
-                  <a href="#" className="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 transition duration-250">Tasks</a>
-                  <a href="#" className="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 transition duration-250">Time</a>
-                </nav>
-              </div>
-
               {/* Content */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 {children}

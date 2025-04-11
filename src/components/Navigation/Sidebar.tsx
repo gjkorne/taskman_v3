@@ -6,7 +6,7 @@ import { User } from '@supabase/supabase-js';
 import { Link, useNavigate } from 'react-router-dom';
 
 // Types
-export type ViewType = 'tasks' | 'timer' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar' | 'home';
+export type ViewType = 'tasks' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar' | 'home';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -146,16 +146,7 @@ export function Sidebar({
               collapsed={isCollapsed}
               onClick={handleNavClick}
             />
-            
-            <NavItem 
-              icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5" />} 
-              label="Timer" 
-              to="/timer"
-              active={activeView === 'timer'}
-              collapsed={isCollapsed}
-              onClick={handleNavClick}
-            />
-            
+
             <NavItem 
               icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5" />} 
               label="Time Sessions"
