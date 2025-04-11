@@ -7,15 +7,12 @@ import { Layout } from './components/Layout';
 import { TaskList, TaskListRefType } from './components/TaskList';
 import { Timer } from './components/Timer';
 import { ReportsPage } from './pages/ReportsPage';
-import SettingsPage from './pages/SettingsPage';
-import AdminPage from './pages/AdminPage';
 import { TaskDetailsPage } from './pages/TaskDetailsPage';
 import { TimeSessionsPage } from './pages/TimeSessionsPage';
 import { CalendarPage } from './components/Calendar/CalendarPage';
 import HomePage from './pages/HomePage';
 import { useAuth } from './lib/auth';
 import { TimeSessionProvider } from './contexts/timeSession';
-import { SettingsProvider } from './contexts/SettingsContext';
 import { TaskProvider } from './contexts/task';
 import { ToastProvider } from './components/Toast';
 import { CategoryProvider } from './contexts/category';
@@ -34,9 +31,8 @@ if (process.env.NODE_ENV === 'development') {
   import('./utils/debugTools');
 }
 
-// Import the new providers
-import { SettingsDataProvider } from './contexts/settings/SettingsDataContext';
-import { SettingsUIProvider } from './contexts/settings/SettingsUIContext';
+// Import the new SimpleSettingsPage
+import SimpleSettingsPage from './pages/SimpleSettingsPage';
 
 // Setup global event listeners for app-wide events
 // This allows components to communicate without direct props
@@ -153,15 +149,12 @@ function App() {
             <ErrorProvider>
               <AuthProvider>
                 <BrowserRouter>
-                  <SettingsProvider>
-                    <SettingsDataProvider>
-                      <SettingsUIProvider>
-                        <CategoryProvider>
-                          <TaskProvider>
-                            <TimeSessionProvider>
-                              <AdminProvider>
-                                <OfflineIndicator />
-                                <Routes>
+                  <CategoryProvider>
+                    <TaskProvider>
+                      <TimeSessionProvider>
+                        <AdminProvider>
+                          <OfflineIndicator />
+                          <Routes>
                                   {/* Auth routes */}
                                   <Route path="/login" element={<LoginForm />} />
                                   <Route path="/register" element={<RegisterForm />} />
@@ -216,7 +209,7 @@ function App() {
                                     element={
                                       <ProtectedRoute>
                                         <Layout>
-                                          <SettingsPage />
+                                          <SimpleSettingsPage />
                                         </Layout>
                                       </ProtectedRoute>
                                     } 
@@ -227,7 +220,7 @@ function App() {
                                     element={
                                       <ProtectedRoute>
                                         <Layout>
-                                          <AdminPage />
+                                          <div>Admin Dashboard</div>
                                         </Layout>
                                       </ProtectedRoute>
                                     } 
@@ -278,16 +271,13 @@ function App() {
                             </TimeSessionProvider>
                           </TaskProvider>
                         </CategoryProvider>
-                      </SettingsUIProvider>
-                    </SettingsDataProvider>
-                  </SettingsProvider>
-                </BrowserRouter>
-              </AuthProvider>
-            </ErrorProvider>
-          </ToastProvider>
-        </LoadingProvider>
-      </QueryProvider>
-    </NetworkStatusProvider>
+                      </BrowserRouter>
+                    </AuthProvider>
+                  </ErrorProvider>
+                </ToastProvider>
+              </LoadingProvider>
+            </QueryProvider>
+          </NetworkStatusProvider>
   );
 }
 
