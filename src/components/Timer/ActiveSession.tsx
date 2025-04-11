@@ -62,7 +62,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   // show the loading state
   if (!activeTask) {
     return (
-      <div className="fixed top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
+      <div className="fixed top-0 left-0 right-0 w-full z-10 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
         <div className="mx-auto px-4 py-2">
           <div className="animate-pulse flex items-center space-x-2">
             <div className="rounded-full bg-indigo-600 h-4 w-4"></div>
@@ -82,7 +82,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   // Compact mode (default when collapsed)
   if (!isExpanded) {
     return (
-      <div className="sticky top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
+      <div className="sticky top-0 left-0 right-0 w-full z-10 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
         <div className="mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button 
@@ -141,7 +141,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   
   // Expanded mode
   return (
-    <div className="sticky top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
+    <div className="sticky top-0 left-0 right-0 w-full z-10 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
       <div className="container mx-auto px-4 py-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start sm:items-center mb-3 sm:mb-0">
