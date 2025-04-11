@@ -5,6 +5,7 @@ import { useTimeSessionData } from '../../contexts/timeSession';
 import { Icon } from '../UI/Icon';
 import { useAdmin } from '../../contexts/AdminContext';
 import { createLogger } from '../../utils/logging';
+import { timerStateChangeEvent } from '../../App';
 
 const logger = createLogger('ActiveSession');
 
@@ -30,6 +31,17 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
       });
     }
   }, [timerState, activeSession]);
+  
+  // Handle timer state changes
+  const handleTimerStateChange = () => {
+    // Call the prop-based callback if provided (for backward compatibility)
+    if (onTimerStateChange) {
+      onTimerStateChange();
+    }
+    
+    // Dispatch the global event
+    window.dispatchEvent(timerStateChangeEvent);
+  };
   
   // Don't render the component if user is being impersonated by an admin
   // as we don't want to show/modify real timer state in impersonation mode
@@ -91,7 +103,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
               <button
                 onClick={() => {
                   pauseTimer();
-                  if (onTimerStateChange) onTimerStateChange();
+                  handleTimerStateChange();
                 }}
                 className="p-2 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
                 aria-label="Pause timer"
@@ -102,7 +114,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
               <button
                 onClick={() => {
                   startTimer(activeTask.id);
-                  if (onTimerStateChange) onTimerStateChange();
+                  handleTimerStateChange();
                 }}
                 className="p-2 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
                 aria-label="Resume timer"
@@ -114,7 +126,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
             <button
               onClick={() => {
                 stopTimer();
-                if (onTimerStateChange) onTimerStateChange();
+                handleTimerStateChange();
               }}
               className="p-2 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
               aria-label="Stop timer"
@@ -127,92 +139,72 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
     );
   }
   
-  // Full expanded mode
+  // Expanded mode
   return (
     <div className="sticky top-0 left-0 right-0 w-full z-50 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
-      <div className="mx-auto px-4 py-3">
-        <div className="flex justify-between items-start">
-          <div className="flex-1">
-            <div className="flex items-center mb-1">
-              <div className={`h-3 w-3 rounded-full mr-2 ${isRunning ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`}></div>
-              <span className="font-medium text-sm">{isRunning ? 'Timer running' : 'Timer paused'}</span>
-            </div>
-            
-            <h3 className="text-lg font-semibold mb-1 truncate pr-8">{activeTask.title}</h3>
-            
-            <div className="text-sm opacity-90 mb-2">
-              {activeTask.category_name && (
-                <span className="inline-flex items-center mr-3">
-                  <Icon name="Tag" size={14} className="mr-1" />
-                  {activeTask.category_name}
-                </span>
-              )}
-              {activeTask.due_date && (
-                <span className="inline-flex items-center">
-                  <Icon name="Calendar" size={14} className="mr-1" />
-                  {new Date(activeTask.due_date).toLocaleDateString()}
-                </span>
-              )}
-            </div>
-            
-            <div className="text-2xl font-mono font-bold">
-              {formatElapsedTime()}
-            </div>
-          </div>
-          
-          <div>
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start sm:items-center mb-3 sm:mb-0">
             <button 
-              onClick={() => setIsExpanded(false)} 
-              className="p-1.5 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+              onClick={() => setIsExpanded(false)}
+              className="p-1.5 mt-1 sm:mt-0 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors mr-3"
               aria-label="Collapse timer"
             >
               <Icon name="ChevronUp" size={18} />
             </button>
-          </div>
-        </div>
-        
-        <div className="flex mt-3 pt-3 border-t border-indigo-600 justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="text-sm">
-              Started at {timerState.startTime ? new Date(timerState.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--:--'}
+            
+            <div>
+              <h3 className="font-medium text-lg">{activeTask.title}</h3>
+              <div className="text-indigo-200 text-sm">
+                {activeTask.status === 'in_progress' ? 'In Progress' : 'Paused'} · 
+                {activeTask.priority === 'high' ? ' High Priority' : 
+                 activeTask.priority === 'medium' ? ' Medium Priority' : ' Low Priority'}
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center space-x-2">
-            {isRunning ? (
-              <button 
-                onClick={() => {
-                  pauseTimer(); 
-                  if (onTimerStateChange) onTimerStateChange();
-                }}
-                className="py-1.5 px-4 rounded-md bg-indigo-800 hover:bg-indigo-600 flex items-center space-x-2 transition-colors"
-              >
-                <Icon name="Pause" size={18} />
-                <span>Pause</span>
-              </button>
-            ) : (
-              <button 
-                onClick={() => {
-                  startTimer(activeTask.id);
-                  if (onTimerStateChange) onTimerStateChange();
-                }}
-                className="py-1.5 px-4 rounded-md bg-indigo-800 hover:bg-indigo-600 flex items-center space-x-2 transition-colors"
-              >
-                <Icon name="Play" size={18} />
-                <span>Resume</span>
-              </button>
-            )}
+          <div className="flex items-center sm:space-x-6">
+            <div className="mr-6 sm:mr-0">
+              <div className="text-xs uppercase tracking-wide text-indigo-200 mb-1">Elapsed Time</div>
+              <div className="font-mono text-2xl font-bold">{formatElapsedTime()}</div>
+            </div>
             
-            <button
-              onClick={() => {
-                stopTimer();
-                if (onTimerStateChange) onTimerStateChange();
-              }}
-              className="py-1.5 px-4 rounded-md bg-red-700 hover:bg-red-600 flex items-center space-x-2 transition-colors"
-            >
-              <Icon name="Square" size={18} />
-              <span>Stop</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              {isRunning ? (
+                <button
+                  onClick={() => {
+                    pauseTimer();
+                    handleTimerStateChange();
+                  }}
+                  className="flex items-center justify-center p-3 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+                  aria-label="Pause timer"
+                >
+                  <Icon name="Pause" size={20} />
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    startTimer(activeTask.id);
+                    handleTimerStateChange();
+                  }}
+                  className="flex items-center justify-center p-3 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+                  aria-label="Resume timer"
+                >
+                  <Icon name="Play" size={20} />
+                </button>
+              )}
+              
+              <button
+                onClick={() => {
+                  stopTimer();
+                  handleTimerStateChange();
+                }}
+                className="flex items-center justify-center p-3 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+                aria-label="Stop timer"
+              >
+                <Icon name="Square" size={20} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

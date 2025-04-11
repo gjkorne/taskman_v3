@@ -1,30 +1,41 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { ActiveSession } from './Timer/ActiveSession';
 import { SearchPanel } from './TaskList/SearchPanel';
-import { Sidebar, ViewType } from './Navigation/Sidebar';
+import { Sidebar } from './Navigation/Sidebar';
 import { TaskFormModal } from './TaskForm/TaskFormModal';
 import { Icon } from './UI/Icon';
 import { MainHeader } from './UI/MainHeader';
 import { AdminView } from './Admin/AdminView';
+import { createTaskEvent, timerStateChangeEvent } from '../App';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeView: ViewType;
-  onViewChange: (view: ViewType) => void;
-  onTaskCreated?: () => void;
-  onTimerStateChange?: () => void;
 }
 
-export function Layout({ 
-  children, 
-  activeView, 
-  onViewChange, 
-  onTaskCreated,
-  onTimerStateChange 
-}: LayoutProps) {
+export function Layout({ children }: LayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const location = useLocation();
+  
+  // Get the current view based on the URL path
+  const getCurrentView = () => {
+    const path = location.pathname;
+    
+    if (path === '/') return 'home';
+    if (path.startsWith('/tasks')) return 'tasks';
+    if (path === '/timer') return 'timer';
+    if (path === '/reports') return 'reports';
+    if (path === '/settings') return 'settings';
+    if (path === '/admin') return 'admin';
+    if (path === '/time-sessions') return 'time-sessions';
+    if (path === '/calendar') return 'calendar';
+    
+    return 'home'; // default
+  };
+  
+  const activeView = getCurrentView();
   
   // Check if we're on a mobile device
   useEffect(() => {
@@ -56,12 +67,15 @@ export function Layout({
     }
   }, [activeView, isMobile]);
   
-  // Handle new task creation
+  // Handle new task creation using global events
   const handleTaskCreated = () => {
-    if (onTaskCreated) {
-      onTaskCreated();
-    }
+    window.dispatchEvent(createTaskEvent);
     setShowTaskForm(false);
+  };
+  
+  // Handle timer state changes using global events
+  const handleTimerStateChange = () => {
+    window.dispatchEvent(timerStateChangeEvent);
   };
   
   // Toggle sidebar
@@ -76,19 +90,18 @@ export function Layout({
         onSearch={(query) => console.log('Searching for:', query)}
         onRefresh={() => {
           console.log('Refreshing data...');
-          if (onTaskCreated) onTaskCreated();
+          window.dispatchEvent(createTaskEvent);
         }}
         onToggleSidebar={toggleSidebar}
       />
       
       {/* Timer component at the top - spans full width */}
-      <ActiveSession onTimerStateChange={onTimerStateChange} />
+      <ActiveSession onTimerStateChange={handleTimerStateChange} />
       
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar component */}
         <Sidebar 
           activeView={activeView}
-          onViewChange={onViewChange}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={toggleSidebar}
         />
