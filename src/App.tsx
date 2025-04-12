@@ -8,6 +8,7 @@ import { Timer } from './components/Timer';
 import { ReportsPage } from './pages/ReportsPage';
 import { TaskDetailsPage } from './pages/TaskDetailsPage';
 import { TimeSessionsPage } from './pages/TimeSessionsPage';
+import { CategoriesPage } from './pages/CategoriesPage';
 import { CalendarPage } from './components/Calendar/CalendarPage';
 import HomePage from './pages/HomePage';
 import { useAuth } from './lib/auth';
@@ -178,6 +179,17 @@ function App() {
                                       <ProtectedRoute>
                                         <Layout>
                                           <TaskList ref={taskListRef} />
+                                        </Layout>
+                                      </ProtectedRoute>
+                                    } 
+                                  />
+                                  
+                                  <Route 
+                                    path="/categories" 
+                                    element={
+                                      <ProtectedRoute>
+                                        <Layout>
+                                          <CategoriesPage />
                                         </Layout>
                                       </ProtectedRoute>
                                     } 

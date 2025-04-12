@@ -2,6 +2,7 @@ import React from 'react';
 import { TaskStatusType } from '../../types/task';
 import { getStatusDisplayConfig } from '../../utils/taskStatusUtils';
 import * as Icons from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 
 interface StatusBadgeProps {
   status: TaskStatusType;
@@ -38,8 +39,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     lg: 16,
   };
   
-  // Get the appropriate icon component
-  const IconComponent = Icons[config.icon as keyof typeof Icons] || Icons.Circle;
+  // Get the appropriate icon component with proper typing
+  const IconComponent = (Icons[config.icon as keyof typeof Icons] || Icons.Circle) as LucideIcon;
   
   return (
     <div 

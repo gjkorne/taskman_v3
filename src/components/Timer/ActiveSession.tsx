@@ -94,6 +94,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
             </button>
             <div>
               <div className="font-bold text-base">{activeTask.title}</div>
+              {/* Status and priority information removed as requested */}
               <div className="font-mono text-lg font-bold">{formatElapsedTime()}</div>
             </div>
           </div>
@@ -155,6 +156,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
             
             <div>
               <h3 className="font-bold text-2xl">{activeTask.title}</h3>
+              {/* Status and priority information removed as requested */}
             </div>
           </div>
           

@@ -21,8 +21,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="flex flex-col h-screen">
       {/* Main header */}
       <MainHeader 
-        onSearch={(query) => console.log('Search for:', query)}
-        onRefresh={() => console.log('Refreshing tasks...')}
+        onToggleSidebar={toggleSidebar}
       />
       
       {/* Offline indicator */}
@@ -47,6 +46,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <nav className="space-y-2">
               <a href="#" className="block px-4 py-2 rounded bg-taskman-blue-100 text-taskman-blue-700 font-medium transition duration-250">Dashboard</a>
               <a href="#" className="block px-4 py-2 rounded hover:bg-gray-200 transition duration-250">Tasks</a>
+              <a href="#" className="block px-4 py-2 rounded hover:bg-gray-200 transition duration-250">Categories</a>
               <a href="#" className="block px-4 py-2 rounded hover:bg-gray-200 transition duration-250">Calendar</a>
               <a href="#" className="block px-4 py-2 rounded hover:bg-gray-200 transition duration-250">Reports</a>
               <a href="#" className="block px-4 py-2 rounded hover:bg-gray-200 transition duration-250">Settings</a>

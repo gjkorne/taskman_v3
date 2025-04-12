@@ -1,4 +1,4 @@
-import { BarChart3, Calendar, Clock, List, Settings, AlertTriangle, X, ChevronLeft, ChevronRight, Home } from 'lucide-react';
+import { BarChart3, Calendar, Clock, List, Settings, AlertTriangle, X, ChevronLeft, ChevronRight, Home, FolderClosed } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useEffect, useState } from 'react';
 import { authService } from '../../services/api/authService';
@@ -6,7 +6,7 @@ import { User } from '@supabase/supabase-js';
 import { Link, useNavigate } from 'react-router-dom';
 
 // Types
-export type ViewType = 'tasks' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar' | 'home';
+export type ViewType = 'tasks' | 'reports' | 'settings' | 'admin' | 'time-sessions' | 'calendar' | 'home' | 'categories';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -134,6 +134,15 @@ export function Sidebar({
               label="Tasks" 
               to="/tasks"
               active={activeView === 'tasks'}
+              collapsed={isCollapsed}
+              onClick={handleNavClick}
+            />
+            
+            <NavItem 
+              icon={<FolderClosed className="w-4 h-4 sm:w-5 sm:h-5" />} 
+              label="Categories" 
+              to="/categories"
+              active={activeView === 'categories'}
               collapsed={isCollapsed}
               onClick={handleNavClick}
             />
