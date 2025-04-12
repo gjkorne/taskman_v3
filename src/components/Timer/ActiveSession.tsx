@@ -93,7 +93,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
               <Icon name="ChevronDown" size={18} />
             </button>
             <div>
-              <div className="font-medium text-sm">{activeTask.title}</div>
+              <div className="font-bold text-base">{activeTask.title}</div>
               <div className="font-mono text-lg font-bold">{formatElapsedTime()}</div>
             </div>
           </div>
@@ -154,12 +154,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
             </button>
             
             <div>
-              <h3 className="font-medium text-lg">{activeTask.title}</h3>
-              <div className="text-indigo-200 text-sm">
-                {activeTask.status === 'in_progress' ? 'In Progress' : 'Paused'} · 
-                {activeTask.priority === 'high' ? ' High Priority' : 
-                 activeTask.priority === 'medium' ? ' Medium Priority' : ' Low Priority'}
-              </div>
+              <h3 className="font-bold text-2xl">{activeTask.title}</h3>
             </div>
           </div>
           
