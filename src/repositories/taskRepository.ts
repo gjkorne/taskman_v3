@@ -6,6 +6,7 @@ import { NetworkStatusService } from '../services/networkStatusService';
 import { TaskApiDto } from '../types/api/taskDto';
 import { BaseRepository, ISyncableEntity } from './baseRepository';
 import { transformerFactory } from '../utils/transforms/TransformerFactory';
+import { categoryService } from '../services/api/categoryService';
 
 /**
  * Type definitions for task data transfer objects
@@ -32,6 +33,8 @@ interface OfflineTask extends Task, ISyncableEntity {
  */
 export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, TaskUpdateDTO, TaskApiDto> {
   private taskTransformer = transformerFactory.getTaskTransformer();
+  private cachedCategories: Array<{id: string, name: string}> = [];
+  private lastCategoryFetch: number = 0;
   
   constructor(networkStatus?: NetworkStatusService) {
     // Initialize network status service
@@ -64,8 +67,47 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
     this.on('entity-deleted', (taskId: string) => {
       console.log('Task deleted:', taskId);
     });
+    
+    // Fetch categories initially
+    this.refreshCategoryCache();
   }
   
+  /**
+   * Refresh the category cache
+   * This is called on initialization and can be called manually when needed
+   */
+  async refreshCategoryCache(): Promise<void> {
+    try {
+      const { data: categories } = await categoryService.getCategories();
+      if (categories && categories.length > 0) {
+        this.cachedCategories = categories.map(c => ({ id: c.id, name: c.name }));
+        this.lastCategoryFetch = Date.now();
+      }
+    } catch (error) {
+      console.error('Error fetching categories for cache:', error);
+    }
+  }
+  
+  /**
+   * Find category ID from name using the cache
+   * @private
+   */
+  private findCategoryId(categoryName: string | null | undefined): string | null {
+    if (!categoryName) return null;
+    
+    // Check if cache is stale (older than 5 minutes)
+    if (Date.now() - this.lastCategoryFetch > 5 * 60 * 1000) {
+      // Don't await this, just trigger the refresh for next time
+      this.refreshCategoryCache();
+    }
+    
+    const matchingCategory = this.cachedCategories.find(
+      c => c.name.toLowerCase() === categoryName.toLowerCase()
+    );
+    
+    return matchingCategory?.id || null;
+  }
+
   /**
    * Transform API DTO to domain model
    */
@@ -164,6 +206,9 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
       ? (typeof dto.estimatedTime === 'string' ? parseInt(dto.estimatedTime, 10) : dto.estimatedTime)
       : null;
       
+    // Find category ID from name using our cache
+    const categoryId = this.findCategoryId(dto.category);
+      
     return {
       title: dto.title,
       description: dto.description || '',
@@ -174,6 +219,7 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
       actual_time: null,
       tags: dto.tags || [],
       category_name: dto.category || 'uncategorized',
+      category_id: categoryId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       is_deleted: false,
@@ -209,7 +255,12 @@ export class TaskRepository extends BaseRepository<OfflineTask, TaskCreateDTO, T
       updates.estimated_time = timeValue ? `${timeValue * 60} seconds` : null;
     }
     if (dto.tags !== undefined) updates.tags = dto.tags;
-    if (dto.category !== undefined) updates.category_name = dto.category;
+    
+    // Update category_name and category_id together
+    if (dto.category !== undefined) {
+      updates.category_name = dto.category;
+      updates.category_id = this.findCategoryId(dto.category);
+    }
     
     // Always update the updated_at timestamp
     updates.updated_at = new Date().toISOString();

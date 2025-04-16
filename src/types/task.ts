@@ -72,6 +72,7 @@ export interface Task {
   is_deleted: boolean;
   list_id: string | null;
   category_name: string | null;
+  category_id?: string | null;
   
   // Notes and checklist fields - these can co-exist now
   notes: any | null;              // JSONB in database - stores rich text notes

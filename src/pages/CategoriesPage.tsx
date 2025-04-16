@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useCategories } from '../contexts/category';
 import { useTaskData } from '../contexts/task';
 import { StatusBadge } from '../components/Common/StatusBadge';
@@ -49,6 +49,42 @@ export function CategoriesPage() {
     localStorage.setItem('showEmptyCategories', String(showEmptyCategories));
   }, [showEmptyCategories]);
   
+  // Create a list of all categories from both the categories list and tasks
+  const allCategories = useMemo(() => {
+    // Start with the official categories
+    const result = [...categories];
+    
+    // Get all unique category names from tasks
+    const uniqueCategoryNames = new Set<string>();
+    tasks.forEach(task => {
+      if (task.category_name && !task.is_deleted) {
+        uniqueCategoryNames.add(task.category_name.toLowerCase());
+      }
+    });
+    
+    // Add any missing categories
+    uniqueCategoryNames.forEach(categoryName => {
+      // Check if this category name already exists in our list (case insensitive)
+      const exists = result.some(cat => 
+        cat.name.toLowerCase() === categoryName.toLowerCase()
+      );
+      
+      if (!exists) {
+        // Create a virtual category for this category name
+        result.push({
+          id: `virtual-${categoryName}`,
+          name: categoryName,
+          user_id: null,
+          is_default: false,
+          created_at: null,
+          color: null
+        });
+      }
+    });
+    
+    return result;
+  }, [categories, tasks]);
+  
   // Toggle category expanded/collapsed state
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => ({
@@ -60,7 +96,7 @@ export function CategoriesPage() {
   // Filter tasks by category and completion status
   const getTasksByCategory = (categoryName: string) => {
     return tasks.filter(task => 
-      task.category_name === categoryName && 
+      task.category_name?.toLowerCase() === categoryName.toLowerCase() && 
       !task.is_deleted && 
       (showCompletedTasks || task.status !== 'completed')
     );
@@ -69,14 +105,14 @@ export function CategoriesPage() {
   // Count active (non-completed) tasks
   const countActiveTasks = (categoryName: string) => {
     return tasks.filter(task => 
-      task.category_name === categoryName && 
+      task.category_name?.toLowerCase() === categoryName.toLowerCase() && 
       !task.is_deleted && 
       task.status !== 'completed'
     ).length;
   };
   
   // Filter categories with active tasks
-  const filteredCategories = categories.filter(category => 
+  const filteredCategories = allCategories.filter(category => 
     showEmptyCategories || countActiveTasks(category.name) > 0
   );
   
@@ -160,7 +196,7 @@ export function CategoriesPage() {
                         {activeTasks} active
                       </span>
                       <span className="text-gray-500 ml-2">
-                        {tasks.filter(t => t.category_name === category.name && !t.is_deleted).length} total
+                        {tasks.filter(t => t.category_name?.toLowerCase() === category.name.toLowerCase() && !t.is_deleted).length} total
                       </span>
                     </div>
                   </div>
