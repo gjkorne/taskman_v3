@@ -8,6 +8,7 @@ interface TaskSectionProps {
   onEdit?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onTimerStateChange?: () => void;
+  customTitle?: string;
 }
 
 /**
@@ -18,18 +19,20 @@ export function TaskSection({
   sectionKey, 
   onEdit, 
   onDelete, 
-  onTimerStateChange 
+  onTimerStateChange,
+  customTitle
 }: TaskSectionProps) {
   if (tasks.length === 0) return null;
   
-  const { title, bgColor } = TASK_SECTION_STYLES[sectionKey];
-  
+  const { title, bgColor } = TASK_SECTION_STYLES[sectionKey] || { title: sectionKey, bgColor: 'bg-gray-200' };
+  const displayTitle = customTitle || title;
+
   return (
-    <div className="mb-6" key={title}>
+    <div className="mb-6" key={displayTitle}>
       {/* Section header with count and styled background */}
       <div className={`flex items-center px-3 py-1.5 rounded-t-md ${bgColor} mb-1`}>
         <h2 className="text-sm font-semibold">
-          {title}
+          {displayTitle}
           <span className="ml-2 px-1.5 py-0.5 bg-white bg-opacity-90 rounded-full text-xs">
             {tasks.length}
           </span>
