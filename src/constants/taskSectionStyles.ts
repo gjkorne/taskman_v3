@@ -19,6 +19,11 @@ export const TASK_SECTION_STYLES = {
     bgColor: 'bg-indigo-50',
     icon: 'loader'
   },
+  doNext: { 
+    title: 'Do Next', 
+    bgColor: 'bg-yellow-50',
+    icon: 'star'
+  },
   todo: { 
     title: 'Todo', 
     bgColor: 'bg-white',

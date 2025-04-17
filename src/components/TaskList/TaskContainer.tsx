@@ -53,6 +53,7 @@ export function TaskContainer({
     activeTasks,
     pausedTasks,
     inProgressTasks,
+    starredTasks,
     todoTasks,
     completedTasks,
     archivedTasks
@@ -96,6 +97,13 @@ export function TaskContainer({
           onTimerStateChange={onTimerStateChange} 
         />
         <TaskSection 
+          tasks={starredTasks} 
+          sectionKey="doNext" 
+          onEdit={onEdit} 
+          onDelete={onDelete} 
+          onTimerStateChange={onTimerStateChange} 
+        />
+        <TaskSection 
           tasks={todoTasks} 
           sectionKey="todo" 
           onEdit={onEdit} 
@@ -134,9 +142,16 @@ export function TaskContainer({
         </div>
       </div>
       
-      {/* Column 2: Pending tasks */}
+      {/* Column 2: Do Next and Todo tasks */}
       <div className="space-y-6">
-        <h2 className="text-lg font-medium px-2">Todo</h2>
+        {/* Do Next section */}
+        <h2 className="text-lg font-medium px-2">Do Next</h2>
+        <div className="px-2">
+          {starredTasks.map((task, index) => renderTaskCard(task, index))}
+        </div>
+        
+        {/* Todo section */}
+        <h2 className="text-lg font-medium px-2 mt-8">Todo</h2>
         <div className="px-2">
           {todoTasks.map((task, index) => renderTaskCard(task, index))}
         </div>

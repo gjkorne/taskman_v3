@@ -91,34 +91,22 @@ export type TaskFormData = z.infer<typeof taskFormSchema>;
  * This interface is used as a bridge between UI components and the database
  */
 export interface TaskSubmitData {
-  // Core fields
   title: string;
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
-  
-  // Category related
-  category?: string | null;          // UI field mapping to category_name
-  categoryId?: string | null;        // For custom categories (not in DB schema)
-  subcategory?: string;              // For UI organization
-  
-  // Time and date fields
-  dueDate?: string | null;           // UI field mapping to due_date
-  hasDueDate: boolean;
-  estimatedTime?: string;
-  
-  // Organization
+  category?: string | null;      // UI field mapping to category_name
+  categoryId?: string | null;    // For custom categories (not in DB schema)
+  subcategory?: string;          // Stored in tags array
+  dueDate?: string | null;       // UI field mapping to due_date
+  hasDueDate: boolean;           // UI helper, not stored in DB
+  estimatedTime?: string;        // UI field mapping to estimated_time
   tags: string[];
-  listId?: string | null;            // UI field mapping to list_id
-  
-  // State
-  isDeleted?: boolean;               // UI field mapping to is_deleted
-  
-  // User association
-  created_by?: string | null;        // User ID of the task creator
-  
-  // NLP fields
-  rawInput?: string;
+  listId?: string | null;        // UI field mapping to list_id
+  isDeleted?: boolean;           // UI field mapping to is_deleted
+  is_starred?: boolean;          // For marking tasks as "Do Next"
+  created_by?: string | null;
+  rawInput?: string;             // For NLP processing
 }
 
 /**
@@ -139,6 +127,7 @@ export interface TaskDatabaseRow {
   updated_at: string | null;
   created_by: string | null;
   is_deleted: boolean | null;
+  is_starred: boolean | null;
   list_id: string | null;
   nlp_tokens: any | null;
   extracted_entities: any | null;

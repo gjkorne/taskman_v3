@@ -6,6 +6,7 @@ import { ServiceRegistry } from '../../services/ServiceRegistry';
 import { useToast } from '../../components/Toast/ToastContext';
 import { filterTasks } from '../../lib/taskUtils';
 import { TaskFilter, defaultFilters } from '../../components/TaskList/FilterPanel';
+import { TaskUpdateDTO } from '../../repositories/taskRepository';
 
 // Cache keys for React Query
 export const TASK_QUERY_KEYS = {
@@ -35,6 +36,7 @@ interface TaskDataContextType {
   refreshTasks: () => Promise<void>;
   syncTasks: () => Promise<void>;
   updateTaskStatus: (taskId: string, newStatus: TaskStatusType) => Promise<void>;
+  updateTask: (taskId: string, taskData: TaskUpdateDTO) => Promise<Task | null>;
   deleteTask: (taskId: string) => Promise<void>;
   
   // Search and filter
@@ -123,6 +125,31 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     }
   });
   
+  // Update task mutation
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ taskId, taskData }: { taskId: string; taskData: TaskUpdateDTO }) => 
+      taskService.updateTask(taskId, taskData),
+    onSuccess: (updatedTask) => {
+      // Only proceed if we have a valid task returned
+      if (updatedTask) {
+        // Invalidate affected queries
+        queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.lists() });
+        
+        // Optimistically update the cache for better UX
+        queryClient.setQueryData(
+          TASK_QUERY_KEYS.detail(updatedTask.id),
+          updatedTask
+        );
+        
+        // Show success toast
+        addToast(`Task updated successfully`, 'success');
+      }
+    },
+    onError: (error) => {
+      addToast(`Failed to update task: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    }
+  });
+  
   // Delete task mutation
   const deleteTaskMutation = useMutation({
     mutationFn: (taskId: string) => taskService.deleteTask(taskId),
@@ -204,6 +231,11 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     await updateTaskStatusMutation.mutateAsync({ taskId, newStatus });
   }, [updateTaskStatusMutation]);
   
+  // Helper to update a task
+  const updateTask = useCallback(async (taskId: string, taskData: TaskUpdateDTO): Promise<Task | null> => {
+    return await updateTaskMutation.mutateAsync({ taskId, taskData });
+  }, [updateTaskMutation]);
+  
   // Helper to delete a task
   const deleteTask = useCallback(async (taskId: string): Promise<void> => {
     await deleteTaskMutation.mutateAsync(taskId);
@@ -237,6 +269,7 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     refreshTasks,
     syncTasks,
     updateTaskStatus,
+    updateTask,
     deleteTask,
     
     // Search and filter
@@ -258,6 +291,7 @@ export const TaskDataProvider = ({ children }: { children: ReactNode }) => {
     refreshTasks,
     syncTasks,
     updateTaskStatus,
+    updateTask,
     deleteTask,
     searchQuery,
     filters,

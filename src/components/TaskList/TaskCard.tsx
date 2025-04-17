@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { MoreVertical, Clock } from 'lucide-react';
+import { MoreVertical, Clock, Star } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TaskActions } from './TaskActions';
 import { 
@@ -29,7 +29,7 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { categories } = useCategories();
   const { timerState, stopTimer } = useTimer();
-  const { refreshTasks } = useTaskData();
+  const { refreshTasks, updateTask } = useTaskData();
   const { updateTaskStatus } = useTaskActions({
     refreshTasks,
     onSuccess: () => {
@@ -109,6 +109,19 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
       setIsMenuOpen(false);
     }
   };
+  
+  // Handle starring/unstarring tasks
+  const handleStarToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent the card click event from firing
+    try {
+      await updateTask(task.id, { 
+        is_starred: !(task.is_starred ?? false) 
+      });
+      await refreshTasks();
+    } catch (error) {
+      console.error('Failed to update star status:', error);
+    }
+  };
 
   // Get priority colors and styles
   const priorityColor = getPriorityBorderColor(task.priority);
@@ -179,6 +192,17 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
         className="flex items-center justify-end space-x-1 sm:space-x-2 ml-auto"
         onClick={(e) => e.stopPropagation()} // Prevent clicks on actions from opening edit form
       >
+        {/* Star button */}
+        <button
+          onClick={handleStarToggle}
+          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          title={task.is_starred ? "Unstar task" : "Star task for Do Next"}
+        >
+          <Star 
+            className={`h-4 w-4 ${task.is_starred ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} 
+          />
+        </button>
+        
         {/* Timer control */}
         {task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.ARCHIVED && (
           <div className="flex-shrink-0">

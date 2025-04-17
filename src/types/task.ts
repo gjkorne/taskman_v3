@@ -70,6 +70,7 @@ export interface Task {
   updated_at: string | null;
   created_by: string | null;
   is_deleted: boolean;
+  is_starred: boolean;
   list_id: string | null;
   category_name: string | null;
   category_id?: string | null;

@@ -52,12 +52,18 @@ export function useTaskCategories(tasks: Task[]) {
     const todoTasks = otherTasks.filter(t => t.status === TaskStatus.PENDING);
     const completedTasks = otherTasks.filter(t => t.status === TaskStatus.COMPLETED);
     const archivedTasks = otherTasks.filter(t => t.status === TaskStatus.ARCHIVED);
+    
+    // Separate starred tasks from todo tasks
+    const starredTasks = todoTasks.filter(t => t.is_starred !== undefined && t.is_starred === true);
+    // Remove starred tasks from todoTasks
+    const regularTodoTasks = todoTasks.filter(t => t.is_starred === undefined || !t.is_starred);
 
     return {
       activeTasks,
       pausedTasks,
       inProgressTasks,
-      todoTasks,
+      starredTasks,
+      todoTasks: regularTodoTasks,
       completedTasks,
       archivedTasks,
       
