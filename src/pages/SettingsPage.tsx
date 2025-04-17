@@ -4,7 +4,6 @@ import { CategorySettings } from '../components/Settings/CategorySettings';
 import { CategoryProvider } from '../contexts/category/CategoryProvider';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { CategoryMappingSettings } from '../components/Settings/CategoryMappingSettings'; // Import the CategoryMappingSettings component
 
 interface SettingsPageProps {
   // Add props as needed
@@ -265,19 +264,19 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
       {/* Category Management */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4">Category Management</h2>
+        <div className="mb-4">
+          <a 
+            href="/category-mapping" 
+            className="inline-block px-4 py-2 bg-blue-500 text-white font-medium rounded-md hover:bg-blue-600 transition-colors"
+          >
+            🔄 Map Categories (Move Tasks Between Categories)
+          </a>
+          <p className="mt-2 text-sm text-gray-600">
+            Use this tool to move tasks from one category to another and fix synchronization issues.
+          </p>
+        </div>
         <CategoryProvider>
           <CategorySettings />
-        </CategoryProvider>
-      </div>
-      
-      {/* Category Mapping */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Map Categories</h2>
-        <p className="text-gray-600 mb-4">
-          Use this tool to move tasks from one category to another. This is useful for consolidating custom categories into standard ones.
-        </p>
-        <CategoryProvider>
-          <CategoryMappingSettings />
         </CategoryProvider>
       </div>
       

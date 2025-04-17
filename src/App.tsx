@@ -28,14 +28,13 @@ import { NetworkStatusProvider } from './contexts/NetworkStatusContext';
 import { SettingsDataProvider } from './contexts/settings/SettingsDataContext';
 import { SettingsUIProvider } from './contexts/settings/SettingsUIContext';
 import { SettingsProvider } from './contexts/SettingsContext'; // Legacy provider for compatibility
+import SimpleSettingsPage from './pages/SettingsPage';
+import CategoryMappingPage from './pages/CategoryMappingPage';
 
 // Enable debug tools in development
 if (import.meta.env.DEV) {
   import('./utils/debugTools');
 }
-
-// Import the new SimpleSettingsPage
-import SimpleSettingsPage from './pages/SimpleSettingsPage';
 
 // Setup global event listeners for app-wide events
 // This allows components to communicate without direct props
@@ -223,6 +222,17 @@ function App() {
                                       <ProtectedRoute>
                                         <Layout>
                                           <SimpleSettingsPage />
+                                        </Layout>
+                                      </ProtectedRoute>
+                                    } 
+                                  />
+                                  
+                                  <Route 
+                                    path="/category-mapping" 
+                                    element={
+                                      <ProtectedRoute>
+                                        <Layout>
+                                          <CategoryMappingPage />
                                         </Layout>
                                       </ProtectedRoute>
                                     } 
