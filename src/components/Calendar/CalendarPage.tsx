@@ -1,24 +1,18 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   format, 
   startOfMonth, 
-  endOfMonth, 
   startOfWeek, 
-  endOfWeek, 
   addDays, 
   isSameMonth, 
   isSameDay, 
-  addMonths, 
-  parseISO, 
-  isToday, 
-  getDay, 
-  getWeeksInMonth 
+  addMonths 
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { useTaskData } from '../../contexts/task';
 import { TaskFormModal } from '../TaskForm/TaskFormModal';
-import { Task } from '../../types/task';
 import DailyView from './DailyView';
+import { useCalendarData } from '../../hooks/useCalendarData';
 
 /**
  * CalendarPage component
@@ -31,19 +25,10 @@ export function CalendarPage() {
   const [viewMode, setViewMode] = useState<'month' | 'day'>('month');
   
   // Get tasks from context
-  const { tasks, refreshTasks } = useTaskData();
+  const { tasks } = useTaskData();
   
   // Group tasks by due date for efficient lookup
-  const tasksByDate = useMemo(() => {
-    return tasks.reduce((acc: Record<string, Task[]>, task: Task) => {
-      if (task.due_date) {
-        const dateKey = format(new Date(task.due_date), 'yyyy-MM-dd');
-        if (!acc[dateKey]) acc[dateKey] = [];
-        acc[dateKey].push(task);
-      }
-      return acc;
-    }, {});
-  }, [tasks]);
+  const { tasksByDate } = useCalendarData(tasks);
   
   // Handle day selection
   const handleDateClick = (day: Date) => {
@@ -184,7 +169,6 @@ export function CalendarPage() {
   // Render calendar cells
   const renderCells = () => {
     const monthStart = startOfMonth(currentMonth);
-    const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
     const startDate = startOfWeek(monthStart);
     const endDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 6);
     
