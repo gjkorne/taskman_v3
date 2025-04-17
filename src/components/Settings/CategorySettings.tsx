@@ -5,6 +5,7 @@ import { SubcategoryForm } from './SubcategoryForm';
 import { SubcategoryItem } from './SubcategoryItem';
 import { CategoryVisibilitySettings } from './CategoryVisibilitySettings';
 import { QuickTaskCategorySettings } from './QuickTaskCategorySettings';
+import { CategoryMappingSettings } from './CategoryMappingSettings';
 import { useState } from 'react';
 
 export function CategorySettings() {
@@ -24,7 +25,7 @@ export function CategorySettings() {
     selectedCategoryId
   } = useCategoryManager();
 
-  const [activeTab, setActiveTab] = useState<'management' | 'visibility' | 'quicktask'>('management');
+  const [activeTab, setActiveTab] = useState<'management' | 'visibility' | 'quicktask' | 'mapping'>('management');
 
   // Get the currently selected category
   const selectedCategory = getSelectedCategory();
@@ -93,6 +94,16 @@ export function CategorySettings() {
         >
           Quick Task Settings
         </button>
+        <button
+          className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none ${
+            activeTab === 'mapping'
+              ? 'bg-white shadow-sm text-gray-900'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+          }`}
+          onClick={() => setActiveTab('mapping')}
+        >
+          Map Categories
+        </button>
       </div>
       
       {activeTab === 'management' && (
@@ -140,7 +151,7 @@ export function CategorySettings() {
                   {(!selectedCategory.subcategories || selectedCategory.subcategories.length === 0) ? (
                     <p className="text-gray-500 italic">No subcategories yet. Add one to organize tasks further.</p>
                   ) : (
-                    selectedCategory.subcategories.map((subcategory) => (
+                    selectedCategory.subcategories.map((subcategory: string) => (
                       <SubcategoryItem 
                         key={subcategory}
                         name={subcategory}
@@ -167,6 +178,12 @@ export function CategorySettings() {
       {activeTab === 'quicktask' && (
         <div className="bg-white rounded-lg shadow p-4">
           <QuickTaskCategorySettings />
+        </div>
+      )}
+
+      {activeTab === 'mapping' && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <CategoryMappingSettings />
         </div>
       )}
     </div>
