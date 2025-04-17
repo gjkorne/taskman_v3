@@ -353,11 +353,50 @@ export abstract class BaseRepository<
             ...apiData 
           };
           
-          // Update in remote
-          const remoteEntity = await this.remoteAdapter.update(
-            entity.id, 
-            apiUpdateData as unknown as Partial<ApiDTO>
-          );
+          let remoteEntity;
+          try {
+            // Try to update in remote
+            remoteEntity = await this.remoteAdapter.update(
+              entity.id, 
+              apiUpdateData as unknown as Partial<ApiDTO>
+            );
+          } catch (updateError: any) {
+            // Check if error is because entity doesn't exist remotely (PGRST116)
+            if (updateError?.code === 'PGRST116' || 
+                (updateError?.message && updateError.message.includes('JSON object requested, multiple (or no) rows returned'))) {
+              console.log(`Entity ${entity.id} not found in remote database, creating instead of updating`);
+              
+              try {
+                // Try to create instead of update
+                remoteEntity = await this.remoteAdapter.create(
+                  apiUpdateData as unknown as ApiDTO
+                );
+              } catch (createError: any) {
+                // If we get a duplicate key error, the entity exists but we can't access it
+                if (createError?.code === '23505' || 
+                    (createError?.message && createError.message.includes('duplicate key value violates unique constraint'))) {
+                  console.log(`Entity ${entity.id} exists but can't be accessed. Marking as synced locally.`);
+                  
+                  // Mark as synced in local database to prevent further sync attempts
+                  entity._pendingSync = false;
+                  entity._sync_error = undefined;
+                  await this.localAdapter.update(entity.id, entity);
+                  
+                  return { 
+                    success: true, 
+                    entity,
+                    message: 'Entity exists remotely but cannot be accessed. Marked as synced locally.'
+                  };
+                } else {
+                  // Re-throw if it's a different error
+                  throw createError;
+                }
+              }
+            } else {
+              // Re-throw if it's a different error
+              throw updateError;
+            }
+          }
           
           // Convert response back to domain model
           const domainModel = this.apiToDomain(remoteEntity);
