@@ -1,6 +1,5 @@
 import { Task } from '../../types/task';
 import { TaskSection } from './TaskSection';
-import { useTaskCategories } from '../../hooks/useTaskCategories';
 
 interface TaskContainerProps {
   tasks: Task[];
