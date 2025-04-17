@@ -37,16 +37,15 @@ export function TimeSessionDetails({
       setError(null);
       
       try {
-        const { data, error } = await timeSessionsService.getSessionById(sessionId);
+        const sessionData = await timeSessionsService.getSessionById(sessionId);
         
-        if (error) throw error;
-        if (!data) throw new Error('Session not found');
+        if (!sessionData) throw new Error('Session not found');
         
-        setSession(data);
+        setSession(sessionData);
         
         // Fetch associated task
-        if (data.task_id) {
-          const { data: taskData, error: taskError } = await taskService.getTaskById(data.task_id);
+        if (sessionData.task_id) {
+          const { data: taskData, error: taskError } = await taskService.getTaskById(sessionData.task_id);
           
           if (!taskError && taskData) {
             setTask(taskData);
@@ -54,7 +53,7 @@ export function TimeSessionDetails({
         }
         
         // Set notes
-        setNotes(data.notes || '');
+        setNotes(sessionData.notes || '');
       } catch (err) {
         console.error('Error fetching session data:', err);
         setError('Failed to load session details');
@@ -108,19 +107,14 @@ export function TimeSessionDetails({
     try {
       // Update session with current time as end_time
       const endTime = new Date().toISOString();
-      const { data, error } = await timeSessionsService.updateSession(sessionId, { 
+      const updatedSession = await timeSessionsService.updateSession(sessionId, { 
         end_time: endTime
       });
       
-      if (error) throw error;
+      if (!updatedSession) throw new Error('Failed to end session');
       
       // Update local state
-      if (data) {
-        setSession({
-          ...session,
-          end_time: endTime
-        });
-      }
+      setSession(updatedSession);
       
       if (onSessionUpdated) onSessionUpdated();
     } catch (err) {

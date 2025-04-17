@@ -13,7 +13,7 @@ import { AppError, ErrorType } from '../errorHandling';
  */
 export class TransformerFactory implements ITransformerFactory {
   private static instance: TransformerFactory;
-  private transformers: Map<string, DataTransformer<any, any>> = new Map();
+  private transformers: Map<string, DataTransformer<unknown, unknown>> = new Map();
   
   /**
    * Private constructor to prevent direct instantiation
