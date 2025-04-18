@@ -5,6 +5,7 @@ import { TimeSessionsList } from '../components/TimeSessions/TimeSessionsList';
 import { timeSessionsService, TimeSession } from '../services/api/timeSessionsService';
 import { parseDurationToSeconds, formatSecondsToTime, isSameDay, isSameWeek, isSameMonth } from '../utils/timeUtils';
 import { createLogger } from '../utils/logging';
+import { useTimeSessionData } from '../contexts/timeSession/TimeSessionDataContext';
 
 const logger = createLogger('TimeSessionsPage');
 
@@ -24,6 +25,8 @@ export function TimeSessionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const isInitialRender = useRef(true);
   const lastLogTime = useRef(0);
+
+  const { queries: { activeSession } } = useTimeSessionData();
 
   // Fetch sessions and calculate time stats
   useEffect(() => {
@@ -205,6 +208,13 @@ export function TimeSessionsPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Active Session Banner */}
+      {activeSession && (
+        <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 rounded shadow">
+          <strong>Active Session:</strong> Task: <span className="font-semibold">{activeSession.task_id}</span>
+          {' '} | Started at: {activeSession.start_time ? format(new Date(activeSession.start_time), 'PPpp') : 'Unknown'}
+        </div>
+      )}
       {/* Controls Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 bg-white p-4 rounded-lg shadow-sm border">
         {/* Date Range */}

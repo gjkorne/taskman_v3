@@ -1,4 +1,5 @@
-import useTimeSessionDataHook, { TIME_SESSION_QUERY_KEYS } from './useTimeSessionDataHook';
+import useTimeSessionDataHook from './useTimeSessionDataHook';
+import { TIME_SESSION_QUERY_KEYS } from './timeSessionQueries';
 import { createDataContext } from '../createDataContext';
 
 export { TIME_SESSION_QUERY_KEYS };

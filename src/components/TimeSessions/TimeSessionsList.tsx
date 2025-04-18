@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { TimeSession } from '../../services/api/timeSessionsService';
 import { useTimeSessions } from '../../hooks/useTimeSessions';
 import { TimeSessionDetails } from './TimeSessionDetails';
@@ -40,10 +40,12 @@ export function TimeSessionsList({
   // Explicitly type the sessions to use the TimeSession type
   const typedSessions: TimeSession[] = sessions;
 
-  // Notify parent component when sessions are loaded
-  if (typedSessions.length > 0 && onSessionsLoaded) {
-    onSessionsLoaded(totalTime);
-  }
+  // Notify parent component when sessions are loaded (only when sessions or totalTime changes)
+  useEffect(() => {
+    if (typedSessions.length > 0 && onSessionsLoaded) {
+      onSessionsLoaded(totalTime);
+    }
+  }, [typedSessions.length, totalTime, onSessionsLoaded]);
 
   // Handle session toggle
   const toggleSession = (sessionId: string) => {
