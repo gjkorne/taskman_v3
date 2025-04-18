@@ -1,1 +1,1 @@
-export { TimeSessionProvider as default, useTimeSession } from './TimeSessionContext';
+export { TimeSessionProvider, useTimeSession } from './TimeSessionContext';
