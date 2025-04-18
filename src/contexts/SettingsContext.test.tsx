@@ -1,8 +1,24 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import { SettingsProvider, useSettings, defaultSettings } from './SettingsContext';
 import { userPreferencesService } from '../services/userPreferencesService';
+
+// Polyfill matchMedia for jsdom environment
+beforeAll(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+    }),
+  });
+});
 
 // Spy on userPreferencesService methods
 // and provide default behavior before each test
