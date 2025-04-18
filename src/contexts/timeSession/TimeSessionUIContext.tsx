@@ -47,6 +47,8 @@ export const TimeSessionUIProvider = ({ children }: { children: ReactNode }) => 
   
   const closeHistoryModal = useCallback(() => {
     setIsHistoryModalOpen(false);
+    // Clear session ID immediately to avoid stale state
+    setSelectedSessionId(null);
     // Delayed cleanup to avoid UI flicker during modal transitions
     setTimeout(() => setSelectedSessionId(null), 300);
   }, []);
