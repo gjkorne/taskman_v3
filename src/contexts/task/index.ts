@@ -22,6 +22,10 @@ export interface TaskContextType {
   isDeleteModalOpen: boolean;
   taskToDelete: string | null;
   
+  // Display controls
+  viewMode: 'list' | 'grid';
+  setViewMode: (mode: 'list' | 'grid') => void;
+  
   // Data operations
   fetchTasks: () => Promise<void>;
   refreshTasks: () => Promise<void>;
