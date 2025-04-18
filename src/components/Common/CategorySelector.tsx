@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useCategories } from '../../contexts/CategoryCompat';
+import { useCategories } from '../../contexts/category';
 import { useSettings } from '../../contexts/SettingsCompat';
 import { CATEGORIES } from '../../types/categories';
 

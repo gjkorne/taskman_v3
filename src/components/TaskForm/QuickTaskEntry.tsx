@@ -3,7 +3,7 @@ import { useTaskActions } from '../../hooks/useTaskActions';
 import { TaskStatus } from '../../types/task';
 import { Icon } from '../UI/Icon';
 import { useSettings } from '../../contexts/SettingsCompat';
-import { useCategories } from '../../contexts/CategoryCompat';
+import { useCategories } from '../../contexts/category';
 
 /**
  * Quick entry component for adding tasks with minimal input

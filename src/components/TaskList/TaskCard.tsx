@@ -13,7 +13,7 @@ import { Task, TaskStatus, TaskStatusType } from '../../types/task';
 import { TimerControls } from '../Timer/TimerControls';
 import { useTimer } from '../../contexts/TimerCompat';
 import { useTaskActions } from '../../hooks/useTaskActions';
-import { useCategories } from '../../contexts/CategoryCompat';
+import { useCategories } from '../../contexts/category';
 import { useTaskData } from '../../contexts/task';
 import NotesViewer from '../TaskNotes/NotesViewer';
 

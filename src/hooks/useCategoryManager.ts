@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { useCategories } from '../contexts/CategoryContext';
-import { Category } from '../services/api/categoryService';
+import { useCategories } from '../contexts/category';
+import { Category } from '../services/interfaces/ICategoryService';
 import { useToast } from '../components/Toast';
 
 /**
@@ -96,7 +96,7 @@ export function useCategoryManager() {
     // Filter out the subcategory
     const existingSubcategories = category.subcategories || [];
     const updatedSubcategories = existingSubcategories.filter(
-      sub => sub !== subcategoryName
+      (sub: string) => sub !== subcategoryName
     );
     
     // If no change, return early
