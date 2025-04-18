@@ -29,6 +29,20 @@ export const defaultSettings: Settings = {
   uiDensity: 'default',
 };
 
+/**
+ * Utility to handle errors in a consistent way.
+ */
+function handleError(setError: (err: Error) => void, message: string) {
+  return (err: unknown) => {
+    const error = err instanceof Error ? err : new Error(message);
+    setError(error);
+    // Optionally, add a toast/notification system here
+  };
+}
+
+/**
+ * Hook to manage user settings (preferences) with grouped return values.
+ */
 export default function useSettingsDataHook() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,8 +58,7 @@ export default function useSettingsDataHook() {
         setSettings(userPrefs as Settings);
         setIsDirty(false);
       } catch (err) {
-        console.error('Error loading settings:', err);
-        setError(err instanceof Error ? err : new Error('Failed to load settings'));
+        handleError(setError, 'Failed to load settings')(err);
         setSettings(defaultSettings);
       } finally {
         setIsLoading(false);
@@ -72,8 +85,7 @@ export default function useSettingsDataHook() {
       await userPreferencesService.setPreferences(settings);
       setIsDirty(false);
     } catch (err) {
-      console.error('Error saving settings:', err);
-      setError(err instanceof Error ? err : new Error('Failed to save settings'));
+      handleError(setError, 'Failed to save settings')(err);
     }
   }, [settings]);
 
@@ -83,8 +95,7 @@ export default function useSettingsDataHook() {
       await userPreferencesService.resetToDefaults();
       setIsDirty(false);
     } catch (err) {
-      console.error('Error resetting settings:', err);
-      setError(err instanceof Error ? err : new Error('Failed to reset settings'));
+      handleError(setError, 'Failed to reset settings')(err);
     }
   }, []);
 
@@ -99,28 +110,23 @@ export default function useSettingsDataHook() {
     const applyTheme = () => {
       const html = document.documentElement;
       html.classList.remove('theme-light', 'theme-dark');
-      if (settings.theme === 'system') {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        html.classList.add(prefersDark ? 'theme-dark' : 'theme-light');
-      } else {
-        html.classList.add(`theme-${settings.theme}`);
-      }
+      if (settings.theme === 'dark') html.classList.add('theme-dark');
+      else if (settings.theme === 'light') html.classList.add('theme-light');
     };
     applyTheme();
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleThemeChange = () => {
-      if (settings.theme === 'system') applyTheme();
-    };
-    mediaQuery.addEventListener('change', handleThemeChange);
-    return () => mediaQuery.removeEventListener('change', handleThemeChange);
   }, [settings.theme]);
 
   return {
-    settings,
-    updateSetting,
-    saveAllSettings,
-    isLoading,
-    error,
-    resetToDefaults,
+    queries: {
+      settings,
+      isLoading,
+      error,
+      isDirty,
+    },
+    mutations: {
+      updateSetting,
+      saveAllSettings,
+      resetToDefaults,
+    },
   };
 }
