@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
-import { CategoryProvider } from '../contexts/category';
 
 interface SimpleSettingsPageProps {
   // Add props as needed
@@ -550,11 +549,4 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
   );
 };
 
-// Wrap the export with CategoryProvider to handle category-related functionality
-export default function WrappedSimpleSettingsPage() {
-  return (
-    <CategoryProvider>
-      <SimpleSettingsPage />
-    </CategoryProvider>
-  );
-}
+export default SimpleSettingsPage;

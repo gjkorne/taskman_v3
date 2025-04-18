@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSettings } from '../contexts/SettingsCompat';
 import { CategorySettings } from '../components/Settings/CategorySettings';
-import { CategoryProvider } from '../contexts/category/CategoryProvider';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 
@@ -275,9 +274,7 @@ const SettingsPage: React.FC<SettingsPageProps> = () => {
             Use this tool to move tasks from one category to another and fix synchronization issues.
           </p>
         </div>
-        <CategoryProvider>
-          <CategorySettings />
-        </CategoryProvider>
+        <CategorySettings />
       </div>
       
       <div className="bg-white shadow rounded-lg p-6 mb-6">

@@ -1,5 +1,4 @@
 import React from 'react';
-import { CategoryProvider } from '../contexts/category/CategoryProvider';
 import { CategoryMappingSettings } from '../components/Settings/CategoryMappingSettings';
 
 const CategoryMappingPage: React.FC = () => {
@@ -12,9 +11,7 @@ const CategoryMappingPage: React.FC = () => {
         <p className="text-gray-600 mb-6">
           Use this tool to move tasks from one category to another. This is useful for consolidating custom categories into standard ones.
         </p>
-        <CategoryProvider>
-          <CategoryMappingSettings />
-        </CategoryProvider>
+        <CategoryMappingSettings />
       </div>
     </div>
   );
