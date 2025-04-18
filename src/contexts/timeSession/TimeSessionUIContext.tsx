@@ -1,99 +1,27 @@
-import { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
+import { createUIContext } from '../createUIContext';
 
-// Types for the UI context
-interface TimeSessionUIContextType {
-  // UI state
-  isTimerModalOpen: boolean;
-  isHistoryModalOpen: boolean;
-  selectedSessionId: string | null;
-  timerDisplayMode: 'compact' | 'full';
-  
-  // Modal controls
-  openTimerModal: () => void;
-  closeTimerModal: () => void;
-  openHistoryModal: (sessionId?: string) => void;
-  closeHistoryModal: () => void;
-  
-  // Display controls
-  setTimerDisplayMode: (mode: 'compact' | 'full') => void;
-}
+// (context types are inferred via createUIContext)
 
-// Create context with default values
-export const TimeSessionUIContext = createContext<TimeSessionUIContextType | undefined>(undefined);
-
-// Time Session UI Provider component
-export const TimeSessionUIProvider = ({ children }: { children: ReactNode }) => {
-  // UI state
-  const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [timerDisplayMode, setTimerDisplayMode] = useState<'compact' | 'full'>('compact');
-  
-  // Modal control functions - using useCallback to prevent unnecessary re-renders
-  const openTimerModal = useCallback(() => {
-    setIsTimerModalOpen(true);
-  }, []);
-  
-  const closeTimerModal = useCallback(() => {
-    setIsTimerModalOpen(false);
-  }, []);
-  
-  const openHistoryModal = useCallback((sessionId?: string) => {
-    if (sessionId) {
-      setSelectedSessionId(sessionId);
-    }
-    setIsHistoryModalOpen(true);
-  }, []);
-  
-  const closeHistoryModal = useCallback(() => {
-    setIsHistoryModalOpen(false);
-    // Clear session ID immediately to avoid stale state
-    setSelectedSessionId(null);
-    // Delayed cleanup to avoid UI flicker during modal transitions
-    setTimeout(() => setSelectedSessionId(null), 300);
-  }, []);
-  
-  // Context value - using useMemo to prevent unnecessary re-renders
-  const value = useMemo(() => ({
-    // UI state
-    isTimerModalOpen,
-    isHistoryModalOpen,
-    selectedSessionId,
-    timerDisplayMode,
-    
-    // Modal controls
-    openTimerModal,
-    closeTimerModal,
-    openHistoryModal,
-    closeHistoryModal,
-    
-    // Display controls
-    setTimerDisplayMode,
-  }), [
-    isTimerModalOpen,
-    isHistoryModalOpen,
-    selectedSessionId,
-    timerDisplayMode,
-    openTimerModal,
-    closeTimerModal,
-    openHistoryModal,
-    closeHistoryModal,
-  ]);
-  
-  return (
-    <TimeSessionUIContext.Provider value={value}>
-      {children}
-    </TimeSessionUIContext.Provider>
-  );
-};
-
-// Custom hook to use time session UI context
-export const useTimeSessionUI = () => {
-  const context = useContext(TimeSessionUIContext);
-  
-  if (context === undefined) {
-    throw new Error('useTimeSessionUI must be used within a TimeSessionUIProvider');
-  }
-  
-  return context;
-};
+export const { Provider: TimeSessionUIProvider, useUIContext: useTimeSessionUI } = createUIContext({
+  displayName: 'TimeSession',
+  initialState: {
+    isTimerModalOpen: false,
+    isHistoryModalOpen: false,
+    selectedSessionId: null as string | null,
+    timerDisplayMode: 'compact' as 'compact' | 'full',
+  },
+  actions: (state, setState) => ({
+    openTimerModal: () => setState(s => ({ ...s, isTimerModalOpen: true })),
+    closeTimerModal: () => setState(s => ({ ...s, isTimerModalOpen: false })),
+    openHistoryModal: (sessionId?: string) => setState(s => ({
+      ...s,
+      isHistoryModalOpen: true,
+      selectedSessionId: sessionId ?? s.selectedSessionId,
+    })),
+    closeHistoryModal: () => {
+      setState(s => ({ ...s, isHistoryModalOpen: false, selectedSessionId: null }));
+      setTimeout(() => setState(s => ({ ...s, selectedSessionId: null })), 300);
+    },
+    setTimerDisplayMode: (mode: 'compact' | 'full') => setState(s => ({ ...s, timerDisplayMode: mode })),
+  }),
+});
