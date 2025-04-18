@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { TaskContainer } from './TaskContainer';
-import { useTaskData, useTaskUI } from '../../contexts/task';
+import { useTaskListData } from '../../hooks/useTaskListData';
+import { useTaskUI } from '../../contexts/task';
 import { QuickTaskEntry, TaskForm } from '../TaskForm';
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react'; // Import icons for the dropdown
 
@@ -23,7 +24,7 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
     refreshTasks,
     filters,
     setFilters
-  } = useTaskData();
+  } = useTaskListData();
   
   // Get UI management from the task UI context
   const { 
@@ -46,7 +47,7 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(({ onTimerSta
   // Delete task handler that uses the data context
   const confirmDelete = async (taskId: string) => {
     try {
-      await useTaskData().deleteTask(taskId);
+      await useTaskListData().deleteTask(taskId);
       closeDeleteModal();
     } catch (error) {
       console.error("Error deleting task:", error);
