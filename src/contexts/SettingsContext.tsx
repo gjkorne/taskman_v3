@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { userPreferencesService } from '../services/userPreferencesService';
 
 // Define the shape of our settings
@@ -40,6 +40,14 @@ interface SettingsContextType {
   isLoading: boolean;
   error: Error | null;
   resetToDefaults: () => Promise<void>;
+  // UI state and controls
+  isSettingsModalOpen: boolean;
+  activeSettingsTab: string;
+  showAdvancedSettings: boolean;
+  openSettingsModal: (initialTab?: string) => void;
+  closeSettingsModal: () => void;
+  setActiveTab: (tab: string) => void;
+  toggleAdvancedSettings: () => void;
 }
 
 // Create the context
@@ -163,6 +171,20 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     }
   };
 
+  // UI state
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState('general');
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+
+  // UI controls
+  const openSettingsModal = useCallback((initialTab?: string) => {
+    if (initialTab) setActiveSettingsTab(initialTab);
+    setIsSettingsModalOpen(true);
+  }, []);
+  const closeSettingsModal = useCallback(() => setIsSettingsModalOpen(false), []);
+  const setActiveTab = useCallback((tab: string) => setActiveSettingsTab(tab), []);
+  const toggleAdvancedSettings = useCallback(() => setShowAdvancedSettings(prev => !prev), []);
+
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = React.useMemo(() => ({
     settings,
@@ -170,8 +192,15 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     saveAllSettings,
     isLoading,
     error,
-    resetToDefaults
-  }), [settings, isLoading, error]);
+    resetToDefaults,
+    isSettingsModalOpen,
+    activeSettingsTab,
+    showAdvancedSettings,
+    openSettingsModal,
+    closeSettingsModal,
+    setActiveTab,
+    toggleAdvancedSettings
+  }), [settings, isLoading, error, isSettingsModalOpen, activeSettingsTab, showAdvancedSettings, openSettingsModal, closeSettingsModal, setActiveTab, toggleAdvancedSettings]);
 
   return (
     <SettingsContext.Provider value={contextValue}>
