@@ -1,47 +1,89 @@
-import { renderHook, act } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, fireEvent, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TimeSessionUIProvider, useTimeSessionUI } from './TimeSessionUIContext';
 
+function TestComponent() {
+  const {
+    isTimerModalOpen,
+    isHistoryModalOpen,
+    selectedSessionId,
+    timerDisplayMode,
+    openTimerModal,
+    closeTimerModal,
+    openHistoryModal,
+    closeHistoryModal,
+    setTimerDisplayMode,
+  } = useTimeSessionUI();
+
+  return (
+    <div>
+      <span data-testid="timer-modal">{isTimerModalOpen ? 'open' : 'closed'}</span>
+      <span data-testid="history-modal">{isHistoryModalOpen ? 'open' : 'closed'}</span>
+      <span data-testid="selected">{selectedSessionId ?? 'none'}</span>
+      <span data-testid="view">{timerDisplayMode}</span>
+      <button data-testid="open-timer" onClick={openTimerModal}>OpenTimer</button>
+      <button data-testid="close-timer" onClick={closeTimerModal}>CloseTimer</button>
+      <button data-testid="open-history" onClick={() => openHistoryModal('sess123')}>OpenHistory</button>
+      <button data-testid="close-history" onClick={closeHistoryModal}>CloseHistory</button>
+      <button data-testid="set-full" onClick={() => setTimerDisplayMode('full')}>Full</button>
+      <button data-testid="set-compact" onClick={() => setTimerDisplayMode('compact')}>Compact</button>
+    </div>
+  );
+}
+
 describe('TimeSessionUIContext', () => {
-  function wrapper({ children }: { children: React.ReactNode }) {
-    return <TimeSessionUIProvider>{children}</TimeSessionUIProvider>;
-  }
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
 
   it('provides default UI state', () => {
-    const { result } = renderHook(() => useTimeSessionUI(), { wrapper });
-    expect(result.current.isTimerModalOpen).toBe(false);
-    expect(result.current.isHistoryModalOpen).toBe(false);
-    expect(result.current.selectedSessionId).toBeNull();
-    expect(result.current.timerDisplayMode).toBe('compact');
+    render(
+      <TimeSessionUIProvider>
+        <TestComponent />
+      </TimeSessionUIProvider>
+    );
+    expect(screen.getByTestId('timer-modal')).toHaveTextContent('closed');
+    expect(screen.getByTestId('history-modal')).toHaveTextContent('closed');
+    expect(screen.getByTestId('selected')).toHaveTextContent('none');
+    expect(screen.getByTestId('view')).toHaveTextContent('compact');
   });
 
   it('opens and closes timer modal', () => {
-    const { result } = renderHook(() => useTimeSessionUI(), { wrapper });
-    act(() => result.current.openTimerModal());
-    expect(result.current.isTimerModalOpen).toBe(true);
-    act(() => result.current.closeTimerModal());
-    expect(result.current.isTimerModalOpen).toBe(false);
+    render(
+      <TimeSessionUIProvider>
+        <TestComponent />
+      </TimeSessionUIProvider>
+    );
+    fireEvent.click(screen.getByTestId('open-timer'));
+    expect(screen.getByTestId('timer-modal')).toHaveTextContent('open');
+    fireEvent.click(screen.getByTestId('close-timer'));
+    expect(screen.getByTestId('timer-modal')).toHaveTextContent('closed');
   });
 
-  it('opens and closes history modal with session ID', () => {
-    vi.useFakeTimers();
-    const { result } = renderHook(() => useTimeSessionUI(), { wrapper });
-    act(() => result.current.openHistoryModal('sess123'));
-    expect(result.current.isHistoryModalOpen).toBe(true);
-    expect(result.current.selectedSessionId).toBe('sess123');
-    act(() => result.current.closeHistoryModal());
-    expect(result.current.isHistoryModalOpen).toBe(false);
-    // allow for cleanup delay
-    act(() => {
-      vi.advanceTimersByTime(300);
-    });
-    expect(result.current.selectedSessionId).toBeNull();
-    vi.useRealTimers();
+  it('opens and closes history modal with session ID and clears selection', () => {
+    render(
+      <TimeSessionUIProvider>
+        <TestComponent />
+      </TimeSessionUIProvider>
+    );
+    fireEvent.click(screen.getByTestId('open-history'));
+    expect(screen.getByTestId('history-modal')).toHaveTextContent('open');
+    expect(screen.getByTestId('selected')).toHaveTextContent('sess123');
+    fireEvent.click(screen.getByTestId('close-history'));
+    expect(screen.getByTestId('history-modal')).toHaveTextContent('closed');
+    act(() => { vi.advanceTimersByTime(300); });
+    expect(screen.getByTestId('selected')).toHaveTextContent('none');
   });
 
   it('sets display mode', () => {
-    const { result } = renderHook(() => useTimeSessionUI(), { wrapper });
-    act(() => result.current.setTimerDisplayMode('full'));
-    expect(result.current.timerDisplayMode).toBe('full');
+    render(
+      <TimeSessionUIProvider>
+        <TestComponent />
+      </TimeSessionUIProvider>
+    );
+    fireEvent.click(screen.getByTestId('set-full'));
+    expect(screen.getByTestId('view')).toHaveTextContent('full');
+    fireEvent.click(screen.getByTestId('set-compact'));
+    expect(screen.getByTestId('view')).toHaveTextContent('compact');
   });
 });
