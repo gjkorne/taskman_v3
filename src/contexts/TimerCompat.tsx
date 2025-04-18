@@ -1,5 +1,4 @@
-import { useTimeSessionData } from './timeSession';
-import { useTimeSessionUI } from './timeSession';
+import { useTimeSession } from './timeSession';
 import { Task } from '../types/task';
 
 // Define an extended session interface for our compatibility layer
@@ -23,11 +22,9 @@ export const useTimer = () => {
     sessions,
     createSession,
     stopSession
-  } = useTimeSessionData();
+  } = useTimeSession();
   
-  // We don't actually use these in the compatibility layer
-  // but keeping reference to ensure context is accessed
-  useTimeSessionUI();
+  // Combined hook useTimeSession covers data+UI access
   
   // Calculate elapsed time based on session data
   const calculateElapsedTime = (session: TimerSession): number => {

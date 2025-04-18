@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTimer } from '../../contexts/TimerCompat';
 import { useTaskData } from '../../contexts/task';
-import { useTimeSessionData } from '../../contexts/timeSession';
+import { useTimeSession } from '../../contexts/timeSession';
 import { Icon } from '../UI/Icon';
 import { useAdmin } from '../../contexts/AdminContext';
 import { createLogger } from '../../utils/logging';
@@ -15,7 +15,7 @@ interface ActiveSessionProps {
 
 export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime } = useTimer();
-  const { activeSession } = useTimeSessionData(); // Direct access to activeSession from context
+  const { activeSession } = useTimeSession(); // Direct access to activeSession from context
   const { tasks } = useTaskData();
   const [isExpanded, setIsExpanded] = useState(true);
   const { impersonatedUser } = useAdmin();
