@@ -17,8 +17,11 @@ interface TimerSession {
 // This is a compatibility layer to allow components using the old useTimer hook
 // to continue working with our new context structure
 export const useTimer = () => {
-  const { activeSession, sessions, createSession, stopSession } =
-    useTimeSession();
+  // Extract activeSession and sessions from queries, and mutations from TimeSession context
+  const {
+    queries: { activeSession, sessions },
+    mutations: { createSession, stopSession },
+  } = useTimeSession();
 
   // Combined hook useTimeSession covers data+UI access
 

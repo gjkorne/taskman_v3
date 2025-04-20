@@ -16,7 +16,9 @@ interface ActiveSessionProps {
 export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   const { timerState, startTimer, pauseTimer, stopTimer, formatElapsedTime } =
     useTimer();
-  const { activeSession } = useTimeSession(); // Direct access to activeSession from context
+  const {
+    queries: { activeSession },
+  } = useTimeSession();
   const { tasks } = useTaskData();
   const [isExpanded, setIsExpanded] = useState(true);
   const { impersonatedUser } = useAdmin();
