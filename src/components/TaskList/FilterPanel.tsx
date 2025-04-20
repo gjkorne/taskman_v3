@@ -37,7 +37,7 @@ export const defaultFilters: TaskFilter = {
   sortBy: 'lastActive', // Make 'lastActive' the default sort
   sortOrder: 'desc',
   viewMode: 'list',
-  showCompleted: false,
+  showCompleted: true,
 };
 
 interface FilterPanelProps {

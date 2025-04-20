@@ -13,6 +13,8 @@ export function filterTasksCore(
   return filterTasks(tasks, filters, searchQuery);
 }
 
+export { defaultFilters };
+
 // Hook for task filtering and search
 export default function useTaskFilterHook() {
   const { tasks } = useTaskData();
