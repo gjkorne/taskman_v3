@@ -71,6 +71,30 @@ describe('filterTasksCore', () => {
     const filtered = filterTasksCore(mockTasks, defaultFilters, 'Alpha');
     expect(filtered).toEqual([mockTasks[0]]);
   });
+
+  it('filters tasks by status', () => {
+    const filters = { ...defaultFilters, status: ['pending'] };
+    const filtered = filterTasksCore(mockTasks, filters, '');
+    expect(filtered).toEqual([mockTasks[0]]);
+  });
+
+  it('filters tasks by priority', () => {
+    const filters = { ...defaultFilters, priority: ['high'] };
+    const filtered = filterTasksCore(mockTasks, filters, '');
+    expect(filtered).toEqual([mockTasks[1]]);
+  });
+
+  it('filters tasks by due date', () => {
+    const filters = { ...defaultFilters, dueDate: ['today'] };
+    const filtered = filterTasksCore(mockTasks, filters, '');
+    expect(filtered).toEqual([]);
+  });
+
+  it('filters tasks by multiple filters', () => {
+    const filters = { ...defaultFilters, status: ['pending'], priority: ['low'] };
+    const filtered = filterTasksCore(mockTasks, filters, '');
+    expect(filtered).toEqual([mockTasks[0]]);
+  });
 });
 
 describe('useTaskFilterHook', () => {

@@ -71,11 +71,11 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(
 
     // Helper to get currently active category name
     const getActiveCategoryName = () => {
-      if (filters.category.length === 0) return 'All';
-      return (
-        filters.category[0].charAt(0).toUpperCase() +
-        filters.category[0].slice(1)
-      );
+      // Safely handle filters or category undefined
+      const categoryArray = filters?.category || [];
+      if (categoryArray.length === 0) return 'All';
+      const name = categoryArray[0] || '';
+      return name.charAt(0).toUpperCase() + name.slice(1);
     };
 
     return (
