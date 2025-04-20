@@ -8,10 +8,16 @@ export enum TaskStatus {
   IN_PROGRESS = 'in_progress',
   PAUSED = 'paused',
   COMPLETED = 'completed',
-  ARCHIVED = 'archived'
+  ARCHIVED = 'archived',
 }
 
-export type TaskStatusType = 'pending' | 'active' | 'in_progress' | 'paused' | 'completed' | 'archived';
+export type TaskStatusType =
+  | 'pending'
+  | 'active'
+  | 'in_progress'
+  | 'paused'
+  | 'completed'
+  | 'archived';
 
 /**
  * Task status options as an object for component usage
@@ -35,7 +41,7 @@ export const TaskPriority = {
   URGENT: 'urgent',
 } as const;
 
-export type TaskPriorityType = typeof TaskPriority[keyof typeof TaskPriority];
+export type TaskPriorityType = (typeof TaskPriority)[keyof typeof TaskPriority];
 
 /**
  * Task category options
@@ -50,7 +56,7 @@ export const TaskCategory = {
 /**
  * Task interface aligned with database schema
  * Use this as the primary data structure for tasks throughout the app
- * 
+ *
  * IMPORTANT: Property names use snake_case to match database column names
  */
 export interface Task {
@@ -64,7 +70,7 @@ export interface Task {
   estimated_time: string | null;
   actual_time: string | null;
   tags: string[] | null;
-  
+
   // Metadata fields
   created_at: string;
   updated_at: string | null;
@@ -74,22 +80,22 @@ export interface Task {
   list_id: string | null;
   category_name: string | null;
   category_id?: string | null;
-  
+
   // Notes and checklist fields - these can co-exist now
-  notes: any | null;              // JSONB in database - stores rich text notes
-  checklist_items: any[] | null;  // JSONB array in database - stores checklist items
+  notes: any | null; // JSONB in database - stores rich text notes
+  checklist_items: any[] | null; // JSONB array in database - stores checklist items
   note_type: 'text' | 'checklist' | 'both' | null; // Primary display type
-  
+
   // NLP fields
   nlp_tokens?: any | null;
   extracted_entities?: any | null;
   embedding_data?: any | null;
   confidence_score?: number | null;
   processing_metadata?: any | null;
-  
+
   // Non-database fields for client-side use
   rawInput?: string;
-  
+
   // Sync fields
   _is_synced?: boolean;
   _sync_status?: 'pending' | 'synced' | 'failed';
@@ -125,7 +131,7 @@ export const TaskColumns = {
   PROCESSING_METADATA: 'processing_metadata',
   NOTES: 'notes',
   CHECKLIST_ITEMS: 'checklist_items',
-  NOTE_TYPE: 'note_type'
+  NOTE_TYPE: 'note_type',
 } as const;
 
 // Export for backward compatibility

@@ -22,7 +22,7 @@ export interface UserProfile {
 export interface UserServiceEvents {
   'profile-updated': UserProfile;
   'profile-loaded': UserProfile;
-  'error': ServiceError;
+  error: ServiceError;
 }
 
 /**
@@ -34,38 +34,49 @@ export interface IUserService extends IService<UserServiceEvents> {
    * Get the current user's profile
    * @returns User profile or null if not authenticated
    */
-  getUserProfile(): Promise<{ profile: UserProfile | null; error: ServiceError | null }>;
-  
+  getUserProfile(): Promise<{
+    profile: UserProfile | null;
+    error: ServiceError | null;
+  }>;
+
   /**
    * Update the user's profile
    * @param data Profile data to update
    */
-  updateUserProfile(data: Partial<UserProfile>): Promise<{ profile: UserProfile | null; error: ServiceError | null }>;
-  
+  updateUserProfile(
+    data: Partial<UserProfile>
+  ): Promise<{ profile: UserProfile | null; error: ServiceError | null }>;
+
   /**
    * Check if the user has completed onboarding
    */
-  hasCompletedOnboarding(): Promise<{ completed: boolean; error: ServiceError | null }>;
-  
+  hasCompletedOnboarding(): Promise<{
+    completed: boolean;
+    error: ServiceError | null;
+  }>;
+
   /**
    * Mark onboarding as complete for the user
    */
-  completeOnboarding(): Promise<{ success: boolean; error: ServiceError | null }>;
-  
+  completeOnboarding(): Promise<{
+    success: boolean;
+    error: ServiceError | null;
+  }>;
+
   /**
    * Get user activity statistics
    * @returns Various user activity metrics
    */
-  getUserActivityStats(): Promise<{ 
-    stats: { 
+  getUserActivityStats(): Promise<{
+    stats: {
       tasksCreated: number;
       tasksCompleted: number;
       timeLogged: number; // in minutes
       lastActiveDate: string | null;
-    } | null; 
-    error: ServiceError | null 
+    } | null;
+    error: ServiceError | null;
   }>;
-  
+
   /**
    * Update the user's last active timestamp
    */

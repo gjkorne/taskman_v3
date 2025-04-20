@@ -2,7 +2,10 @@ import { createUIContext } from '../createUIContext';
 
 // (context types are inferred via createUIContext)
 
-export const { Provider: TimeSessionUIProvider, useUIContext: useTimeSessionUI } = createUIContext({
+export const {
+  Provider: TimeSessionUIProvider,
+  useUIContext: useTimeSessionUI,
+} = createUIContext({
   displayName: 'TimeSession',
   initialState: {
     isTimerModalOpen: false,
@@ -11,17 +14,26 @@ export const { Provider: TimeSessionUIProvider, useUIContext: useTimeSessionUI }
     timerDisplayMode: 'compact' as 'compact' | 'full',
   },
   actions: (state, setState) => ({
-    openTimerModal: () => setState(s => ({ ...s, isTimerModalOpen: true })),
-    closeTimerModal: () => setState(s => ({ ...s, isTimerModalOpen: false })),
-    openHistoryModal: (sessionId?: string) => setState(s => ({
-      ...s,
-      isHistoryModalOpen: true,
-      selectedSessionId: sessionId ?? s.selectedSessionId,
-    })),
+    openTimerModal: () => setState((s) => ({ ...s, isTimerModalOpen: true })),
+    closeTimerModal: () => setState((s) => ({ ...s, isTimerModalOpen: false })),
+    openHistoryModal: (sessionId?: string) =>
+      setState((s) => ({
+        ...s,
+        isHistoryModalOpen: true,
+        selectedSessionId: sessionId ?? s.selectedSessionId,
+      })),
     closeHistoryModal: () => {
-      setState(s => ({ ...s, isHistoryModalOpen: false, selectedSessionId: null }));
-      setTimeout(() => setState(s => ({ ...s, selectedSessionId: null })), 300);
+      setState((s) => ({
+        ...s,
+        isHistoryModalOpen: false,
+        selectedSessionId: null,
+      }));
+      setTimeout(
+        () => setState((s) => ({ ...s, selectedSessionId: null })),
+        300
+      );
     },
-    setTimerDisplayMode: (mode: 'compact' | 'full') => setState(s => ({ ...s, timerDisplayMode: mode })),
+    setTimerDisplayMode: (mode: 'compact' | 'full') =>
+      setState((s) => ({ ...s, timerDisplayMode: mode })),
   }),
 });

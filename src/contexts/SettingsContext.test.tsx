@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import { SettingsProvider, useSettings, defaultSettings } from './SettingsContext';
+import {
+  SettingsProvider,
+  useSettings,
+  defaultSettings,
+} from './SettingsContext';
 import { userPreferencesService } from '../services/userPreferencesService';
 
 // Polyfill matchMedia for jsdom environment
@@ -23,10 +27,18 @@ beforeAll(() => {
 // Spy on userPreferencesService methods
 // and provide default behavior before each test
 function setupServiceSpies() {
-  vi.spyOn(userPreferencesService, 'getUserPreferences').mockResolvedValue(defaultSettings);
-  vi.spyOn(userPreferencesService, 'setPreference').mockResolvedValue(undefined);
-  vi.spyOn(userPreferencesService, 'setPreferences').mockResolvedValue(undefined);
-  vi.spyOn(userPreferencesService, 'resetToDefaults').mockResolvedValue(undefined);
+  vi.spyOn(userPreferencesService, 'getUserPreferences').mockResolvedValue(
+    defaultSettings
+  );
+  vi.spyOn(userPreferencesService, 'setPreference').mockResolvedValue(
+    undefined
+  );
+  vi.spyOn(userPreferencesService, 'setPreferences').mockResolvedValue(
+    undefined
+  );
+  vi.spyOn(userPreferencesService, 'resetToDefaults').mockResolvedValue(
+    undefined
+  );
   vi.spyOn(userPreferencesService, 'on').mockReturnValue(() => {});
 }
 
@@ -43,16 +55,17 @@ function TestComponent() {
   } = useSettings();
   return (
     <div>
-      <span data-testid="loading">
-        {isLoading ? 'loading' : 'loaded'}
-      </span>
+      <span data-testid="loading">{isLoading ? 'loading' : 'loaded'}</span>
       <span data-testid="status">
         {isSettingsModalOpen ? 'open' : 'closed'}
       </span>
       <span data-testid="theme">{settings.theme}</span>
       <button data-testid="open" onClick={() => openSettingsModal()} />
       <button data-testid="close" onClick={() => closeSettingsModal()} />
-      <button data-testid="update" onClick={() => updateSetting('theme', 'dark')} />
+      <button
+        data-testid="update"
+        onClick={() => updateSetting('theme', 'dark')}
+      />
       <button data-testid="reset" onClick={resetToDefaults} />
     </div>
   );
@@ -90,9 +103,7 @@ describe('SettingsContext', () => {
     expect(getByTestId('theme').textContent).toBe('dark');
     fireEvent.click(getByTestId('reset'));
     await waitFor(() => {
-      expect(getByTestId('theme').textContent).toBe(
-        defaultSettings.theme
-      );
+      expect(getByTestId('theme').textContent).toBe(defaultSettings.theme);
     });
   });
 });

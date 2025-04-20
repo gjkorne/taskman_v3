@@ -1,6 +1,12 @@
 import { ReactNode, useMemo } from 'react';
-import { TimeSessionDataProvider, useTimeSessionData } from './TimeSessionDataContext';
-import { TimeSessionUIProvider, useTimeSessionUI } from './TimeSessionUIContext';
+import {
+  TimeSessionDataProvider,
+  useTimeSessionData,
+} from './TimeSessionDataContext';
+import {
+  TimeSessionUIProvider,
+  useTimeSessionUI,
+} from './TimeSessionUIContext';
 import { TimeSessionContext } from './index';
 
 // Combined provider that wraps both data and UI providers
@@ -9,9 +15,7 @@ export const TimeSessionProvider = ({ children }: { children: ReactNode }) => {
   return (
     <TimeSessionDataProvider>
       <TimeSessionUIProvider>
-        <LegacyBridge>
-          {children}
-        </LegacyBridge>
+        <LegacyBridge>{children}</LegacyBridge>
       </TimeSessionUIProvider>
     </TimeSessionDataProvider>
   );
@@ -21,13 +25,16 @@ export const TimeSessionProvider = ({ children }: { children: ReactNode }) => {
 const LegacyBridge = ({ children }: { children: ReactNode }) => {
   const dataContext = useTimeSessionData();
   const uiContext = useTimeSessionUI();
-  
+
   // Combine contexts for backward compatibility
-  const combinedContext = useMemo(() => ({
-    ...dataContext,
-    ...uiContext
-  }), [dataContext, uiContext]);
-  
+  const combinedContext = useMemo(
+    () => ({
+      ...dataContext,
+      ...uiContext,
+    }),
+    [dataContext, uiContext]
+  );
+
   return (
     <TimeSessionContext.Provider value={combinedContext}>
       {children}

@@ -11,11 +11,13 @@ The implementation follows the offline-second architecture pattern, prioritizing
 ### Key Components
 
 1. **TimeSessionsService**
+
    - Added a `getActiveSession()` method to query Supabase for active time sessions
    - This method retrieves the most recent uncompleted session (where `end_time` is null)
    - Fetches task details in a separate query to avoid 406 errors
 
 2. **useTimerPersistence Hook**
+
    - Enhanced to sync with remote session data
    - Maintains timer state in localStorage with the consistent `taskman_` prefix
    - Provides a `syncWithRemote()` function to check for active sessions in Supabase
@@ -29,11 +31,13 @@ The implementation follows the offline-second architecture pattern, prioritizing
 ## Data Flow
 
 1. **On Application Load**:
+
    - The app checks for locally stored timer state in `localStorage`
    - Immediately after, it queries Supabase for any active sessions
    - If an active remote session is found, the local timer state is updated to match
 
 2. **During Timer Operation**:
+
    - When a timer is started, a record is created in Supabase's `time_sessions` table
    - Local timer state is updated to track elapsed time
    - Timer state is regularly saved to `localStorage` for persistence between page reloads
@@ -63,10 +67,12 @@ The implementation follows the offline-second architecture pattern, prioritizing
 ## Future Improvements
 
 1. **Real-time Updates**:
+
    - Consider implementing Supabase's real-time subscriptions to receive immediate updates
    - This would eliminate the need for polling and reduce API calls
 
 2. **Conflict Resolution**:
+
    - Implement more sophisticated conflict resolution for cases where two devices start timers simultaneously
    - Currently, the most recently active timer takes precedence
 
@@ -79,6 +85,7 @@ The implementation follows the offline-second architecture pattern, prioritizing
 ### Starting a Timer
 
 When a user starts a timer:
+
 1. A session record is created in the `time_sessions` table
 2. The task status is updated to `ACTIVE`
 3. The local timer state is set to `running`
@@ -91,6 +98,7 @@ await startTimer(taskId);
 ### Detecting Active Sessions
 
 When a user opens the app on a different device:
+
 1. The app automatically checks for active sessions
 2. If found, it calculates the elapsed time and displays the running timer
 3. The user can interact with the timer as if it was started on the current device

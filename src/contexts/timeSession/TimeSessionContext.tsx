@@ -1,15 +1,19 @@
 import { ReactNode } from 'react';
-import { TimeSessionDataProvider, useTimeSessionData } from './TimeSessionDataContext';
-import { TimeSessionUIProvider, useTimeSessionUI } from './TimeSessionUIContext';
+import {
+  TimeSessionDataProvider,
+  useTimeSessionData,
+} from './TimeSessionDataContext';
+import {
+  TimeSessionUIProvider,
+  useTimeSessionUI,
+} from './TimeSessionUIContext';
 
 /**
  * Combined provider that wraps both data and UI providers.
  */
 export const TimeSessionProvider = ({ children }: { children: ReactNode }) => (
   <TimeSessionDataProvider>
-    <TimeSessionUIProvider>
-      {children}
-    </TimeSessionUIProvider>
+    <TimeSessionUIProvider>{children}</TimeSessionUIProvider>
   </TimeSessionDataProvider>
 );
 

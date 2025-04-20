@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { taskFormSchema, TaskFormData } from '../components/TaskForm/schema';
-import { getSubcategoryFromTags, updateSubcategoryInTags } from '../types/categories';
+import {
+  getSubcategoryFromTags,
+  updateSubcategoryInTags,
+} from '../types/categories';
 import { useTaskContext } from '../contexts/TaskCompat';
 import { taskService } from '../services/api';
 import { TaskStatusValues, TaskPriority, Task } from '../types/task';
@@ -23,11 +26,15 @@ interface UseTaskFormProps {
  * Custom hook for managing task form state and submissions
  * Handles both creation and editing of tasks with proper database field mapping
  */
-export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {}) {
+export function useTaskForm({
+  taskId,
+  onSuccess,
+  onError,
+}: UseTaskFormProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { refreshTasks } = useTaskContext();
-  
+
   // Initialize form with react-hook-form + zod validation
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskFormSchema),
@@ -44,24 +51,24 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
       rawInput: '',
       estimatedTime: '',
       is_deleted: false,
-      list_id: undefined
-    }
+      list_id: undefined,
+    },
   });
 
   // Destructure form methods for easier access
-  const { 
-    control, 
-    register, 
+  const {
+    control,
+    register,
     formState,
     watch,
     setValue,
     getValues,
     reset,
-    handleSubmit: rhfHandleSubmit
+    handleSubmit: rhfHandleSubmit,
   } = form;
 
   /**
-   * Map database fields to form fields 
+   * Map database fields to form fields
    * Handles special conversions like intervals and dates
    */
   const mapDatabaseToFormData = (task: Task): TaskFormData => {
@@ -95,7 +102,7 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
       estimatedTime: estimatedTime,
       is_deleted: !!task.is_deleted,
       rawInput: (task as any).raw_input || '',
-      list_id: task.list_id
+      list_id: task.list_id,
     };
   };
 
@@ -103,23 +110,23 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
   useEffect(() => {
     async function fetchTaskData() {
       if (!taskId) return;
-      
+
       setIsLoading(true);
       setError(null);
-      
+
       try {
         const { data, error: apiError } = await taskService.getTaskById(taskId);
-          
+
         if (apiError) throw apiError;
-        
+
         if (data) {
           // Map the database task to form data format
           const formData = mapDatabaseToFormData(data);
-          
+
           if (DEBUG_TASK_FORM) {
             console.log('Setting form with data:', formData);
           }
-          
+
           // Reset form with mapped data
           reset(formData);
         }
@@ -133,10 +140,10 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
         setIsLoading(false);
       }
     }
-    
+
     fetchTaskData();
   }, [taskId, reset]);
-  
+
   /**
    * Create API-friendly object from form data
    */
@@ -146,7 +153,7 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
       formData.tags || [],
       formData.subcategory || ''
     );
-    
+
     // Prepare the data for API consumption
     return {
       title: formData.title,
@@ -161,27 +168,27 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
       estimatedTime: formData.estimatedTime,
       isDeleted: formData.is_deleted, // Map to UI field name
       rawInput: formData.rawInput,
-      listId: formData.list_id // Map to UI field name
+      listId: formData.list_id, // Map to UI field name
     };
   };
-  
+
   // Handle form submission
   const handleSubmit = async (formData: TaskFormData) => {
     if (DEBUG_TASK_FORM) {
       console.log('Submitting form data:', formData);
     }
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // Prepare data for API consumption
       const apiData = prepareApiData(formData);
-      
+
       if (DEBUG_TASK_FORM) {
         console.log('Prepared data for API:', apiData);
       }
-      
+
       // Call the appropriate API service method
       let result;
       if (taskId) {
@@ -191,31 +198,30 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
         // Create new task - type assertion to satisfy TypeScript
         result = await taskService.createTask(apiData as any);
       }
-      
+
       if (result.error) {
         throw result.error;
       }
-      
+
       if (DEBUG_TASK_FORM && result.data) {
         console.log('Task saved successfully:', result.data);
       }
-      
+
       // Refresh tasks to get the latest data
       await refreshTasks();
-      
+
       // Call success callback
       onSuccess?.();
-      
+
       // Reset form if creating a new task
       if (!taskId) {
         reset();
       }
-      
     } catch (err: any) {
       if (isDevelopment) {
         console.error('Error saving task:', err);
       }
-      
+
       const errorMessage = err.message || 'Failed to save task';
       setError(errorMessage);
       onError?.(errorMessage);
@@ -223,11 +229,11 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
       setIsLoading(false);
     }
   };
-  
+
   return {
     // Return the complete form object for advanced usage if needed
     form,
-    
+
     // Return individual form methods for convenience
     control,
     register,
@@ -237,12 +243,12 @@ export function useTaskForm({ taskId, onSuccess, onError }: UseTaskFormProps = {
     setValue,
     getValues,
     reset,
-    
+
     // Return custom hook state
     isLoading,
     error,
-    
+
     // Return the submit handler
-    handleSubmit: rhfHandleSubmit(handleSubmit)
+    handleSubmit: rhfHandleSubmit(handleSubmit),
   };
 }

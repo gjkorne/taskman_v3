@@ -16,9 +16,9 @@ interface TaskActionProviderProps {
  * Provider component for task actions
  * Centralizes all task-related actions to avoid prop drilling
  */
-export function TaskActionProvider({ 
-  children, 
-  onTaskAction 
+export function TaskActionProvider({
+  children,
+  onTaskAction,
 }: TaskActionProviderProps) {
   // Initialize task actions with callbacks
   const taskActions = useTaskActions({
@@ -33,7 +33,7 @@ export function TaskActionProvider({
     },
     onError: (error, action) => {
       console.error(`Error in action ${action}:`, error);
-    }
+    },
   });
 
   return (
@@ -49,10 +49,12 @@ export function TaskActionProvider({
  */
 export function useTaskActionContext() {
   const context = useContext(TaskActionContext);
-  
+
   if (!context) {
-    throw new Error('useTaskActionContext must be used within a TaskActionProvider');
+    throw new Error(
+      'useTaskActionContext must be used within a TaskActionProvider'
+    );
   }
-  
+
   return context;
 }

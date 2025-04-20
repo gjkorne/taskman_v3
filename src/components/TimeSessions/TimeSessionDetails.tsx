@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Clock, PenTool, Tag, Check, StopCircle, Trash } from 'lucide-react';
+import {
+  X,
+  Calendar,
+  Clock,
+  PenTool,
+  Tag,
+  Check,
+  StopCircle,
+  Trash,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import type { TimeSession } from '../../services/api/timeSessionsService';
 import { timeSessionsService } from '../../services/api/timeSessionsService';
@@ -14,11 +23,11 @@ interface TimeSessionDetailsProps {
   onSessionDeleted?: () => void;
 }
 
-export function TimeSessionDetails({ 
-  sessionId, 
+export function TimeSessionDetails({
+  sessionId,
   onClose,
   onSessionUpdated,
-  onSessionDeleted
+  onSessionDeleted,
 }: TimeSessionDetailsProps) {
   const [session, setSession] = useState<TimeSession | null>(null);
   const [task, setTask] = useState<Task | null>(null);
@@ -35,23 +44,24 @@ export function TimeSessionDetails({
     const fetchSessionData = async () => {
       setIsLoading(true);
       setError(null);
-      
+
       try {
         const sessionData = await timeSessionsService.getSessionById(sessionId);
-        
+
         if (!sessionData) throw new Error('Session not found');
-        
+
         setSession(sessionData);
-        
+
         // Fetch associated task
         if (sessionData.task_id) {
-          const { data: taskData, error: taskError } = await taskService.getTaskById(sessionData.task_id);
-          
+          const { data: taskData, error: taskError } =
+            await taskService.getTaskById(sessionData.task_id);
+
           if (!taskError && taskData) {
             setTask(taskData);
           }
         }
-        
+
         // Set notes
         setNotes(sessionData.notes || '');
       } catch (err) {
@@ -61,31 +71,31 @@ export function TimeSessionDetails({
         setIsLoading(false);
       }
     };
-    
+
     fetchSessionData();
   }, [sessionId]);
 
   // Calculate session duration
   const formatDuration = (startTime?: string, endTime?: string | null) => {
     if (!startTime) return '0m';
-    
+
     const start = new Date(startTime);
     const end = endTime ? new Date(endTime) : new Date();
     const durationMs = end.getTime() - start.getTime();
-    
+
     const hours = Math.floor(durationMs / (1000 * 60 * 60));
     const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
-    
+
     return `${hours > 0 ? `${hours}h ` : ''}${minutes}m ${seconds}s`;
   };
 
   // Save notes
   const handleSaveNotes = async () => {
     if (!session) return;
-    
+
     setIsSaving(true);
-    
+
     try {
       await timeSessionsService.updateSession(sessionId, { notes });
       setIsEditing(false);
@@ -101,21 +111,24 @@ export function TimeSessionDetails({
   // End an active session
   const handleEndSession = async () => {
     if (!session || session.end_time) return;
-    
+
     setIsEnding(true);
-    
+
     try {
       // Update session with current time as end_time
       const endTime = new Date().toISOString();
-      const updatedSession = await timeSessionsService.updateSession(sessionId, { 
-        end_time: endTime
-      });
-      
+      const updatedSession = await timeSessionsService.updateSession(
+        sessionId,
+        {
+          end_time: endTime,
+        }
+      );
+
       if (!updatedSession) throw new Error('Failed to end session');
-      
+
       // Update local state
       setSession(updatedSession);
-      
+
       if (onSessionUpdated) onSessionUpdated();
     } catch (err) {
       console.error('Error ending session:', err);
@@ -128,13 +141,17 @@ export function TimeSessionDetails({
   // Delete the session
   const handleDeleteSession = async () => {
     if (!session) return;
-    
-    if (!window.confirm('Are you sure you want to delete this session? This action cannot be undone.')) {
+
+    if (
+      !window.confirm(
+        'Are you sure you want to delete this session? This action cannot be undone.'
+      )
+    ) {
       return;
     }
-    
+
     setIsDeleting(true);
-    
+
     try {
       await timeSessionsService.deleteSession(sessionId);
       if (onSessionDeleted) onSessionDeleted();
@@ -174,7 +191,10 @@ export function TimeSessionDetails({
         <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full">
           <div className="p-4 border-b flex justify-between items-center">
             <h2 className="text-lg font-medium">Session Details</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
               <X size={20} />
             </button>
           </div>
@@ -183,7 +203,7 @@ export function TimeSessionDetails({
               <p className="text-red-700">{error || 'Session not found'}</p>
             </div>
             <div className="mt-4 flex justify-end">
-              <button 
+              <button
                 onClick={onClose}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md"
               >
@@ -201,11 +221,14 @@ export function TimeSessionDetails({
       <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-auto animate-fadeIn">
         <div className="p-4 border-b flex justify-between items-center fixed top-0 bg-white z-10">
           <h2 className="text-lg font-medium">Session Details</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
             <X size={20} />
           </button>
         </div>
-        
+
         <div className="p-6 space-y-6">
           {/* Session Information */}
           <div className="space-y-4">
@@ -215,20 +238,24 @@ export function TimeSessionDetails({
                 <h3 className="text-lg font-medium">Time Session</h3>
               </div>
               <div className="mt-2 md:mt-0 flex space-x-2">
-                <span className={cn(
-                  "px-2 py-1 text-xs font-medium rounded-full",
-                  session.end_time ? "bg-indigo-100 text-indigo-800" : "bg-green-100 text-green-800"
-                )}>
+                <span
+                  className={cn(
+                    'px-2 py-1 text-xs font-medium rounded-full',
+                    session.end_time
+                      ? 'bg-indigo-100 text-indigo-800'
+                      : 'bg-green-100 text-green-800'
+                  )}
+                >
                   {session.end_time ? 'Completed' : 'In Progress'}
                 </span>
-                
+
                 {!session.end_time && (
                   <button
                     onClick={handleEndSession}
                     disabled={isEnding}
                     className={cn(
-                      "px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 flex items-center",
-                      isEnding && "opacity-50 cursor-not-allowed"
+                      'px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 flex items-center',
+                      isEnding && 'opacity-50 cursor-not-allowed'
                     )}
                   >
                     {isEnding ? (
@@ -243,42 +270,57 @@ export function TimeSessionDetails({
                 )}
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-gray-50 p-3 rounded-md">
                 <div className="text-sm text-gray-500">Start Time</div>
                 <div className="flex items-center mt-1">
                   <Calendar className="h-4 w-4 text-gray-400 mr-1" />
-                  <span>{session.start_time ? format(new Date(session.start_time), 'MMM d, yyyy h:mm a') : 'N/A'}</span>
+                  <span>
+                    {session.start_time
+                      ? format(
+                          new Date(session.start_time),
+                          'MMM d, yyyy h:mm a'
+                        )
+                      : 'N/A'}
+                  </span>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-3 rounded-md">
                 <div className="text-sm text-gray-500">End Time</div>
                 <div className="flex items-center mt-1">
                   <Calendar className="h-4 w-4 text-gray-400 mr-1" />
-                  <span>{session.end_time ? format(new Date(session.end_time), 'MMM d, yyyy h:mm a') : 'In progress'}</span>
+                  <span>
+                    {session.end_time
+                      ? format(new Date(session.end_time), 'MMM d, yyyy h:mm a')
+                      : 'In progress'}
+                  </span>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-3 rounded-md">
                 <div className="text-sm text-gray-500">Duration</div>
                 <div className="flex items-center mt-1">
                   <Clock className="h-4 w-4 text-gray-400 mr-1" />
-                  <span className="font-medium">{formatDuration(session.start_time, session.end_time)}</span>
+                  <span className="font-medium">
+                    {formatDuration(session.start_time, session.end_time)}
+                  </span>
                 </div>
               </div>
-              
+
               <div className="bg-gray-50 p-3 rounded-md">
                 <div className="text-sm text-gray-500">Session ID</div>
                 <div className="flex items-center mt-1">
                   <Tag className="h-4 w-4 text-gray-400 mr-1" />
-                  <span className="text-xs font-mono truncate">{session.id}</span>
+                  <span className="text-xs font-mono truncate">
+                    {session.id}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
-          
+
           {/* Associated Task */}
           {task && (
             <div className="border-t pt-6">
@@ -292,12 +334,17 @@ export function TimeSessionDetails({
                     </p>
                   </div>
                   <div>
-                    <span className={cn(
-                      "px-2 py-1 text-xs font-medium rounded-full",
-                      task.status === TaskStatus.ACTIVE && "bg-green-100 text-green-800",
-                      task.status === TaskStatus.COMPLETED && "bg-blue-100 text-blue-800",
-                      task.status === TaskStatus.PENDING && "bg-gray-100 text-gray-800"
-                    )}>
+                    <span
+                      className={cn(
+                        'px-2 py-1 text-xs font-medium rounded-full',
+                        task.status === TaskStatus.ACTIVE &&
+                          'bg-green-100 text-green-800',
+                        task.status === TaskStatus.COMPLETED &&
+                          'bg-blue-100 text-blue-800',
+                        task.status === TaskStatus.PENDING &&
+                          'bg-gray-100 text-gray-800'
+                      )}
+                    >
                       {task.status?.replace('_', ' ')}
                     </span>
                   </div>
@@ -305,12 +352,12 @@ export function TimeSessionDetails({
               </div>
             </div>
           )}
-          
+
           {/* Session Notes */}
           <div className="border-t pt-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-md font-medium">Session Notes</h3>
-              <button 
+              <button
                 onClick={() => setIsEditing(!isEditing)}
                 className="text-indigo-600 hover:text-indigo-800 text-sm flex items-center"
               >
@@ -318,7 +365,7 @@ export function TimeSessionDetails({
                 {isEditing ? 'Cancel' : 'Edit Notes'}
               </button>
             </div>
-            
+
             {isEditing ? (
               <div>
                 <textarea
@@ -335,9 +382,25 @@ export function TimeSessionDetails({
                   >
                     {isSaving ? (
                       <span className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         Saving
                       </span>
@@ -355,27 +418,45 @@ export function TimeSessionDetails({
                 {notes ? (
                   <p className="whitespace-pre-wrap">{notes}</p>
                 ) : (
-                  <p className="text-gray-400 italic">No notes for this session</p>
+                  <p className="text-gray-400 italic">
+                    No notes for this session
+                  </p>
                 )}
               </div>
             )}
           </div>
-          
+
           {/* Delete session button */}
           <div className="border-t pt-6">
             <button
               onClick={handleDeleteSession}
               disabled={isDeleting}
               className={cn(
-                "w-full flex items-center justify-center px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-md",
-                isDeleting && "opacity-50 cursor-not-allowed"
+                'w-full flex items-center justify-center px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-md',
+                isDeleting && 'opacity-50 cursor-not-allowed'
               )}
             >
               {isDeleting ? (
                 <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Deleting...
                 </span>

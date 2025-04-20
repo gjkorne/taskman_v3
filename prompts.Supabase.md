@@ -9,7 +9,7 @@ supabase login
 supabase link J3w!Ynj<6x,+,q2O
 supabase db push
 
-***RUN npm run dev*
+_\*\*RUN npm run dev_
 
 Absolutely, Greg! Here's a **clean, step-by-step guide to setting up and using the Supabase CLI using only `cmd` (Command Prompt)** — no PowerShell or fancy terminal needed.
 
@@ -21,6 +21,7 @@ Absolutely, Greg! Here's a **clean, step-by-step guide to setting up and using t
 
 sup### 🗂 4. **Navigate to Your Project Folder**
 If your project is in `C:\Users\gjkor\taskman_v3`, run:
+
 ```cmd
 cd C:\Users\gjkor\taskman_v3
 ```
@@ -28,6 +29,7 @@ cd C:\Users\gjkor\taskman_v3
 ---
 
 ### 🔑 5. **Log Into Supabase**
+
 ```cmd
 supabase login
 ```
@@ -37,15 +39,18 @@ This will open a browser window to authenticate with your Supabase account.
 ---
 
 ### 🔗 6. **Link Your Local Project to Supabase**
+
 Get your **Project Ref** from the URL:  
 `https://app.supabase.com/project/**your-project-ref**/settings/general`
 
 Then run:
+
 ```cmd
 supabase link --project-ref your-project-ref
 ```
 
 Example:
+
 ```cmd
 supabase link --project-ref abcdefghijklmnopqrst
 ```
@@ -53,9 +58,11 @@ supabase link --project-ref abcdefghijklmnopqrst
 ---
 
 ### 📤 7. **Push Migrations to Supabase**
+
 Make sure your `.sql` migration files are in `supabase/migrations/`
 
 Then push them:
+
 ```cmd
 supabase db push
 ```
@@ -65,11 +72,13 @@ This applies all pending migrations to your **linked Supabase project**.
 ---
 
 ### 🧪 Bonus: Create a Migration from Local Changes
+
 ```cmd
 supabase db diff --schema public --file supabase/migrations/20240401_add_tasks.sql
 ```
 
 Then push:
+
 ```cmd
 supabase db push
 ```

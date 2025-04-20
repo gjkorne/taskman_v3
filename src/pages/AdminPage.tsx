@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { AlertTriangle, CheckCircle, RefreshCcw, Database, XCircle, RotateCcw } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle,
+  RefreshCcw,
+  Database,
+  XCircle,
+  RotateCcw,
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTimer } from '../contexts/TimerContext';
 
@@ -18,9 +25,9 @@ export default function AdminPage() {
     status: 'success' | 'error';
     message: string;
   } | null>(null);
-  
+
   const [isLoading, setIsLoading] = useState<string | null>(null);
-  
+
   // Get timer context at component level (correct usage of hooks)
   const timerContext = useTimer();
 
@@ -29,7 +36,8 @@ export default function AdminPage() {
     {
       id: 'reset-timer-state',
       title: 'Reset Timer State',
-      description: 'Reset the timer state to idle. Use this if timer gets stuck.',
+      description:
+        'Reset the timer state to idle. Use this if timer gets stuck.',
       icon: <RotateCcw size={24} />,
       dangerLevel: 'medium',
       action: async (utils) => {
@@ -38,29 +46,34 @@ export default function AdminPage() {
           if (utils?.timerContext) {
             utils.timerContext.resetTimer();
             utils.timerContext.clearTimerStorage();
-            return { success: true, message: 'Timer state and storage cleared successfully' };
+            return {
+              success: true,
+              message: 'Timer state and storage cleared successfully',
+            };
           }
-          
+
           return { success: false, message: 'Timer context not found' };
         } catch (error) {
           console.error('Error resetting timer state:', error);
-          return { 
-            success: false, 
-            message: error instanceof Error ? error.message : 'Unknown error occurred' 
+          return {
+            success: false,
+            message:
+              error instanceof Error ? error.message : 'Unknown error occurred',
           };
         }
-      }
+      },
     },
     {
       id: 'clear-timer-storage',
       title: 'Clear Timer Storage',
-      description: 'Clear timer state from local storage only. Does not affect database.',
+      description:
+        'Clear timer state from local storage only. Does not affect database.',
       icon: <XCircle size={24} />,
       dangerLevel: 'low',
       action: async () => {
         localStorage.removeItem('timerState');
         return { success: true, message: 'Timer storage cleared' };
-      }
+      },
     },
     {
       id: 'show-timer-state',
@@ -73,8 +86,12 @@ export default function AdminPage() {
         if (!state) {
           return { success: true, message: 'No timer state found', data: null };
         }
-        return { success: true, message: 'Timer state retrieved', data: JSON.parse(state) };
-      }
+        return {
+          success: true,
+          message: 'Timer state retrieved',
+          data: JSON.parse(state),
+        };
+      },
     },
     {
       id: 'check-active-tasks',
@@ -87,54 +104,57 @@ export default function AdminPage() {
           // Get the current user ID for proper filtering
           const { data: authData } = await supabase.auth.getSession();
           const userId = authData.session?.user.id;
-          
+
           if (!userId) {
             return { success: false, message: 'Authentication required' };
           }
-          
+
           // Query tasks with active status
           const { data, error } = await supabase
             .from('tasks')
             .select('id, title, status')
             .eq('status', 'active')
             .eq('created_by', userId);
-          
+
           if (error) {
             console.error('Error fetching active tasks:', error);
             throw error;
           }
-          
-          return { 
-            success: true, 
-            message: `Found ${data?.length || 0} active tasks`, 
-            data: data || []
+
+          return {
+            success: true,
+            message: `Found ${data?.length || 0} active tasks`,
+            data: data || [],
           };
         } catch (error) {
           console.error('Error checking active tasks:', error);
-          return { 
-            success: false, 
-            message: error instanceof Error ? error.message : 'Unknown error occurred' 
+          return {
+            success: false,
+            message:
+              error instanceof Error ? error.message : 'Unknown error occurred',
           };
         }
-      }
-    }
+      },
+    },
   ];
 
   // Handle action execution
   const executeAction = async (action: AdminAction) => {
     setIsLoading(action.id);
     setActionStatus(null);
-    
+
     try {
       const result = await action.action({ timerContext });
       console.log(`Action ${action.title} result:`, result);
-      
+
       setActionStatus({
         id: action.id,
         status: result.success ? 'success' : 'error',
-        message: result.message || (result.success ? 'Action completed successfully' : 'Action failed')
+        message:
+          result.message ||
+          (result.success ? 'Action completed successfully' : 'Action failed'),
       });
-      
+
       // If there's data to display, show it in the console
       if (result.data) {
         console.log('Result data:', result.data);
@@ -144,7 +164,8 @@ export default function AdminPage() {
       setActionStatus({
         id: action.id,
         status: 'error',
-        message: error instanceof Error ? error.message : 'Unknown error occurred'
+        message:
+          error instanceof Error ? error.message : 'Unknown error occurred',
       });
     } finally {
       setIsLoading(null);
@@ -172,21 +193,22 @@ export default function AdminPage() {
           <AlertTriangle className="text-amber-500 mr-2" />
           <h2 className="text-2xl font-semibold text-gray-800">Admin Tools</h2>
         </div>
-        
+
         <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
           <p className="text-amber-800">
-            These tools are for system administration and debugging purposes only. 
-            Use with caution as some actions may affect application data.
+            These tools are for system administration and debugging purposes
+            only. Use with caution as some actions may affect application data.
           </p>
           <p className="text-amber-800 mt-2">
-            <strong>Timer Debug Tools:</strong> Use "Reset Timer State" to fix issues with stuck timers 
-            or multiple active tasks. This will reset all your active timers and close open sessions.
+            <strong>Timer Debug Tools:</strong> Use "Reset Timer State" to fix
+            issues with stuck timers or multiple active tasks. This will reset
+            all your active timers and close open sessions.
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {adminActions.map((action) => (
-            <div 
+            <div
               key={action.id}
               className={`border rounded-lg p-4 ${
                 actionStatus?.id === action.id
@@ -200,17 +222,18 @@ export default function AdminPage() {
                 <div className="mr-2">{action.icon}</div>
                 <h3 className="font-medium">{action.title}</h3>
               </div>
-              
+
               <p className="text-sm text-gray-600 mb-3">{action.description}</p>
-              
+
               <div className="flex justify-between items-center">
                 <button
                   onClick={() => executeAction(action)}
                   disabled={isLoading !== null}
                   className={`px-3 py-1.5 text-sm rounded-md flex items-center
-                    ${action.dangerLevel === 'high' 
-                      ? 'bg-red-600 hover:bg-red-700 text-white' 
-                      : action.dangerLevel === 'medium'
+                    ${
+                      action.dangerLevel === 'high'
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : action.dangerLevel === 'medium'
                         ? 'bg-amber-500 hover:bg-amber-600 text-white'
                         : 'bg-blue-500 hover:bg-blue-600 text-white'
                     } transition-colors`}
@@ -220,7 +243,7 @@ export default function AdminPage() {
                   ) : null}
                   {isLoading === action.id ? 'Processing...' : 'Execute'}
                 </button>
-                
+
                 {actionStatus?.id === action.id && (
                   <div className="flex items-center text-sm">
                     {actionStatus.status === 'success' ? (
@@ -228,7 +251,13 @@ export default function AdminPage() {
                     ) : (
                       <XCircle size={16} className="text-red-500 mr-1" />
                     )}
-                    <span className={actionStatus.status === 'success' ? 'text-green-600' : 'text-red-600'}>
+                    <span
+                      className={
+                        actionStatus.status === 'success'
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                      }
+                    >
                       {actionStatus.message}
                     </span>
                   </div>
@@ -238,12 +267,15 @@ export default function AdminPage() {
           ))}
         </div>
       </div>
-      
+
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-800 mb-3">Console Output</h3>
+        <h3 className="text-lg font-medium text-gray-800 mb-3">
+          Console Output
+        </h3>
         <p className="text-gray-600">
-          Some actions will log additional information to the browser console. 
-          Press F12 or right-click and select "Inspect" to view the console output.
+          Some actions will log additional information to the browser console.
+          Press F12 or right-click and select "Inspect" to view the console
+          output.
         </p>
       </div>
     </div>

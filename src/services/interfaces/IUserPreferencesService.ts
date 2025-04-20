@@ -50,7 +50,8 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
  * Interface for the UserPreferencesService
  * Provides methods to manage user preferences with cross-device sync
  */
-export interface IUserPreferencesService extends IService<UserPreferencesEvents> {
+export interface IUserPreferencesService
+  extends IService<UserPreferencesEvents> {
   /**
    * Get all user preferences or a default if none exist
    */

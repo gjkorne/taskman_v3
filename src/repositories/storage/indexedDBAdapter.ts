@@ -5,7 +5,9 @@ import { v4 as uuidv4 } from 'uuid';
  * IndexedDB storage adapter for offline-first operations
  * This adapter provides persistent local storage for all data
  */
-export class IndexedDBAdapter<T extends { id: string }> implements IStorageAdapter<T> {
+export class IndexedDBAdapter<T extends { id: string }>
+  implements IStorageAdapter<T>
+{
   private dbName: string;
   private storeName: string;
   private version: number;
@@ -46,7 +48,7 @@ export class IndexedDBAdapter<T extends { id: string }> implements IStorageAdapt
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
+
         // Create object store if it doesn't exist
         if (!db.objectStoreNames.contains(this.storeName)) {
           db.createObjectStore(this.storeName, { keyPath: 'id' });
@@ -103,7 +105,9 @@ export class IndexedDBAdapter<T extends { id: string }> implements IStorageAdapt
 
         request.onerror = (event) => {
           console.error('Error fetching item by ID:', event);
-          reject(new Error(`Failed to fetch item with ID ${id} from IndexedDB`));
+          reject(
+            new Error(`Failed to fetch item with ID ${id} from IndexedDB`)
+          );
         };
       });
     } catch (error) {
@@ -124,7 +128,7 @@ export class IndexedDBAdapter<T extends { id: string }> implements IStorageAdapt
         id: data.id || uuidv4(),
         created_at: data.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        is_synced: false // Track sync status
+        is_synced: false, // Track sync status
       };
 
       return new Promise((resolve, reject) => {
@@ -154,7 +158,7 @@ export class IndexedDBAdapter<T extends { id: string }> implements IStorageAdapt
     try {
       const db = await this.getDB();
       const existingItem = await this.getById(id);
-      
+
       if (!existingItem) {
         throw new Error(`Item with ID ${id} not found`);
       }
@@ -163,7 +167,7 @@ export class IndexedDBAdapter<T extends { id: string }> implements IStorageAdapt
         ...existingItem,
         ...data,
         updated_at: new Date().toISOString(),
-        is_synced: false // Mark as needing sync
+        is_synced: false, // Mark as needing sync
       };
 
       return new Promise((resolve, reject) => {
@@ -203,7 +207,9 @@ export class IndexedDBAdapter<T extends { id: string }> implements IStorageAdapt
 
         request.onerror = (event) => {
           console.error('Error deleting item:', event);
-          reject(new Error(`Failed to delete item with ID ${id} from IndexedDB`));
+          reject(
+            new Error(`Failed to delete item with ID ${id} from IndexedDB`)
+          );
         };
       });
     } catch (error) {
@@ -235,7 +241,10 @@ export class IndexedDBAdapter<T extends { id: string }> implements IStorageAdapt
         await this.update(id, { ...item, is_synced: true } as Partial<T>);
       }
     } catch (error) {
-      console.error(`Error marking item as synced in ${this.storeName}:`, error);
+      console.error(
+        `Error marking item as synced in ${this.storeName}:`,
+        error
+      );
       throw error;
     }
   }
@@ -246,9 +255,12 @@ export class IndexedDBAdapter<T extends { id: string }> implements IStorageAdapt
   async getUnsyncedItems(): Promise<T[]> {
     try {
       const allItems = await this.getAll();
-      return allItems.filter(item => !(item as any).is_synced);
+      return allItems.filter((item) => !(item as any).is_synced);
     } catch (error) {
-      console.error(`Error getting unsynced items from ${this.storeName}:`, error);
+      console.error(
+        `Error getting unsynced items from ${this.storeName}:`,
+        error
+      );
       throw error;
     }
   }

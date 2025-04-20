@@ -4,41 +4,41 @@
  */
 
 export const TASK_SECTION_STYLES = {
-  activeNow: { 
-    title: 'Active Now', 
+  activeNow: {
+    title: 'Active Now',
     bgColor: 'bg-blue-50',
-    icon: 'play-circle'
+    icon: 'play-circle',
   },
-  paused: { 
-    title: 'Paused', 
+  paused: {
+    title: 'Paused',
     bgColor: 'bg-amber-50',
-    icon: 'pause-circle'
+    icon: 'pause-circle',
   },
-  inProgress: { 
-    title: 'In Progress', 
+  inProgress: {
+    title: 'In Progress',
     bgColor: 'bg-indigo-50',
-    icon: 'loader'
+    icon: 'loader',
   },
-  doNext: { 
-    title: 'Do Next', 
+  doNext: {
+    title: 'Do Next',
     bgColor: 'bg-yellow-50',
-    icon: 'star'
+    icon: 'star',
   },
-  todo: { 
-    title: 'Todo', 
+  todo: {
+    title: 'Todo',
     bgColor: 'bg-white',
-    icon: 'list'
+    icon: 'list',
   },
-  completed: { 
-    title: 'Completed', 
+  completed: {
+    title: 'Completed',
     bgColor: 'bg-green-50',
-    icon: 'check-circle'
+    icon: 'check-circle',
   },
-  archived: { 
-    title: 'Archived', 
+  archived: {
+    title: 'Archived',
     bgColor: 'bg-gray-50',
-    icon: 'archive'
-  }
+    icon: 'archive',
+  },
 };
 
 // Type for section keys to ensure type safety

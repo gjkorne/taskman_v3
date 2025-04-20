@@ -21,7 +21,7 @@ export const DEFAULT_RETRY_OPTIONS: RetryOptions = {
   backoffFactor: 2,
   retryableStatusCodes: [408, 429, 500, 502, 503, 504],
   retryableErrors: ['NetworkError', 'TimeoutError'],
-  onRetry: undefined
+  onRetry: undefined,
 };
 
 /**
@@ -32,17 +32,17 @@ function isRetryableError(error: any, options: RetryOptions): boolean {
   if (error?.name && options.retryableErrors?.includes(error.name)) {
     return true;
   }
-  
+
   // Check for retryable status codes
   if (error?.status && options.retryableStatusCodes?.includes(error.status)) {
     return true;
   }
-  
+
   // For Supabase/fetch specific errors
   if (error?.code === 'ECONNRESET' || error?.code === 'ETIMEDOUT') {
     return true;
   }
-  
+
   return false;
 }
 
@@ -50,7 +50,8 @@ function isRetryableError(error: any, options: RetryOptions): boolean {
  * Calculate delay for the next retry using exponential backoff
  */
 function calculateBackoff(attempt: number, options: RetryOptions): number {
-  const backoffFactor = options.backoffFactor || DEFAULT_RETRY_OPTIONS.backoffFactor!;
+  const backoffFactor =
+    options.backoffFactor || DEFAULT_RETRY_OPTIONS.backoffFactor!;
   const delay = options.initialDelay * Math.pow(backoffFactor, attempt);
   return Math.min(delay, options.maxDelay || DEFAULT_RETRY_OPTIONS.maxDelay!);
 }
@@ -59,12 +60,12 @@ function calculateBackoff(attempt: number, options: RetryOptions): number {
  * Wait for specified milliseconds
  */
 function wait(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
  * Execute a function with retry logic
- * 
+ *
  * @param fn The function to execute (must return a Promise)
  * @param options Retry configuration options
  * @returns Promise that resolves with the function result or rejects after all retries
@@ -75,11 +76,11 @@ export async function withRetry<T>(
 ): Promise<T> {
   const retryOptions: RetryOptions = {
     ...DEFAULT_RETRY_OPTIONS,
-    ...options
+    ...options,
   };
-  
+
   let lastError: any;
-  
+
   for (let attempt = 0; attempt <= retryOptions.maxRetries; attempt++) {
     try {
       // First attempt (attempt 0) or actual retry attempts
@@ -87,26 +88,29 @@ export async function withRetry<T>(
         // Wait for backoff delay before retrying (not on first attempt)
         const delay = calculateBackoff(attempt - 1, retryOptions);
         await wait(delay);
-        
+
         // Call the onRetry callback if provided
         if (retryOptions.onRetry) {
           retryOptions.onRetry(lastError, attempt);
         }
       }
-      
+
       return await fn();
     } catch (error) {
       lastError = error;
-      
+
       // If this is the last attempt or the error is not retryable, propagate the error
-      if (attempt === retryOptions.maxRetries || !isRetryableError(error, retryOptions)) {
+      if (
+        attempt === retryOptions.maxRetries ||
+        !isRetryableError(error, retryOptions)
+      ) {
         throw error;
       }
-      
+
       // Otherwise, we'll retry on the next iteration
     }
   }
-  
+
   // This should never be reached due to the throw in the catch block
   throw lastError;
 }

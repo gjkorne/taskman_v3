@@ -17,7 +17,9 @@ export function createDataContext<T>(useHook: () => T, displayName: string) {
   function useDataContext(): T {
     const context = useContext(Context);
     if (context === undefined) {
-      throw new Error(`use${displayName} must be used within ${displayName}Provider`);
+      throw new Error(
+        `use${displayName} must be used within ${displayName}Provider`
+      );
     }
     return context;
   }

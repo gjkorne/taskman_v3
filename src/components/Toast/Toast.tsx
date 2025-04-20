@@ -18,21 +18,21 @@ export function Toast({ message, type = 'info', onClose }: ToastProps) {
           icon: <CheckCircle className="h-5 w-5 text-green-500" />,
           bg: 'bg-green-50',
           border: 'border-green-200',
-          text: 'text-green-800'
+          text: 'text-green-800',
         };
       case 'error':
         return {
           icon: <AlertCircle className="h-5 w-5 text-red-500" />,
           bg: 'bg-red-50',
           border: 'border-red-200',
-          text: 'text-red-800'
+          text: 'text-red-800',
         };
       case 'warning':
         return {
           icon: <AlertTriangle className="h-5 w-5 text-amber-500" />,
           bg: 'bg-amber-50',
           border: 'border-amber-200',
-          text: 'text-amber-800'
+          text: 'text-amber-800',
         };
       case 'info':
       default:
@@ -40,15 +40,15 @@ export function Toast({ message, type = 'info', onClose }: ToastProps) {
           icon: <Info className="h-5 w-5 text-blue-500" />,
           bg: 'bg-blue-50',
           border: 'border-blue-200',
-          text: 'text-blue-800'
+          text: 'text-blue-800',
         };
     }
   };
-  
+
   const styles = getToastStyles();
-  
+
   return (
-    <div 
+    <div
       className={cn(
         'flex items-center p-3 rounded-lg shadow-md min-w-[300px] max-w-md',
         'animate-slide-up border',
@@ -56,13 +56,9 @@ export function Toast({ message, type = 'info', onClose }: ToastProps) {
         styles.border
       )}
     >
-      <div className="mr-3 flex-shrink-0">
-        {styles.icon}
-      </div>
-      <div className={cn('flex-grow text-sm', styles.text)}>
-        {message}
-      </div>
-      <button 
+      <div className="mr-3 flex-shrink-0">{styles.icon}</div>
+      <div className={cn('flex-grow text-sm', styles.text)}>{message}</div>
+      <button
         onClick={onClose}
         className="ml-3 flex-shrink-0 text-gray-400 hover:text-gray-600"
       >

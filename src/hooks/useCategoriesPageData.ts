@@ -14,15 +14,13 @@ export function useCategoriesPageData(
   const allCategories = useMemo(() => {
     const result = [...categories];
     const uniqueNames = new Set<string>();
-    tasks.forEach(task => {
+    tasks.forEach((task) => {
       if (task.categoryName && !task.isDeleted) {
         uniqueNames.add(task.categoryName.toLowerCase());
       }
     });
-    uniqueNames.forEach(name => {
-      const exists = result.some(cat => 
-        cat.name.toLowerCase() === name
-      );
+    uniqueNames.forEach((name) => {
+      const exists = result.some((cat) => cat.name.toLowerCase() === name);
       if (!exists) {
         result.push({
           id: `virtual-${name}`,
@@ -33,7 +31,7 @@ export function useCategoriesPageData(
           subcategories: null,
           is_default: false,
           created_at: new Date().toISOString(),
-          updated_at: null
+          updated_at: null,
         } as Category);
       }
     });
@@ -42,28 +40,38 @@ export function useCategoriesPageData(
 
   const getTasksByCategory = useCallback(
     (categoryName: string) =>
-      tasks.filter(task =>
-        task.categoryName?.toLowerCase() === categoryName.toLowerCase() &&
-        !task.isDeleted &&
-        (showCompletedTasks || task.status !== 'completed')
+      tasks.filter(
+        (task) =>
+          task.categoryName?.toLowerCase() === categoryName.toLowerCase() &&
+          !task.isDeleted &&
+          (showCompletedTasks || task.status !== 'completed')
       ),
     [tasks, showCompletedTasks]
   );
 
   const countActiveTasks = useCallback(
     (categoryName: string) =>
-      tasks.filter(task =>
-        task.categoryName?.toLowerCase() === categoryName.toLowerCase() &&
-        !task.isDeleted &&
-        task.status !== 'completed'
+      tasks.filter(
+        (task) =>
+          task.categoryName?.toLowerCase() === categoryName.toLowerCase() &&
+          !task.isDeleted &&
+          task.status !== 'completed'
       ).length,
     [tasks]
   );
 
   const filteredCategories = useMemo(
-    () => allCategories.filter(cat => showEmptyCategories || countActiveTasks(cat.name) > 0),
+    () =>
+      allCategories.filter(
+        (cat) => showEmptyCategories || countActiveTasks(cat.name) > 0
+      ),
     [allCategories, showEmptyCategories, countActiveTasks]
   );
 
-  return { allCategories, filteredCategories, getTasksByCategory, countActiveTasks };
+  return {
+    allCategories,
+    filteredCategories,
+    getTasksByCategory,
+    countActiveTasks,
+  };
 }

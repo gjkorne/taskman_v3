@@ -24,7 +24,7 @@ export const NotesViewer: React.FC<NotesViewerProps> = ({
 }) => {
   // Parse the notes string into a structured Notes object
   const notes = parseNotes(value);
-  
+
   // For empty notes, don't render anything
   if (
     (notes.format === NoteFormat.TEXT && !notes.content) ||
@@ -51,7 +51,7 @@ export const NotesViewer: React.FC<NotesViewerProps> = ({
           )}
         </div>
       )}
-      
+
       {/* Notes content */}
       {notes.format === NoteFormat.LIST ? (
         <ListViewer

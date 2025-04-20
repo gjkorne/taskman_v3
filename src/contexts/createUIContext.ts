@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useMemo, ReactNode, Dispatch, SetStateAction } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  ReactNode,
+  Dispatch,
+  SetStateAction,
+} from 'react';
 
 type Config<S, A> = {
   /** Display name for context and hooks */
@@ -6,10 +14,7 @@ type Config<S, A> = {
   /** Initial state object */
   initialState: S;
   /** Actions factory: receives state and setState, returns action handlers */
-  actions: (
-    state: S,
-    setState: Dispatch<SetStateAction<S>>
-  ) => A;
+  actions: (state: S, setState: Dispatch<SetStateAction<S>>) => A;
 };
 
 /**

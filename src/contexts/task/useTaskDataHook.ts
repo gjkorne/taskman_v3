@@ -5,7 +5,10 @@ import { TaskStatus } from '../../components/TaskForm/schema';
 import { ServiceRegistry } from '../../services/ServiceRegistry';
 import { useToast } from '../../components/Toast/ToastContext';
 import { filterTasks } from '../../lib/taskUtils';
-import { TaskFilter, defaultFilters } from '../../components/TaskList/FilterPanel';
+import {
+  TaskFilter,
+  defaultFilters,
+} from '../../components/TaskList/FilterPanel';
 import { TaskUpdateDTO } from '../../repositories/taskRepository';
 
 // Cache keys for React Query
@@ -32,7 +35,10 @@ export interface TaskDataContextType {
   fetchTasks: () => Promise<void>;
   refreshTasks: () => Promise<void>;
   syncTasks: () => Promise<void>;
-  updateTaskStatus: (taskId: string, newStatus: TaskStatusType) => Promise<void>;
+  updateTaskStatus: (
+    taskId: string,
+    newStatus: TaskStatusType
+  ) => Promise<void>;
   updateTask: (taskId: string, taskData: TaskUpdateDTO) => Promise<Task | null>;
   deleteTask: (taskId: string) => Promise<void>;
   searchQuery: string;
@@ -57,7 +63,7 @@ export default function useTaskDataHook(): TaskDataContextType {
     isError,
     error: queryError,
     refetch,
-    isRefetching: isRefreshing
+    isRefetching: isRefreshing,
   } = useQuery({
     queryKey: TASK_QUERY_KEYS.list(JSON.stringify(filters)),
     queryFn: async () => {
@@ -75,35 +81,66 @@ export default function useTaskDataHook(): TaskDataContextType {
     refetchOnReconnect: true,
   });
 
-  const error = queryError instanceof Error ? queryError.message : (queryError ? String(queryError) : null);
+  const error =
+    queryError instanceof Error
+      ? queryError.message
+      : queryError
+      ? String(queryError)
+      : null;
 
   const updateTaskStatusMutation = useMutation({
-    mutationFn: ({ taskId, newStatus }: { taskId: string; newStatus: TaskStatusType }) =>
-      taskService.updateTaskStatus(taskId, newStatus as TaskStatus),
+    mutationFn: ({
+      taskId,
+      newStatus,
+    }: {
+      taskId: string;
+      newStatus: TaskStatusType;
+    }) => taskService.updateTaskStatus(taskId, newStatus as TaskStatus),
     onSuccess: (updatedTask) => {
       if (updatedTask) {
         queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.lists() });
-        queryClient.setQueryData(TASK_QUERY_KEYS.detail(updatedTask.id), updatedTask);
+        queryClient.setQueryData(
+          TASK_QUERY_KEYS.detail(updatedTask.id),
+          updatedTask
+        );
         addToast(`Task status updated to ${updatedTask.status}`, 'success');
       }
     },
     onError: (error) => {
-      addToast(`Failed to update task status: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      addToast(
+        `Failed to update task status: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error'
+      );
     },
   });
 
   const updateTaskMutation = useMutation({
-    mutationFn: ({ taskId, taskData }: { taskId: string; taskData: TaskUpdateDTO }) =>
-      taskService.updateTask(taskId, taskData),
+    mutationFn: ({
+      taskId,
+      taskData,
+    }: {
+      taskId: string;
+      taskData: TaskUpdateDTO;
+    }) => taskService.updateTask(taskId, taskData),
     onSuccess: (updatedTask) => {
       if (updatedTask) {
         queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.lists() });
-        queryClient.setQueryData(TASK_QUERY_KEYS.detail(updatedTask.id), updatedTask);
+        queryClient.setQueryData(
+          TASK_QUERY_KEYS.detail(updatedTask.id),
+          updatedTask
+        );
         addToast('Task updated successfully', 'success');
       }
     },
     onError: (error) => {
-      addToast(`Failed to update task: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      addToast(
+        `Failed to update task: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error'
+      );
     },
   });
 
@@ -115,7 +152,12 @@ export default function useTaskDataHook(): TaskDataContextType {
       addToast('Task deleted successfully', 'success');
     },
     onError: (error) => {
-      addToast(`Failed to delete task: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      addToast(
+        `Failed to delete task: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error'
+      );
     },
   });
 
@@ -127,7 +169,12 @@ export default function useTaskDataHook(): TaskDataContextType {
       await queryClient.invalidateQueries({ queryKey: TASK_QUERY_KEYS.all });
       addToast('Tasks synchronized successfully', 'success');
     } catch (error) {
-      addToast(`Sync failed: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      addToast(
+        `Sync failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        'error'
+      );
       setHasPendingChanges(true);
     } finally {
       setIsSyncing(false);
@@ -164,52 +211,77 @@ export default function useTaskDataHook(): TaskDataContextType {
     };
   }, [taskService]);
 
-  const updateTaskStatus = useCallback(async (taskId: string, newStatus: TaskStatusType) => {
-    await updateTaskStatusMutation.mutateAsync({ taskId, newStatus });
-  }, [updateTaskStatusMutation]);
+  const updateTaskStatus = useCallback(
+    async (taskId: string, newStatus: TaskStatusType) => {
+      await updateTaskStatusMutation.mutateAsync({ taskId, newStatus });
+    },
+    [updateTaskStatusMutation]
+  );
 
-  const updateTask = useCallback(async (taskId: string, taskData: TaskUpdateDTO) => {
-    return updateTaskMutation.mutateAsync({ taskId, taskData });
-  }, [updateTaskMutation]);
+  const updateTask = useCallback(
+    async (taskId: string, taskData: TaskUpdateDTO) => {
+      return updateTaskMutation.mutateAsync({ taskId, taskData });
+    },
+    [updateTaskMutation]
+  );
 
-  const deleteTask = useCallback(async (taskId: string) => {
-    await deleteTaskMutation.mutateAsync(taskId);
-  }, [deleteTaskMutation]);
+  const deleteTask = useCallback(
+    async (taskId: string) => {
+      await deleteTaskMutation.mutateAsync(taskId);
+    },
+    [deleteTaskMutation]
+  );
 
   const resetFilters = useCallback(() => {
     setFilters(defaultFilters);
   }, []);
 
-  const filteredTasks = useMemo(() =>
-    filterTasks(tasks, filters, searchQuery),
+  const filteredTasks = useMemo(
+    () => filterTasks(tasks, filters, searchQuery),
     [tasks, filters, searchQuery]
   );
 
-  const value = useMemo<TaskDataContextType>(() => ({
-    tasks,
-    filteredTasks,
-    isLoading,
-    isError,
-    error,
-    isRefreshing,
-    isSyncing,
-    hasPendingChanges,
-    fetchTasks,
-    refreshTasks,
-    syncTasks,
-    updateTaskStatus,
-    updateTask,
-    deleteTask,
-    searchQuery,
-    filters,
-    setSearchQuery,
-    setFilters,
-    resetFilters,
-  }), [
-    tasks, filteredTasks, isLoading, isError, error, isRefreshing,
-    isSyncing, hasPendingChanges, fetchTasks, refreshTasks, syncTasks,
-    updateTaskStatus, updateTask, deleteTask, searchQuery, filters
-  ]);
+  const value = useMemo<TaskDataContextType>(
+    () => ({
+      tasks,
+      filteredTasks,
+      isLoading,
+      isError,
+      error,
+      isRefreshing,
+      isSyncing,
+      hasPendingChanges,
+      fetchTasks,
+      refreshTasks,
+      syncTasks,
+      updateTaskStatus,
+      updateTask,
+      deleteTask,
+      searchQuery,
+      filters,
+      setSearchQuery,
+      setFilters,
+      resetFilters,
+    }),
+    [
+      tasks,
+      filteredTasks,
+      isLoading,
+      isError,
+      error,
+      isRefreshing,
+      isSyncing,
+      hasPendingChanges,
+      fetchTasks,
+      refreshTasks,
+      syncTasks,
+      updateTaskStatus,
+      updateTask,
+      deleteTask,
+      searchQuery,
+      filters,
+    ]
+  );
 
   return value;
 }

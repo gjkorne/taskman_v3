@@ -6,7 +6,7 @@ import { IOfflineCapableService } from './interfaces/IService';
 
 /**
  * Application initialization manager
- * 
+ *
  * Handles bootstrapping services, authentication, and
  * other initialization tasks in a centralized way
  */
@@ -25,19 +25,19 @@ export class AppInitializer {
     try {
       // Initialize error handling
       this.initializeErrorHandling();
-      
+
       // Initialize all services
       ServiceRegistry.initialize();
-      
+
       // Setup sync manager
       this.initializeSyncManager();
-      
+
       // Check authentication status
       await this.checkAuthentication();
-      
+
       // Set initialization flag
       this.isInitialized = true;
-      
+
       console.log('Application initialized successfully');
     } catch (error) {
       console.error('Failed to initialize application:', error);
@@ -63,29 +63,31 @@ export class AppInitializer {
 
     console.log('Global error handlers initialized');
   }
-  
+
   /**
    * Initialize the sync manager and register services
    */
   private static initializeSyncManager(): void {
     const syncManager = SyncManager.getInstance();
-    
+
     // Register task service if it supports offline capabilities
     const taskService = ServiceRegistry.getTaskService();
     if (this.isOfflineCapable(taskService)) {
       syncManager.registerService(taskService);
     }
-    
+
     // Start periodic background sync (every 5 minutes)
     syncManager.startPeriodicSync(5 * 60 * 1000);
-    
+
     console.log('SyncManager initialized');
   }
-  
+
   /**
    * Type guard to check if a service supports offline capabilities
    */
-  private static isOfflineCapable(service: any): service is IOfflineCapableService {
+  private static isOfflineCapable(
+    service: any
+  ): service is IOfflineCapableService {
     return (
       typeof service.hasUnsyncedChanges === 'function' &&
       typeof service.sync === 'function' &&
@@ -99,11 +101,11 @@ export class AppInitializer {
   private static async checkAuthentication(): Promise<void> {
     try {
       const { data, error } = await supabase.auth.getSession();
-      
+
       if (error) {
         throw error;
       }
-      
+
       if (data.session) {
         console.log('User authenticated:', data.session.user.id);
       } else {

@@ -10,17 +10,17 @@ export interface ProjectApiDto {
   description: string | null;
   color: string | null;
   icon: string | null;
-  
+
   // Metadata fields
   created_at: string;
   updated_at: string | null;
   created_by: string | null;
   is_deleted: boolean | null;
-  
+
   // Organization fields
   parent_id: string | null; // For hierarchical project structure
   sort_order: number | null; // For custom ordering
-  
+
   // Settings
   default_task_status: string | null;
   default_task_priority: string | null;
@@ -32,14 +32,16 @@ export interface ProjectApiDto {
  * Omits generated fields like id, created_at, etc.
  */
 export type CreateProjectApiDto = Omit<
-  ProjectApiDto, 
+  ProjectApiDto,
   'id' | 'created_at' | 'updated_at'
 >;
 
 /**
  * Update Project input DTO - represents the fields that can be updated
  */
-export type UpdateProjectApiDto = Partial<Omit<ProjectApiDto, 'id' | 'created_at' | 'created_by'>>;
+export type UpdateProjectApiDto = Partial<
+  Omit<ProjectApiDto, 'id' | 'created_at' | 'created_by'>
+>;
 
 /**
  * Simplified Project DTO for list views

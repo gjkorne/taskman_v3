@@ -36,7 +36,7 @@ export interface CategoryServiceEvents {
   'category-deleted': string;
   'categories-changed': void;
   'categories-loaded': Category[];
-  'error': ServiceError;
+  error: ServiceError;
 }
 
 /**
@@ -47,33 +47,46 @@ export interface ICategoryService extends IService<CategoryServiceEvents> {
   /**
    * Get all categories for the current user
    */
-  getCategories(): Promise<{ data: Category[] | null; error: ServiceError | null }>;
-  
+  getCategories(): Promise<{
+    data: Category[] | null;
+    error: ServiceError | null;
+  }>;
+
   /**
    * Get a specific category by ID
    */
-  getCategoryById(id: string): Promise<{ data: Category | null; error: ServiceError | null }>;
-  
+  getCategoryById(
+    id: string
+  ): Promise<{ data: Category | null; error: ServiceError | null }>;
+
   /**
    * Create a new category
    */
-  createCategory(categoryData: CategoryInput): Promise<{ data: Category | null; error: ServiceError | null }>;
-  
+  createCategory(
+    categoryData: CategoryInput
+  ): Promise<{ data: Category | null; error: ServiceError | null }>;
+
   /**
    * Update an existing category
    */
-  updateCategory(id: string, categoryData: Partial<CategoryInput>): Promise<{ data: Category | null; error: ServiceError | null }>;
-  
+  updateCategory(
+    id: string,
+    categoryData: Partial<CategoryInput>
+  ): Promise<{ data: Category | null; error: ServiceError | null }>;
+
   /**
    * Delete a category
    */
   deleteCategory(id: string): Promise<{ error: ServiceError | null }>;
-  
+
   /**
    * Get the default categories for the current user
    */
-  getDefaultCategories(): Promise<{ data: Category[] | null; error: ServiceError | null }>;
-  
+  getDefaultCategories(): Promise<{
+    data: Category[] | null;
+    error: ServiceError | null;
+  }>;
+
   /**
    * Set a category as default
    */

@@ -15,7 +15,7 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [activeSection, setActiveSection] = useState<string>('appearance');
   const [density, setDensity] = useState<DensityLevel>('NORMAL');
-  
+
   // Get stored settings on mount
   useEffect(() => {
     // Get saved density preference
@@ -24,12 +24,12 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
       setDensity(savedDensity as DensityLevel);
     }
   }, []);
-  
+
   // Check if user is admin
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user) return;
-      
+
       try {
         // Query to check if user has admin role
         const { data, error } = await supabase
@@ -37,7 +37,7 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
           .select('user_roles(name)')
           .eq('user_id', user.id)
           .single();
-        
+
         if (error) throw error;
         const isAdminUser = data?.user_roles?.name === 'admin';
         setIsAdmin(isAdminUser);
@@ -47,42 +47,49 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
         setLoading(false);
       }
     };
-    
+
     checkAdmin();
   }, [user]);
-  
+
   // Settings sections
   const sections = [
     { id: 'appearance', label: 'Appearance', icon: '🎨' },
     { id: 'categories', label: 'Categories', icon: '🏷️' },
     { id: 'data', label: 'Data Management', icon: '💾' },
-    { id: 'preferences', label: 'Preferences', icon: '⚙️' }
+    { id: 'preferences', label: 'Preferences', icon: '⚙️' },
   ];
-  
+
   if (isAdmin) {
     sections.push({ id: 'admin', label: 'Admin Settings', icon: '🔒' });
   }
-  
+
   // Save settings to localStorage with consistent prefix
   const saveSettings = (key: string, value: any) => {
     localStorage.setItem(`taskman_${key}`, value);
   };
-  
+
   // Handle UI density change
   const changeDensity = (newDensity: DensityLevel) => {
     setDensity(newDensity);
     saveSettings('ui_density', newDensity);
   };
-  
+
   // Category management section
   const CategorySection = () => {
-    const [categories, setCategories] = useState<Array<{ id: string, name: string }>>([]);
+    const [categories, setCategories] = useState<
+      Array<{ id: string; name: string }>
+    >([]);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [isSyncing, setIsSyncing] = useState(false);
-    const [editingCategory, setEditingCategory] = useState<{ id: string, name: string } | null>(null);
+    const [editingCategory, setEditingCategory] = useState<{
+      id: string;
+      name: string;
+    } | null>(null);
     const [editName, setEditName] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
-    const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+    const [categoryToDelete, setCategoryToDelete] = useState<string | null>(
+      null
+    );
 
     // Fetch categories
     useEffect(() => {
@@ -92,30 +99,30 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
             .from('categories')
             .select('id, name')
             .order('name');
-          
+
           if (error) throw error;
           setCategories(data || []);
         } catch (error) {
           console.error('Error fetching categories:', error);
         }
       };
-      
+
       fetchCategories();
     }, []);
 
     // Create a new category
     const handleCreateCategory = async () => {
       if (!newCategoryName.trim()) return;
-      
+
       try {
         const { data, error } = await supabase
           .from('categories')
           .insert({ name: newCategoryName.trim() })
           .select()
           .single();
-        
+
         if (error) throw error;
-        
+
         // Add new category to the list
         setCategories([...categories, data]);
         setNewCategoryName('');
@@ -125,7 +132,7 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
     };
 
     // Set up editing for a category
-    const startEditing = (category: { id: string, name: string }) => {
+    const startEditing = (category: { id: string; name: string }) => {
       setEditingCategory(category);
       setEditName(category.name);
     };
@@ -145,14 +152,18 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
           .from('categories')
           .update({ name: editName.trim() })
           .eq('id', editingCategory.id);
-        
+
         if (error) throw error;
-        
+
         // Update the category in the list
-        setCategories(categories.map(cat => 
-          cat.id === editingCategory.id ? { ...cat, name: editName.trim() } : cat
-        ));
-        
+        setCategories(
+          categories.map((cat) =>
+            cat.id === editingCategory.id
+              ? { ...cat, name: editName.trim() }
+              : cat
+          )
+        );
+
         // Reset editing state
         setEditingCategory(null);
         setEditName('');
@@ -170,18 +181,18 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
     // Delete a category
     const deleteCategory = async () => {
       if (!categoryToDelete) return;
-      
+
       try {
         const { error } = await supabase
           .from('categories')
           .delete()
           .eq('id', categoryToDelete);
-        
+
         if (error) throw error;
-        
+
         // Remove the category from the list
-        setCategories(categories.filter(cat => cat.id !== categoryToDelete));
-        
+        setCategories(categories.filter((cat) => cat.id !== categoryToDelete));
+
         // Reset deletion state
         setCategoryToDelete(null);
         setIsDeleting(false);
@@ -195,14 +206,14 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
       setIsSyncing(true);
       try {
         // Just a visual indication that sync is happening
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         // Refetch categories
         const { data, error } = await supabase
           .from('categories')
           .select('id, name')
           .order('name');
-        
+
         if (error) throw error;
         setCategories(data || []);
       } catch (error) {
@@ -216,7 +227,7 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold">Categories</h2>
-          <button 
+          <button
             onClick={handleSyncCategories}
             disabled={isSyncing}
             className="text-sm px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 flex items-center space-x-1"
@@ -234,7 +245,7 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
             )}
           </button>
         </div>
-        
+
         {/* Create new category */}
         <div className="p-4 border rounded-lg">
           <h3 className="font-medium mb-3">Create New Category</h3>
@@ -254,16 +265,21 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
             </button>
           </div>
         </div>
-        
+
         {/* Category list */}
         <div className="p-4 border rounded-lg">
           <h3 className="font-medium mb-3">Existing Categories</h3>
           {categories.length === 0 ? (
-            <p className="text-gray-500">No categories found. Create one above.</p>
+            <p className="text-gray-500">
+              No categories found. Create one above.
+            </p>
           ) : (
             <ul className="space-y-2 max-h-80 overflow-y-auto">
-              {categories.map(category => (
-                <li key={category.id} className="flex justify-between p-2 border-b">
+              {categories.map((category) => (
+                <li
+                  key={category.id}
+                  className="flex justify-between p-2 border-b"
+                >
                   {editingCategory?.id === category.id ? (
                     <div className="flex-1 flex items-center space-x-2">
                       <input
@@ -274,14 +290,14 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
                         autoFocus
                       />
                       <div className="flex space-x-1">
-                        <button 
+                        <button
                           onClick={saveEditedCategory}
                           className="text-green-500 hover:text-green-700 p-1"
                           title="Save"
                         >
                           ✅
                         </button>
-                        <button 
+                        <button
                           onClick={cancelEditing}
                           className="text-gray-500 hover:text-gray-700 p-1"
                           title="Cancel"
@@ -294,14 +310,14 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
                     <>
                       <span>{category.name}</span>
                       <div className="space-x-2">
-                        <button 
+                        <button
                           onClick={() => startEditing(category)}
                           className="text-gray-500 hover:text-gray-700"
                           title="Edit"
                         >
                           ✏️
                         </button>
-                        <button 
+                        <button
                           onClick={() => confirmDeleteCategory(category.id)}
                           className="text-red-500 hover:text-red-700"
                           title="Delete"
@@ -323,7 +339,8 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
             <div className="bg-white p-6 rounded-lg max-w-md w-full">
               <h3 className="text-lg font-bold mb-4">Confirm Delete</h3>
               <p className="mb-6">
-                Are you sure you want to delete this category? This action cannot be undone.
+                Are you sure you want to delete this category? This action
+                cannot be undone.
               </p>
               <div className="flex justify-end space-x-3">
                 <button
@@ -348,7 +365,7 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
       </div>
     );
   };
-  
+
   // Render content based on active section
   const renderContent = () => {
     switch (activeSection) {
@@ -356,38 +373,39 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
         return (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Appearance Settings</h2>
-            
+
             <div className="p-4 border rounded-lg">
               <h3 className="font-medium mb-3">UI Density</h3>
               <p className="text-sm text-gray-600 mb-3">
-                Change the spacing and sizing of elements throughout the application.
+                Change the spacing and sizing of elements throughout the
+                application.
               </p>
               <div className="flex flex-wrap gap-3">
-                <button 
+                <button
                   onClick={() => changeDensity('COMPACT')}
                   className={`px-4 py-2 rounded transition-colors ${
-                    density === 'COMPACT' 
-                      ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500' 
+                    density === 'COMPACT'
+                      ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500'
                       : 'bg-gray-100 hover:bg-gray-200'
                   }`}
                 >
                   Compact
                 </button>
-                <button 
+                <button
                   onClick={() => changeDensity('NORMAL')}
                   className={`px-4 py-2 rounded transition-colors ${
-                    density === 'NORMAL' 
-                      ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500' 
+                    density === 'NORMAL'
+                      ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500'
                       : 'bg-gray-100 hover:bg-gray-200'
                   }`}
                 >
                   Normal
                 </button>
-                <button 
+                <button
                   onClick={() => changeDensity('COMFORTABLE')}
                   className={`px-4 py-2 rounded transition-colors ${
-                    density === 'COMFORTABLE' 
-                      ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500' 
+                    density === 'COMFORTABLE'
+                      ? 'bg-indigo-100 text-indigo-700 ring-2 ring-indigo-500'
                       : 'bg-gray-100 hover:bg-gray-200'
                   }`}
                 >
@@ -396,60 +414,80 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
               </div>
               <div className="mt-4 p-3 bg-gray-50 rounded border">
                 <h4 className="text-sm font-medium mb-2">Preview</h4>
-                <div className={`border rounded bg-white ${
-                  density === 'COMPACT' ? 'p-1' : 
-                  density === 'NORMAL' ? 'p-3' : 'p-5'
-                }`}>
-                  <div className={`flex items-center space-x-2 ${
-                    density === 'COMPACT' ? 'text-sm' : 
-                    density === 'NORMAL' ? 'text-base' : 'text-lg'
-                  }`}>
+                <div
+                  className={`border rounded bg-white ${
+                    density === 'COMPACT'
+                      ? 'p-1'
+                      : density === 'NORMAL'
+                      ? 'p-3'
+                      : 'p-5'
+                  }`}
+                >
+                  <div
+                    className={`flex items-center space-x-2 ${
+                      density === 'COMPACT'
+                        ? 'text-sm'
+                        : density === 'NORMAL'
+                        ? 'text-base'
+                        : 'text-lg'
+                    }`}
+                  >
                     <span className="w-4 h-4 rounded-full bg-green-500"></span>
                     <span>Task Item Example</span>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             <div className="p-4 border rounded-lg">
               <h3 className="font-medium mb-3">Theme</h3>
               <div className="flex space-x-4">
-                <button className="px-4 py-2 rounded bg-indigo-100 hover:bg-indigo-200">Light</button>
-                <button className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">Dark</button>
-                <button className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">System</button>
+                <button className="px-4 py-2 rounded bg-indigo-100 hover:bg-indigo-200">
+                  Light
+                </button>
+                <button className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">
+                  Dark
+                </button>
+                <button className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">
+                  System
+                </button>
               </div>
             </div>
           </div>
         );
-        
+
       case 'categories':
         return <CategorySection />;
-        
+
       case 'data':
         return (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Data Management</h2>
             <p className="text-gray-600">Manage your data and exports</p>
-            
+
             <div className="p-4 border rounded-lg space-y-4">
               <div>
                 <h3 className="font-medium mb-2">Export Tasks</h3>
-                <button className="px-4 py-2 rounded bg-blue-100 hover:bg-blue-200">Export to CSV</button>
+                <button className="px-4 py-2 rounded bg-blue-100 hover:bg-blue-200">
+                  Export to CSV
+                </button>
               </div>
-              
+
               <div>
                 <h3 className="font-medium mb-2">Backup Settings</h3>
-                <button className="px-4 py-2 rounded bg-blue-100 hover:bg-blue-200">Backup Preferences</button>
+                <button className="px-4 py-2 rounded bg-blue-100 hover:bg-blue-200">
+                  Backup Preferences
+                </button>
               </div>
             </div>
           </div>
         );
-        
+
       case 'preferences':
         return (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">User Preferences</h2>
-            
+
             <div className="p-4 border rounded-lg space-y-4">
               <div>
                 <h3 className="font-medium mb-2">Default View</h3>
@@ -460,7 +498,7 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
                   <option>Calendar</option>
                 </select>
               </div>
-              
+
               <div>
                 <h3 className="font-medium mb-2">Notifications</h3>
                 <div className="space-y-2">
@@ -469,7 +507,11 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
                     <label htmlFor="notif-due">Due date reminders</label>
                   </div>
                   <div className="flex items-center">
-                    <input type="checkbox" id="notif-complete" className="mr-2" />
+                    <input
+                      type="checkbox"
+                      id="notif-complete"
+                      className="mr-2"
+                    />
                     <label htmlFor="notif-complete">Task completion</label>
                   </div>
                 </div>
@@ -477,36 +519,42 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
             </div>
           </div>
         );
-        
+
       case 'admin':
         return (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Admin Settings</h2>
-            <p className="text-gray-600">These settings are only available to administrators</p>
-            
+            <p className="text-gray-600">
+              These settings are only available to administrators
+            </p>
+
             <div className="p-4 border rounded-lg space-y-4">
               <div>
                 <h3 className="font-medium mb-2">User Management</h3>
-                <button className="px-4 py-2 rounded bg-indigo-100 hover:bg-indigo-200">View Users</button>
+                <button className="px-4 py-2 rounded bg-indigo-100 hover:bg-indigo-200">
+                  View Users
+                </button>
               </div>
-              
+
               <div>
                 <h3 className="font-medium mb-2">System Diagnostics</h3>
-                <button className="px-4 py-2 rounded bg-indigo-100 hover:bg-indigo-200">Run Diagnostics</button>
+                <button className="px-4 py-2 rounded bg-indigo-100 hover:bg-indigo-200">
+                  Run Diagnostics
+                </button>
               </div>
             </div>
           </div>
         );
-        
+
       default:
         return <div>Select a section to view settings</div>;
     }
   };
-  
+
   return (
     <div className="container mx-auto px-4 py-6">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Settings</h1>
-      
+
       <div className="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8">
         {/* Sidebar Navigation */}
         <div className="w-full md:w-64">
@@ -517,8 +565,8 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
                   <button
                     onClick={() => setActiveSection(section.id)}
                     className={`w-full text-left px-4 py-3 flex items-center space-x-3 ${
-                      activeSection === section.id 
-                        ? 'bg-indigo-50 text-indigo-600' 
+                      activeSection === section.id
+                        ? 'bg-indigo-50 text-indigo-600'
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -530,7 +578,7 @@ const SimpleSettingsPage: React.FC<SimpleSettingsPageProps> = () => {
             </ul>
           </div>
         </div>
-        
+
         {/* Main Content */}
         <div className="flex-1">
           <div className="bg-white rounded-lg shadow p-6">

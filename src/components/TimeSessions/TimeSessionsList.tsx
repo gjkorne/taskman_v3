@@ -23,18 +23,20 @@ export function TimeSessionsList({
   limit,
   className,
   onSessionsLoaded,
-  onSessionDeleted
+  onSessionDeleted,
 }: TimeSessionsListProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const { 
-    sessions, 
-    isLoading, 
-    error, 
-    formatSessionTime, 
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  );
+  const {
+    sessions,
+    isLoading,
+    error,
+    formatSessionTime,
     totalTime,
     deleteSession,
-    refreshSessions
+    refreshSessions,
   } = useTimeSessions(taskId);
 
   // Explicitly type the sessions to use the TimeSession type
@@ -49,9 +51,9 @@ export function TimeSessionsList({
 
   // Handle session toggle
   const toggleSession = (sessionId: string) => {
-    setExpanded(prev => ({
+    setExpanded((prev) => ({
       ...prev,
-      [sessionId]: !prev[sessionId]
+      [sessionId]: !prev[sessionId],
     }));
   };
 
@@ -67,26 +69,29 @@ export function TimeSessionsList({
   };
 
   // Handle session deletion
-  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+  const handleDeleteSession = async (
+    sessionId: string,
+    e: React.MouseEvent
+  ) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     console.log('Delete button clicked for session:', sessionId);
-    
+
     if (window.confirm('Are you sure you want to delete this time session?')) {
       try {
         console.log('Confirming deletion for session:', sessionId);
         const success = await deleteSession(sessionId);
-        
+
         if (success) {
           console.log('Session deleted successfully');
           // Force close expanded state for deleted session
-          setExpanded(prev => {
-            const newState = {...prev};
+          setExpanded((prev) => {
+            const newState = { ...prev };
             delete newState[sessionId];
             return newState;
           });
-          
+
           // Notify parent component about deletion
           if (onSessionDeleted) {
             onSessionDeleted();
@@ -107,7 +112,7 @@ export function TimeSessionsList({
 
   if (isLoading) {
     return (
-      <div className={cn("flex justify-center py-4", className)}>
+      <div className={cn('flex justify-center py-4', className)}>
         <div className="animate-pulse flex flex-col items-center">
           <div className="h-10 w-10 bg-blue-200 rounded-full mb-2"></div>
           <div className="h-3 w-24 bg-blue-100 rounded"></div>
@@ -118,10 +123,10 @@ export function TimeSessionsList({
 
   if (error) {
     return (
-      <div className={cn("p-4", className)}>
+      <div className={cn('p-4', className)}>
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">
           <p>Error loading time sessions: {error.message}</p>
-          <button 
+          <button
             onClick={refreshSessions}
             className="mt-2 px-3 py-1 bg-red-100 hover:bg-red-200 rounded-md text-red-700 text-sm"
           >
@@ -134,8 +139,12 @@ export function TimeSessionsList({
 
   if (typedSessions.length === 0) {
     return (
-      <div className={cn("p-6 text-center text-gray-500", className)}>
-        <p>{compact ? "No time sessions found." : "No time sessions found for this period."}</p>
+      <div className={cn('p-6 text-center text-gray-500', className)}>
+        <p>
+          {compact
+            ? 'No time sessions found.'
+            : 'No time sessions found for this period.'}
+        </p>
       </div>
     );
   }
@@ -143,12 +152,12 @@ export function TimeSessionsList({
   // Compact view for embedding
   if (compact) {
     return (
-      <div className={cn("", className)}>
+      <div className={cn('', className)}>
         <ul className="divide-y">
-          {displaySessions.map(session => {
+          {displaySessions.map((session) => {
             const formattedTimes = formatSessionTime(session);
             const isExpanded = expanded[session.id];
-            
+
             return (
               <TimeSessionRow
                 key={session.id}
@@ -167,10 +176,10 @@ export function TimeSessionsList({
             {typedSessions.length - limit} more sessions not shown
           </div>
         )}
-        
+
         {/* Session details modal */}
         {selectedSessionId && (
-          <TimeSessionDetails 
+          <TimeSessionDetails
             sessionId={selectedSessionId}
             onClose={closeSessionDetails}
             onSessionUpdated={refreshSessions}
@@ -183,11 +192,11 @@ export function TimeSessionsList({
 
   // Full view for dedicated pages
   return (
-    <div className={cn("", className)}>
+    <div className={cn('', className)}>
       <div className="mb-4 flex justify-between items-center">
         <h3 className="text-lg font-medium">Time Sessions</h3>
       </div>
-      
+
       <div className="bg-white border rounded-lg overflow-hidden">
         {/* Column Headers */}
         <div className="grid grid-cols-4 gap-4 p-3 bg-gray-50 border-b text-sm font-medium text-gray-600">
@@ -196,12 +205,12 @@ export function TimeSessionsList({
           <div>Duration</div>
           <div className="text-right">Actions</div>
         </div>
-        
+
         <ul className="divide-y">
-          {displaySessions.map(session => {
+          {displaySessions.map((session) => {
             const formattedTimes = formatSessionTime(session);
             const isExpanded = expanded[session.id];
-            
+
             return (
               <TimeSessionRow
                 key={session.id}
@@ -215,10 +224,10 @@ export function TimeSessionsList({
             );
           })}
         </ul>
-        
+
         {/* Session details modal */}
         {selectedSessionId && (
-          <TimeSessionDetails 
+          <TimeSessionDetails
             sessionId={selectedSessionId}
             onClose={closeSessionDetails}
             onSessionUpdated={refreshSessions}

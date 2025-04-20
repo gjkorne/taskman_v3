@@ -7,7 +7,7 @@ interface StatusBadgeProps {
 export function StatusBadge({ status }: StatusBadgeProps) {
   // Format status for display (convert snake_case to Title Case)
   const formatStatus = (status: string) => {
-    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return status.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   // Get variant based on status
@@ -25,11 +25,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   };
 
   return (
-    <Badge
-      variant={getVariant(status) as any}
-      size="xs"
-      rounded="full"
-    >
+    <Badge variant={getVariant(status) as any} size="xs" rounded="full">
       {formatStatus(status)}
     </Badge>
   );

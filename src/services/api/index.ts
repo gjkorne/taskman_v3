@@ -13,13 +13,21 @@ export interface ITaskService {
   // Task CRUD operations
   getTasks(): Promise<{ data: Task[] | null; error: Error | null }>;
   getTaskById(id: string): Promise<{ data: Task | null; error: Error | null }>;
-  createTask(taskData: TaskFormData): Promise<{ data: Task | null; error: Error | null }>;
-  updateTask(id: string, taskData: Partial<TaskFormData>): Promise<{ data: Task | null; error: Error | null }>;
+  createTask(
+    taskData: TaskFormData
+  ): Promise<{ data: Task | null; error: Error | null }>;
+  updateTask(
+    id: string,
+    taskData: Partial<TaskFormData>
+  ): Promise<{ data: Task | null; error: Error | null }>;
   deleteTask(id: string): Promise<{ error: Error | null }>;
-  
+
   // Task status operations
-  updateTaskStatus(id: string, status: string): Promise<{ error: Error | null }>;
-  
+  updateTaskStatus(
+    id: string,
+    status: string
+  ): Promise<{ error: Error | null }>;
+
   // Batch operations
   batchDeleteTasks(ids: string[]): Promise<{ error: Error | null }>;
 }
@@ -28,7 +36,9 @@ export interface ITaskService {
 export class TaskService implements ITaskService {
   // Helper method to check if user is authenticated
   private async ensureAuthenticated(): Promise<string> {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) {
       throw new Error('You must be logged in to perform this action');
     }
@@ -45,7 +55,7 @@ export class TaskService implements ITaskService {
       category_name: taskData.category || null,
       category_id: taskData.categoryId || null,
       tags: taskData.tags || [],
-      is_deleted: taskData.isDeleted || false
+      is_deleted: taskData.isDeleted || false,
     };
 
     // Add due date if provided
@@ -76,31 +86,47 @@ export class TaskService implements ITaskService {
 
     return formattedData;
   }
-  
+
   /**
    * Normalize status string to ensure consistency
    */
   private normalizeStatus(status: string): string {
     // Detect if the input looks like a UUID (likely a taskId mistakenly passed as status)
-    if (status && status.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-      console.warn(`Status parameter appears to be a UUID: "${status}", likely a taskId was mistakenly passed as status. Defaulting to "pending"`);
+    if (
+      status &&
+      status.match(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      )
+    ) {
+      console.warn(
+        `Status parameter appears to be a UUID: "${status}", likely a taskId was mistakenly passed as status. Defaulting to "pending"`
+      );
       return 'pending';
     }
-    
+
     // Convert to lowercase and replace spaces with underscores if needed
     let normalizedStatus = status.toLowerCase().trim();
-    
+
     // Handle possible variations
-    if (normalizedStatus === 'in progress' || normalizedStatus === 'in-progress') {
+    if (
+      normalizedStatus === 'in progress' ||
+      normalizedStatus === 'in-progress'
+    ) {
       return 'paused'; // Convert old 'in_progress' to new 'paused' status
     }
-    
-    const validStatuses = ['active', 'paused', 'completed', 'archived', 'pending'];
-    
+
+    const validStatuses = [
+      'active',
+      'paused',
+      'completed',
+      'archived',
+      'pending',
+    ];
+
     if (validStatuses.includes(normalizedStatus)) {
       return normalizedStatus;
     }
-    
+
     // Default to pending if status is invalid
     console.warn(`Invalid status value: "${status}", defaulting to "pending"`);
     return 'pending';
@@ -112,16 +138,16 @@ export class TaskService implements ITaskService {
   async getTasks(): Promise<{ data: Task[] | null; error: Error | null }> {
     try {
       const userId = await this.ensureAuthenticated();
-      
+
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .eq('created_by', userId)
         .eq('is_deleted', false)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
-      
+
       return { data, error: null };
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -132,18 +158,20 @@ export class TaskService implements ITaskService {
   /**
    * Get a specific task by ID
    */
-  async getTaskById(id: string): Promise<{ data: Task | null; error: Error | null }> {
+  async getTaskById(
+    id: string
+  ): Promise<{ data: Task | null; error: Error | null }> {
     try {
       await this.ensureAuthenticated();
-      
+
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .eq('id', id)
         .single();
-      
+
       if (error) throw error;
-      
+
       return { data, error: null };
     } catch (error) {
       console.error('Error fetching task:', error);
@@ -154,21 +182,23 @@ export class TaskService implements ITaskService {
   /**
    * Create a new task
    */
-  async createTask(taskData: TaskFormData): Promise<{ data: Task | null; error: Error | null }> {
+  async createTask(
+    taskData: TaskFormData
+  ): Promise<{ data: Task | null; error: Error | null }> {
     try {
       const userId = await this.ensureAuthenticated();
-      
+
       const formattedData = this.formatTaskForDatabase(taskData);
       formattedData.created_by = userId;
-      
+
       const { data, error } = await supabase
         .from('tasks')
         .insert([formattedData])
         .select()
         .single();
-      
+
       if (error) throw error;
-      
+
       return { data, error: null };
     } catch (error) {
       console.error('Error creating task:', error);
@@ -179,21 +209,26 @@ export class TaskService implements ITaskService {
   /**
    * Update an existing task
    */
-  async updateTask(id: string, taskData: Partial<TaskFormData>): Promise<{ data: Task | null; error: Error | null }> {
+  async updateTask(
+    id: string,
+    taskData: Partial<TaskFormData>
+  ): Promise<{ data: Task | null; error: Error | null }> {
     try {
       await this.ensureAuthenticated();
-      
-      const formattedData = this.formatTaskForDatabase(taskData as TaskFormData);
-      
+
+      const formattedData = this.formatTaskForDatabase(
+        taskData as TaskFormData
+      );
+
       const { data, error } = await supabase
         .from('tasks')
         .update(formattedData)
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
-      
+
       return { data, error: null };
     } catch (error) {
       console.error('Error updating task:', error);
@@ -207,14 +242,14 @@ export class TaskService implements ITaskService {
   async deleteTask(id: string): Promise<{ error: Error | null }> {
     try {
       await this.ensureAuthenticated();
-      
+
       const { error } = await supabase
         .from('tasks')
         .update({ is_deleted: true })
         .eq('id', id);
-      
+
       if (error) throw error;
-      
+
       return { error: null };
     } catch (error) {
       console.error('Error deleting task:', error);
@@ -225,50 +260,65 @@ export class TaskService implements ITaskService {
   /**
    * Update a task's status in the database
    */
-  async updateTaskStatus(taskId: string, status: string): Promise<{ error: Error | null }> {
+  async updateTaskStatus(
+    taskId: string,
+    status: string
+  ): Promise<{ error: Error | null }> {
     try {
       await this.ensureAuthenticated();
-      
+
       // Parameter validation to prevent accidental swapping
       if (!taskId || typeof taskId !== 'string') {
         console.error('Invalid taskId provided to updateTaskStatus:', taskId);
         return { error: new Error('Invalid task ID provided') };
       }
-      
+
       if (!status || typeof status !== 'string') {
         console.error('Invalid status provided to updateTaskStatus:', status);
         return { error: new Error('Invalid status provided') };
       }
-      
+
       // IMPORTANT VALIDATION: Detect if parameters might be swapped
       // Check if taskId looks like a status value (e.g., 'active', 'completed')
       // and status looks like a UUID (which it shouldn't)
-      if (taskId.match(/^(active|pending|paused|completed|archived)$/i) && 
-          status.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-        console.error('CRITICAL ERROR: Parameters definitely swapped in updateTaskStatus.');
+      if (
+        taskId.match(/^(active|pending|paused|completed|archived)$/i) &&
+        status.match(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        )
+      ) {
+        console.error(
+          'CRITICAL ERROR: Parameters definitely swapped in updateTaskStatus.'
+        );
         console.error('Received: taskId=', taskId, 'status=', status);
         console.error('Swapping parameters to correct the error');
         // Swap parameters
         [taskId, status] = [status, taskId];
       }
-      
+
       // Additional validation to catch UUID in status parameter
-      if (status.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-        console.error(`Status parameter appears to be a UUID: "${status}", likely a taskId was mistakenly passed as status. Fixing to "pending"`);
+      if (
+        status.match(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+        )
+      ) {
+        console.error(
+          `Status parameter appears to be a UUID: "${status}", likely a taskId was mistakenly passed as status. Fixing to "pending"`
+        );
         status = 'pending';
       }
-      
+
       const normalizedStatus = this.normalizeStatus(status);
-      
+
       console.log(`Updating task ${taskId} status to ${normalizedStatus}`);
-      
+
       const { error } = await supabase
         .from('tasks')
         .update({ status: normalizedStatus })
         .eq('id', taskId);
-      
+
       if (error) throw error;
-      
+
       return { error: null };
     } catch (error) {
       console.error('Error updating task status:', error);
@@ -282,14 +332,14 @@ export class TaskService implements ITaskService {
   async batchDeleteTasks(ids: string[]): Promise<{ error: Error | null }> {
     try {
       await this.ensureAuthenticated();
-      
+
       const { error } = await supabase
         .from('tasks')
         .update({ is_deleted: true })
         .in('id', ids);
-      
+
       if (error) throw error;
-      
+
       return { error: null };
     } catch (error) {
       console.error('Error batch deleting tasks:', error);
@@ -307,12 +357,18 @@ export interface IAuthService {
   // Session and user management
   getSession(): Promise<{ session: Session | null; error: Error | null }>;
   getUser(): Promise<{ user: User | null; error: Error | null }>;
-  
+
   // Authentication methods
-  signIn(email: string, password: string): Promise<{ session: Session | null; error: Error | null }>;
-  signUp(email: string, password: string): Promise<{ user: User | null; error: Error | null }>;
+  signIn(
+    email: string,
+    password: string
+  ): Promise<{ session: Session | null; error: Error | null }>;
+  signUp(
+    email: string,
+    password: string
+  ): Promise<{ user: User | null; error: Error | null }>;
   signOut(): Promise<{ error: Error | null }>;
-  
+
   // Password management
   resetPassword(email: string): Promise<{ error: Error | null }>;
   updatePassword(password: string): Promise<{ error: Error | null }>;
@@ -323,12 +379,15 @@ export class AuthService implements IAuthService {
   /**
    * Get the current session
    */
-  async getSession(): Promise<{ session: Session | null; error: Error | null }> {
+  async getSession(): Promise<{
+    session: Session | null;
+    error: Error | null;
+  }> {
     try {
       const { data, error } = await supabase.auth.getSession();
-      
+
       if (error) throw error;
-      
+
       return { session: data.session, error: null };
     } catch (error) {
       console.error('Error getting session:', error);
@@ -342,9 +401,9 @@ export class AuthService implements IAuthService {
   async getUser(): Promise<{ user: User | null; error: Error | null }> {
     try {
       const { data, error } = await supabase.auth.getUser();
-      
+
       if (error) throw error;
-      
+
       return { user: data.user, error: null };
     } catch (error) {
       console.error('Error getting user:', error);
@@ -355,15 +414,18 @@ export class AuthService implements IAuthService {
   /**
    * Sign in with email and password
    */
-  async signIn(email: string, password: string): Promise<{ session: Session | null; error: Error | null }> {
+  async signIn(
+    email: string,
+    password: string
+  ): Promise<{ session: Session | null; error: Error | null }> {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
-      
+
       if (error) throw error;
-      
+
       return { session: data.session, error: null };
     } catch (error) {
       console.error('Error signing in:', error);
@@ -374,15 +436,18 @@ export class AuthService implements IAuthService {
   /**
    * Sign up with email and password
    */
-  async signUp(email: string, password: string): Promise<{ user: User | null; error: Error | null }> {
+  async signUp(
+    email: string,
+    password: string
+  ): Promise<{ user: User | null; error: Error | null }> {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
       });
-      
+
       if (error) throw error;
-      
+
       return { user: data.user, error: null };
     } catch (error) {
       console.error('Error signing up:', error);
@@ -396,9 +461,9 @@ export class AuthService implements IAuthService {
   async signOut(): Promise<{ error: Error | null }> {
     try {
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) throw error;
-      
+
       return { error: null };
     } catch (error) {
       console.error('Error signing out:', error);
@@ -412,9 +477,9 @@ export class AuthService implements IAuthService {
   async resetPassword(email: string): Promise<{ error: Error | null }> {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
-      
+
       if (error) throw error;
-      
+
       return { error: null };
     } catch (error) {
       console.error('Error resetting password:', error);
@@ -428,11 +493,11 @@ export class AuthService implements IAuthService {
   async updatePassword(password: string): Promise<{ error: Error | null }> {
     try {
       const { error } = await supabase.auth.updateUser({
-        password
+        password,
       });
-      
+
       if (error) throw error;
-      
+
       return { error: null };
     } catch (error) {
       console.error('Error updating password:', error);

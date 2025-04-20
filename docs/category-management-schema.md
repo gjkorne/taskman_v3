@@ -98,12 +98,14 @@ CREATE INDEX idx_tasks_due_date ON tasks(due_date);
 
 The key differences from the previous schema:
 
-1. **Category References by ID, Not Name**: 
+1. **Category References by ID, Not Name**:
+
    - Old approach: Tasks stored category names as strings
    - New approach: Tasks reference category IDs
    - Benefit: Renaming a category automatically updates all tasks
 
 2. **Structured User Preferences**:
+
    - Old approach: Mixed storage in localStorage and database
    - New approach: All preferences in a dedicated database table
    - Benefit: Consistent access across devices, better data integrity

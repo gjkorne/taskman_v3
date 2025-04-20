@@ -38,7 +38,7 @@ export class BrowserEventEmitter {
    */
   off(event: string, listener: (...args: any[]) => void): this {
     if (this.events[event]) {
-      this.events[event] = this.events[event].filter(l => l !== listener);
+      this.events[event] = this.events[event].filter((l) => l !== listener);
     }
     return this;
   }
@@ -63,7 +63,7 @@ export class BrowserEventEmitter {
    */
   emit(event: string, ...args: any[]): boolean {
     if (this.events[event]) {
-      this.events[event].forEach(listener => {
+      this.events[event].forEach((listener) => {
         listener(...args);
       });
       return true;

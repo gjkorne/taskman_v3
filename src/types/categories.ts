@@ -9,7 +9,7 @@ export const CATEGORIES = {
     'Learning & Schoolwork',
     'Routines',
     'Outings & Activities',
-    'Admin'
+    'Admin',
   ],
   work: [
     'Core Execution',
@@ -17,7 +17,7 @@ export const CATEGORIES = {
     'Communication & Meetings',
     'Learning & Research',
     'Maintenance/Admin',
-    'Projects & Deliverables'
+    'Projects & Deliverables',
   ],
   personal: [
     'Health & Wellness',
@@ -25,7 +25,7 @@ export const CATEGORIES = {
     'Home & Chores',
     'Finance & Admin',
     'Growth & Learning',
-    'Fun & Recreation'
+    'Fun & Recreation',
   ],
   other: [
     'Core',
@@ -33,8 +33,8 @@ export const CATEGORIES = {
     'Unsorted',
     'Overflow',
     'External Requests',
-    'Reflections & Journaling'
-  ]
+    'Reflections & Journaling',
+  ],
 } as const;
 
 /**
@@ -45,9 +45,11 @@ export type CategoryKey = keyof typeof CATEGORIES;
 /**
  * Get all available subcategories for a given category
  */
-export function getSubcategoriesForCategory(category: CategoryKey | string): string[] {
+export function getSubcategoriesForCategory(
+  category: CategoryKey | string
+): string[] {
   if (category in CATEGORIES) {
-    return [...CATEGORIES[category as CategoryKey]]; 
+    return [...CATEGORIES[category as CategoryKey]];
   }
   return [];
 }
@@ -57,29 +59,32 @@ export function getSubcategoriesForCategory(category: CategoryKey | string): str
  */
 export function getSubcategoryFromTags(tags: string[] | null): string | null {
   if (!tags || tags.length === 0) return null;
-  
-  const subcategoryTag = tags.find(tag => tag.startsWith('subcategory:'));
+
+  const subcategoryTag = tags.find((tag) => tag.startsWith('subcategory:'));
   if (subcategoryTag) {
     return subcategoryTag.replace('subcategory:', '');
   }
-  
+
   return null;
 }
 
 /**
  * Add or update subcategory in tags array
  */
-export function updateSubcategoryInTags(tags: string[] | null, subcategory: string | null): string[] {
+export function updateSubcategoryInTags(
+  tags: string[] | null,
+  subcategory: string | null
+): string[] {
   // Start with existing tags or empty array
   const newTags = [...(tags || [])];
-  
+
   // Remove any existing subcategory tags
-  const filteredTags = newTags.filter(tag => !tag.startsWith('subcategory:'));
-  
+  const filteredTags = newTags.filter((tag) => !tag.startsWith('subcategory:'));
+
   // Add new subcategory if provided
   if (subcategory) {
     filteredTags.push(`subcategory:${subcategory}`);
   }
-  
+
   return filteredTags;
 }

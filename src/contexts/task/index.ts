@@ -15,30 +15,33 @@ export interface TaskContextType {
   isRefreshing: boolean;
   isSyncing: boolean;
   hasPendingChanges: boolean;
-  
+
   // UI state
   editTaskId: string | null;
   isEditModalOpen: boolean;
   isDeleteModalOpen: boolean;
   taskToDelete: string | null;
-  
+
   // Display controls
   viewMode: 'list' | 'grid';
   setViewMode: (mode: 'list' | 'grid') => void;
-  
+
   // Data operations
   fetchTasks: () => Promise<void>;
   refreshTasks: () => Promise<void>;
   syncTasks: () => Promise<void>;
-  updateTaskStatus: (taskId: string, newStatus: TaskStatusType) => Promise<void>;
+  updateTaskStatus: (
+    taskId: string,
+    newStatus: TaskStatusType
+  ) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
-  
+
   // Modal controls
   openEditModal: (taskId: string) => void;
   closeEditModal: () => void;
   openDeleteModal: (taskId: string) => void;
   closeDeleteModal: () => void;
-  
+
   // Search and filter
   searchQuery: string;
   filters: TaskFilter;
@@ -48,25 +51,23 @@ export interface TaskContextType {
 }
 
 // Create legacy context for backward compatibility
-export const TaskContext = createContext<TaskContextType | undefined>(undefined);
+export const TaskContext = createContext<TaskContextType | undefined>(
+  undefined
+);
 
 // Legacy hook for backward compatibility
 export function useTaskContext(): TaskContextType {
   const context = useContext(TaskContext);
-  
+
   if (context === undefined) {
     throw new Error('useTaskContext must be used within a TaskProvider');
   }
-  
+
   return context;
 }
 
 // Named exports for the new pattern
-export { 
-  TaskProvider,
-  useTaskData,
-  useTaskUI
-};
+export { TaskProvider, useTaskData, useTaskUI };
 
 // Export default for easier importing
 export default TaskProvider;

@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react';
 import { userPreferencesService } from '../services/userPreferencesService';
 
 // Define the shape of our settings
@@ -51,14 +58,18 @@ interface SettingsContextType {
 }
 
 // Create the context
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
+const SettingsContext = createContext<SettingsContextType | undefined>(
+  undefined
+);
 
 // Provider component
 interface SettingsProviderProps {
   children: ReactNode;
 }
 
-export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) => {
+export const SettingsProvider: React.FC<SettingsProviderProps> = ({
+  children,
+}) => {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -69,16 +80,18 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       try {
         setIsLoading(true);
         setError(null);
-        
+
         // Get all preferences from the service
         const userPrefs = await userPreferencesService.getUserPreferences();
-        
+
         // Map from UserPreferences to our Settings type (they have the same shape)
         setSettings(userPrefs as Settings);
       } catch (error) {
         console.error('Error loading settings:', error);
-        setError(error instanceof Error ? error : new Error('Failed to load settings'));
-        
+        setError(
+          error instanceof Error ? error : new Error('Failed to load settings')
+        );
+
         // Fall back to defaults
         setSettings(defaultSettings);
       } finally {
@@ -87,14 +100,17 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     };
 
     loadSettings();
-    
+
     // Set up event listeners for preference changes from other sources
-    const unsubscribe = userPreferencesService.on('preferences-changed', (updatedPrefs) => {
-      setSettings(prevSettings => ({
-        ...prevSettings,
-        ...updatedPrefs
-      }));
-    });
+    const unsubscribe = userPreferencesService.on(
+      'preferences-changed',
+      (updatedPrefs) => {
+        setSettings((prevSettings) => ({
+          ...prevSettings,
+          ...updatedPrefs,
+        }));
+      }
+    );
 
     return () => {
       // Clean up event listener on unmount
@@ -107,9 +123,12 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     // Apply theme to document
     const applyTheme = () => {
       const html = document.documentElement;
-      
-      if (settings.theme === 'dark' || 
-         (settings.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+
+      if (
+        settings.theme === 'dark' ||
+        (settings.theme === 'system' &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches)
+      ) {
         html.classList.add('dark');
       } else {
         html.classList.remove('dark');
@@ -122,31 +141,37 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     if (settings.theme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       const handleChange = () => applyTheme();
-      
+
       mediaQuery.addEventListener('change', handleChange);
       return () => mediaQuery.removeEventListener('change', handleChange);
     }
   }, [settings.theme]);
 
   // Function to update a single setting
-  const updateSetting = async <K extends keyof Settings>(key: K, value: Settings[K]) => {
+  const updateSetting = async <K extends keyof Settings>(
+    key: K,
+    value: Settings[K]
+  ) => {
     try {
       // Update state immediately for responsive UI
-      setSettings(prevSettings => ({
+      setSettings((prevSettings) => ({
         ...prevSettings,
-        [key]: value
+        [key]: value,
       }));
-      
+
       // Save to database through service
       await userPreferencesService.setPreference(key, value);
     } catch (error) {
       console.error(`Error updating setting ${key}:`, error);
-      setError(error instanceof Error ? error : new Error(`Failed to update ${key}`));
-      
+      setError(
+        error instanceof Error ? error : new Error(`Failed to update ${key}`)
+      );
+
       // Revert to previous value in case of error
-      userPreferencesService.getUserPreferences()
-        .then(prefs => setSettings(prefs as Settings))
-        .catch(err => console.error('Error reverting settings:', err));
+      userPreferencesService
+        .getUserPreferences()
+        .then((prefs) => setSettings(prefs as Settings))
+        .catch((err) => console.error('Error reverting settings:', err));
     }
   };
 
@@ -156,10 +181,12 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       await userPreferencesService.setPreferences(settings);
     } catch (error) {
       console.error('Error saving all settings:', error);
-      setError(error instanceof Error ? error : new Error('Failed to save settings'));
+      setError(
+        error instanceof Error ? error : new Error('Failed to save settings')
+      );
     }
   };
-  
+
   // Function to reset to default settings
   const resetToDefaults = async () => {
     try {
@@ -167,7 +194,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       setSettings(defaultSettings);
     } catch (error) {
       console.error('Error resetting settings:', error);
-      setError(error instanceof Error ? error : new Error('Failed to reset settings'));
+      setError(
+        error instanceof Error ? error : new Error('Failed to reset settings')
+      );
     }
   };
 
@@ -181,26 +210,49 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     if (initialTab) setActiveSettingsTab(initialTab);
     setIsSettingsModalOpen(true);
   }, []);
-  const closeSettingsModal = useCallback(() => setIsSettingsModalOpen(false), []);
-  const setActiveTab = useCallback((tab: string) => setActiveSettingsTab(tab), []);
-  const toggleAdvancedSettings = useCallback(() => setShowAdvancedSettings(prev => !prev), []);
+  const closeSettingsModal = useCallback(
+    () => setIsSettingsModalOpen(false),
+    []
+  );
+  const setActiveTab = useCallback(
+    (tab: string) => setActiveSettingsTab(tab),
+    []
+  );
+  const toggleAdvancedSettings = useCallback(
+    () => setShowAdvancedSettings((prev) => !prev),
+    []
+  );
 
   // Memoize the context value to prevent unnecessary re-renders
-  const contextValue = React.useMemo(() => ({
-    settings,
-    updateSetting,
-    saveAllSettings,
-    isLoading,
-    error,
-    resetToDefaults,
-    isSettingsModalOpen,
-    activeSettingsTab,
-    showAdvancedSettings,
-    openSettingsModal,
-    closeSettingsModal,
-    setActiveTab,
-    toggleAdvancedSettings
-  }), [settings, isLoading, error, isSettingsModalOpen, activeSettingsTab, showAdvancedSettings, openSettingsModal, closeSettingsModal, setActiveTab, toggleAdvancedSettings]);
+  const contextValue = React.useMemo(
+    () => ({
+      settings,
+      updateSetting,
+      saveAllSettings,
+      isLoading,
+      error,
+      resetToDefaults,
+      isSettingsModalOpen,
+      activeSettingsTab,
+      showAdvancedSettings,
+      openSettingsModal,
+      closeSettingsModal,
+      setActiveTab,
+      toggleAdvancedSettings,
+    }),
+    [
+      settings,
+      isLoading,
+      error,
+      isSettingsModalOpen,
+      activeSettingsTab,
+      showAdvancedSettings,
+      openSettingsModal,
+      closeSettingsModal,
+      setActiveTab,
+      toggleAdvancedSettings,
+    ]
+  );
 
   return (
     <SettingsContext.Provider value={contextValue}>

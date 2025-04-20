@@ -10,7 +10,7 @@ export enum ErrorCategory {
   AUTHENTICATION = 'authentication',
   AUTHORIZATION = 'authorization',
   NETWORK = 'network',
-  UNKNOWN = 'unknown'
+  UNKNOWN = 'unknown',
 }
 
 // Application error structure
@@ -33,7 +33,7 @@ export const createApiError = (
   category: ErrorCategory.API,
   code,
   details,
-  originalError
+  originalError,
 });
 
 export const createValidationError = (
@@ -42,7 +42,7 @@ export const createValidationError = (
 ): AppError => ({
   message,
   category: ErrorCategory.VALIDATION,
-  details
+  details,
 });
 
 export const createAuthError = (
@@ -50,7 +50,9 @@ export const createAuthError = (
   isAuthentication: boolean = true
 ): AppError => ({
   message,
-  category: isAuthentication ? ErrorCategory.AUTHENTICATION : ErrorCategory.AUTHORIZATION
+  category: isAuthentication
+    ? ErrorCategory.AUTHENTICATION
+    : ErrorCategory.AUTHORIZATION,
 });
 
 export const createNetworkError = (
@@ -59,19 +61,17 @@ export const createNetworkError = (
 ): AppError => ({
   message,
   category: ErrorCategory.NETWORK,
-  originalError
+  originalError,
 });
 
-export const createUnknownError = (
-  error: any
-): AppError => {
+export const createUnknownError = (error: any): AppError => {
   // Extract useful information from various error types
   const message = error?.message || 'An unknown error occurred';
-  
+
   return {
     message,
     category: ErrorCategory.UNKNOWN,
-    originalError: error
+    originalError: error,
   };
 };
 
@@ -80,10 +80,13 @@ export const createUnknownError = (
  */
 export function processError(error: any): AppError {
   // Already processed
-  if (error?.category && Object.values(ErrorCategory).includes(error.category)) {
+  if (
+    error?.category &&
+    Object.values(ErrorCategory).includes(error.category)
+  ) {
     return error as AppError;
   }
-  
+
   // API error response (from Supabase or similar)
   if (error?.error_description || error?.message) {
     return createApiError(
@@ -93,12 +96,12 @@ export function processError(error: any): AppError {
       error
     );
   }
-  
+
   // Network errors
   if (error instanceof TypeError && error.message.includes('Network')) {
     return createNetworkError(error.message, error);
   }
-  
+
   // Unknown errors
   return createUnknownError(error);
 }
@@ -108,24 +111,24 @@ export function processError(error: any): AppError {
  */
 export function getUserFriendlyErrorMessage(error: any): string {
   const appError = processError(error);
-  
+
   // Category-specific messages
   switch (appError.category) {
     case ErrorCategory.AUTHENTICATION:
       return 'Authentication error. Please sign in again.';
-      
+
     case ErrorCategory.AUTHORIZATION:
-      return 'You don\'t have permission to perform this action.';
-      
+      return "You don't have permission to perform this action.";
+
     case ErrorCategory.NETWORK:
       return 'Network connection error. Please check your internet connection.';
-      
+
     case ErrorCategory.VALIDATION:
       return appError.message || 'Please check your input and try again.';
-      
+
     case ErrorCategory.API:
       return appError.message || 'Server error. Please try again later.';
-      
+
     default:
       return 'An unexpected error occurred. Please try again.';
   }
@@ -136,19 +139,18 @@ export function getUserFriendlyErrorMessage(error: any): string {
  */
 export function logError(error: any, context: string = ''): void {
   const appError = processError(error);
-  
+
   // In production, this could send to a monitoring service
-  console.error(
-    `[${context}] ${appError.category.toUpperCase()} ERROR:`, 
-    {
-      message: appError.message,
-      code: appError.code,
-      category: appError.category,
-      // Don't log full details/stack in production
-      ...(process.env.NODE_ENV !== 'production' ? { 
-        details: appError.details,
-        original: appError.originalError 
-      } : {})
-    }
-  );
+  console.error(`[${context}] ${appError.category.toUpperCase()} ERROR:`, {
+    message: appError.message,
+    code: appError.code,
+    category: appError.category,
+    // Don't log full details/stack in production
+    ...(process.env.NODE_ENV !== 'production'
+      ? {
+          details: appError.details,
+          original: appError.originalError,
+        }
+      : {}),
+  });
 }

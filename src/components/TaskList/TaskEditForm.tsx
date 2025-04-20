@@ -9,15 +9,14 @@ interface TaskEditFormProps {
   onSuccess?: () => void;
 }
 
-export function TaskEditForm({ 
-  taskId = null, 
-  onSaved, 
-  onCancel, 
-  onClose, 
+export function TaskEditForm({
+  taskId = null,
+  onSaved,
+  onCancel,
+  onClose,
   onTaskUpdated,
-  onSuccess
+  onSuccess,
 }: TaskEditFormProps) {
-  
   // Merge callbacks to ensure compatibility with different components
   const handleSuccess = () => {
     if (onTaskUpdated) onTaskUpdated();
@@ -25,12 +24,12 @@ export function TaskEditForm({
     if (onSuccess) onSuccess();
     if (onClose) onClose();
   };
-  
+
   const handleCancel = () => {
     if (onCancel) onCancel();
     else if (onClose) onClose();
   };
-  
+
   return (
     <UnifiedTaskForm
       taskId={taskId}

@@ -13,20 +13,16 @@ export function CategoriesPage() {
   const { tasks } = useTaskData();
   const transformer = useMemo(() => new TaskTransformer(), []);
   const taskModels = useMemo(
-    () => tasks.map(task => transformer.toModel(task as any)),
+    () => tasks.map((task) => transformer.toModel(task as any)),
     [tasks, transformer]
   );
   const [expandedCategories, setExpandedCategories] = useLocalStorageState<
     Record<string, boolean>
   >('expandedCategories', {});
-  const [showCompletedTasks, setShowCompletedTasks] = useLocalStorageState<boolean>(
-    'showCompletedTasks',
-    false,
-  );
-  const [showEmptyCategories, setShowEmptyCategories] = useLocalStorageState<boolean>(
-    'showEmptyCategories',
-    false,
-  );
+  const [showCompletedTasks, setShowCompletedTasks] =
+    useLocalStorageState<boolean>('showCompletedTasks', false);
+  const [showEmptyCategories, setShowEmptyCategories] =
+    useLocalStorageState<boolean>('showEmptyCategories', false);
 
   const {
     allCategories,
@@ -37,11 +33,11 @@ export function CategoriesPage() {
     categories,
     taskModels,
     showCompletedTasks,
-    showEmptyCategories,
+    showEmptyCategories
   );
 
   const toggleCategory = (id: string) =>
-    setExpandedCategories(prev => ({ ...prev, [id]: !prev[id] }));
+    setExpandedCategories((prev) => ({ ...prev, [id]: !prev[id] }));
 
   if (filteredCategories.length === 0) {
     return (
@@ -58,9 +54,9 @@ export function CategoriesPage() {
         <h1 className="text-2xl font-bold text-gray-800">Categories</h1>
         <CategoryFilterControls
           showCompleted={showCompletedTasks}
-          toggleCompleted={() => setShowCompletedTasks(prev => !prev)}
+          toggleCompleted={() => setShowCompletedTasks((prev) => !prev)}
           showEmpty={showEmptyCategories}
-          toggleEmpty={() => setShowEmptyCategories(prev => !prev)}
+          toggleEmpty={() => setShowEmptyCategories((prev) => !prev)}
         />
       </div>
       <CategoryList

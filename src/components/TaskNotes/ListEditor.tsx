@@ -4,9 +4,9 @@ import { ListItem, ListNotes, createEmptyListNotes } from '../../types/list';
 
 // Simple UUID generator function to avoid external dependency
 function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -29,7 +29,9 @@ export const ListEditor: React.FC<ListEditorProps> = ({
   className = '',
 }) => {
   // Use the provided value or create an empty list if undefined
-  const [listData, setListData] = useState<ListNotes>(value || createEmptyListNotes());
+  const [listData, setListData] = useState<ListNotes>(
+    value || createEmptyListNotes()
+  );
   const [newItemText, setNewItemText] = useState('');
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
 
@@ -41,18 +43,18 @@ export const ListEditor: React.FC<ListEditorProps> = ({
   // Add a new item to the list
   const addItem = () => {
     if (!newItemText.trim()) return;
-    
+
     const newItem: ListItem = {
       id: generateUUID(),
       text: newItemText.trim(),
       completed: false,
       order: listData.items.length,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    
+
     const updatedItems = [...listData.items, newItem];
     const updatedList = { ...listData, items: updatedItems };
-    
+
     setListData(updatedList);
     onChange(updatedList);
     setNewItemText('');
@@ -60,14 +62,14 @@ export const ListEditor: React.FC<ListEditorProps> = ({
 
   // Remove an item from the list
   const removeItem = (id: string) => {
-    const updatedItems = listData.items.filter(item => item.id !== id);
-    
+    const updatedItems = listData.items.filter((item) => item.id !== id);
+
     // Update the order of remaining items
     const reorderedItems = updatedItems.map((item, index) => ({
       ...item,
-      order: index
+      order: index,
     }));
-    
+
     const updatedList = { ...listData, items: reorderedItems };
     setListData(updatedList);
     onChange(updatedList);
@@ -75,10 +77,10 @@ export const ListEditor: React.FC<ListEditorProps> = ({
 
   // Toggle the completion status of an item
   const toggleItemCompletion = (id: string) => {
-    const updatedItems = listData.items.map(item => 
+    const updatedItems = listData.items.map((item) =>
       item.id === id ? { ...item, completed: !item.completed } : item
     );
-    
+
     const updatedList = { ...listData, items: updatedItems };
     setListData(updatedList);
     onChange(updatedList);
@@ -86,10 +88,10 @@ export const ListEditor: React.FC<ListEditorProps> = ({
 
   // Update the text of an item
   const updateItemText = (id: string, text: string) => {
-    const updatedItems = listData.items.map(item => 
+    const updatedItems = listData.items.map((item) =>
       item.id === id ? { ...item, text } : item
     );
-    
+
     const updatedList = { ...listData, items: updatedItems };
     setListData(updatedList);
     onChange(updatedList);
@@ -106,24 +108,26 @@ export const ListEditor: React.FC<ListEditorProps> = ({
   const handleDragOver = (e: React.DragEvent, id: string) => {
     e.preventDefault();
     if (draggedItem === id) return;
-    
+
     // Find the indices of the dragged item and the target item
-    const draggedIndex = listData.items.findIndex(item => item.id === draggedItem);
-    const targetIndex = listData.items.findIndex(item => item.id === id);
-    
+    const draggedIndex = listData.items.findIndex(
+      (item) => item.id === draggedItem
+    );
+    const targetIndex = listData.items.findIndex((item) => item.id === id);
+
     if (draggedIndex === -1 || targetIndex === -1) return;
-    
+
     // Reorder the items
     const items = [...listData.items];
     const [draggedItemObj] = items.splice(draggedIndex, 1);
     items.splice(targetIndex, 0, draggedItemObj);
-    
+
     // Update order numbers
     const reorderedItems = items.map((item, index) => ({
       ...item,
-      order: index
+      order: index,
     }));
-    
+
     const updatedList = { ...listData, items: reorderedItems };
     setListData(updatedList);
     // Don't call onChange here to prevent too many updates during drag
@@ -144,11 +148,13 @@ export const ListEditor: React.FC<ListEditorProps> = ({
     <div className={`list-editor ${className}`}>
       {/* List items */}
       <ul className="space-y-2 mb-4">
-        {sortedItems.map(item => (
-          <li 
+        {sortedItems.map((item) => (
+          <li
             key={item.id}
             className={`flex items-center gap-2 p-2 rounded-md border ${
-              item.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-300'
+              item.completed
+                ? 'bg-gray-50 border-gray-200'
+                : 'bg-white border-gray-300'
             } ${draggedItem === item.id ? 'opacity-50' : 'opacity-100'}`}
             draggable={!readOnly}
             onDragStart={(e) => !readOnly && handleDragStart(e, item.id)}
@@ -161,25 +167,29 @@ export const ListEditor: React.FC<ListEditorProps> = ({
                 <GripVertical size={16} />
               </span>
             )}
-            
+
             {/* Checkbox */}
             <button
               type="button"
               onClick={() => !readOnly && toggleItemCompletion(item.id)}
               className={`flex-shrink-0 w-5 h-5 rounded border ${
-                item.completed 
-                  ? 'bg-blue-500 border-blue-500 text-white' 
+                item.completed
+                  ? 'bg-blue-500 border-blue-500 text-white'
                   : 'border-gray-300 bg-white'
               } flex items-center justify-center transition-colors`}
               disabled={readOnly}
-              aria-label={item.completed ? "Mark incomplete" : "Mark complete"}
+              aria-label={item.completed ? 'Mark incomplete' : 'Mark complete'}
             >
               {item.completed && <Check size={12} />}
             </button>
-            
+
             {/* Item text */}
             {readOnly ? (
-              <span className={`flex-grow ${item.completed ? 'line-through text-gray-500' : ''}`}>
+              <span
+                className={`flex-grow ${
+                  item.completed ? 'line-through text-gray-500' : ''
+                }`}
+              >
                 {item.text}
               </span>
             ) : (
@@ -194,7 +204,7 @@ export const ListEditor: React.FC<ListEditorProps> = ({
                 disabled={readOnly}
               />
             )}
-            
+
             {/* Delete button (only shown in edit mode) */}
             {!readOnly && (
               <button
@@ -209,7 +219,7 @@ export const ListEditor: React.FC<ListEditorProps> = ({
           </li>
         ))}
       </ul>
-      
+
       {/* Add new item (only shown in edit mode) */}
       {!readOnly && (
         <div className="mt-4 flex items-center gap-2">

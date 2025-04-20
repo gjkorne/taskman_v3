@@ -13,7 +13,9 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
   const { settings } = useSettings();
   const { categories } = useCategories();
   const [taskTitle, setTaskTitle] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(settings.defaultQuickTaskCategory);
+  const [selectedCategory, setSelectedCategory] = useState(
+    settings.defaultQuickTaskCategory
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update selected category if default changes in settings
@@ -25,15 +27,15 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
     refreshTasks: async () => {
       if (onTaskCreated) onTaskCreated();
     },
-    showToasts: true
+    showToasts: true,
   });
 
   // Get the color for a category
   const getCategoryColor = (categoryName: string): string => {
     const category = categories.find(
-      cat => cat.name.toLowerCase() === categoryName.toLowerCase()
+      (cat) => cat.name.toLowerCase() === categoryName.toLowerCase()
     );
-    
+
     // Return the category color or a default color
     return category?.color || getDefaultCategoryColor(categoryName);
   };
@@ -56,23 +58,23 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!taskTitle.trim()) return;
-    
+
     try {
       setIsSubmitting(true);
-      
+
       await createTask({
         title: taskTitle.trim(),
         status: TaskStatus.PENDING,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        category: selectedCategory || undefined
+        category: selectedCategory || undefined,
       });
-      
+
       // Clear input after successful creation
       setTaskTitle('');
-      
+
       // Call the callback to refresh tasks
       if (onTaskCreated) {
         onTaskCreated();
@@ -90,19 +92,27 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
       {settings.quickTaskCategories.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3">
           <div className="w-full mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Choose category:</h3>
+            <h3 className="text-sm font-medium text-gray-600">
+              Choose category:
+            </h3>
           </div>
-          {settings.quickTaskCategories.map(category => (
-            <label 
+          {settings.quickTaskCategories.map((category) => (
+            <label
               key={category}
               className={`flex items-center px-3 py-1.5 rounded-md cursor-pointer transition-colors border ${
-                selectedCategory === category 
-                  ? 'bg-opacity-10 border-opacity-50' 
+                selectedCategory === category
+                  ? 'bg-opacity-10 border-opacity-50'
                   : 'bg-white border-gray-200 hover:bg-gray-50'
               }`}
               style={{
-                backgroundColor: selectedCategory === category ? `${getCategoryColor(category)}20` : '',
-                borderColor: selectedCategory === category ? getCategoryColor(category) : ''
+                backgroundColor:
+                  selectedCategory === category
+                    ? `${getCategoryColor(category)}20`
+                    : '',
+                borderColor:
+                  selectedCategory === category
+                    ? getCategoryColor(category)
+                    : '',
               }}
             >
               <input
@@ -113,7 +123,7 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
                 onChange={() => setSelectedCategory(category)}
                 className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
               />
-              <span 
+              <span
                 className="inline-block w-3 h-3 rounded-full mr-2"
                 style={{ backgroundColor: getCategoryColor(category) }}
               ></span>
@@ -131,7 +141,9 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
             onClick={() => {
               // This would typically open a modal or form
               // For now, we'll focus the input when clicked on mobile
-              const inputElement = document.querySelector('input[placeholder="Add a new task..."]');
+              const inputElement = document.querySelector(
+                'input[placeholder="Add a new task..."]'
+              );
               if (inputElement) {
                 (inputElement as HTMLElement).focus();
               }
@@ -142,7 +154,7 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
             <Icon name="Plus" size={24} />
           </button>
         </div>
-        
+
         {/* Desktop: Full input with background */}
         <div className="relative flex-grow hidden md:block">
           <div className="flex items-center px-4 py-3 bg-white border rounded-lg transition-all border-gray-300 hover:border-indigo-400 hover:shadow focus-within:border-indigo-500 focus-within:shadow-md">

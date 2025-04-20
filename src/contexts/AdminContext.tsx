@@ -36,7 +36,9 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<UserOption[]>([]);
-  const [impersonatedUser, setImpersonatedUser] = useState<UserOption | null>(null);
+  const [impersonatedUser, setImpersonatedUser] = useState<UserOption | null>(
+    null
+  );
 
   // Check if current user is an admin
   useEffect(() => {
@@ -59,7 +61,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           setIsAdmin(false);
         } else {
           setIsAdmin(data?.user_roles?.name === 'admin');
-          
+
           // If user is admin, fetch all users
           if (data?.user_roles?.name === 'admin') {
             fetchUsers();
@@ -90,17 +92,17 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Get all unique user IDs from assignments
-      const uniqueUserIds = [...new Set(assignments.map(a => a.user_id))];
-      
+      const uniqueUserIds = [...new Set(assignments.map((a) => a.user_id))];
+
       // Create user options with minimal info (we don't have access to emails)
-      const userOptions: UserOption[] = uniqueUserIds.map(userId => ({
+      const userOptions: UserOption[] = uniqueUserIds.map((userId) => ({
         id: userId,
         email: `User ${userId.substring(0, 8)}...`, // Create a display name from ID
         fullName: undefined,
       }));
-      
+
       // Add currently logged in user if not already in the list
-      if (user && !userOptions.some(u => u.id === user.id)) {
+      if (user && !userOptions.some((u) => u.id === user.id)) {
         userOptions.push({
           id: user.id,
           email: user.email || `User ${user.id.substring(0, 8)}...`,
@@ -113,10 +115,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
       // Store in state
       setUsers(userOptions);
-      
+
       // If an impersonated user was previously selected but isn't in the list
       // (e.g., after refresh), clear the impersonation
-      if (impersonatedUser && !userOptions.some(u => u.id === impersonatedUser.id)) {
+      if (
+        impersonatedUser &&
+        !userOptions.some((u) => u.id === impersonatedUser.id)
+      ) {
         setImpersonatedUser(null);
       }
     } catch (error) {
@@ -131,7 +136,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const selectedUser = users.find(u => u.id === userId);
+    const selectedUser = users.find((u) => u.id === userId);
     if (selectedUser) {
       setImpersonatedUser(selectedUser);
       // Store in session storage to persist across page refreshes but not browser sessions
@@ -166,8 +171,6 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AdminContext.Provider value={value}>
-      {children}
-    </AdminContext.Provider>
+    <AdminContext.Provider value={value}>{children}</AdminContext.Provider>
   );
 }

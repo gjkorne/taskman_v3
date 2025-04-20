@@ -8,7 +8,7 @@ export enum SyncStatus {
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   FAILED = 'failed',
-  PARTIALLY_COMPLETED = 'partially_completed'
+  PARTIALLY_COMPLETED = 'partially_completed',
 }
 
 /**
@@ -22,8 +22,13 @@ export interface SyncServiceEvents {
   'sync-entity-completed': { entityType: string; entityId: string };
   'sync-entity-failed': { entityType: string; entityId: string; error: Error };
   'sync-status-changed': SyncStatus;
-  'conflict-detected': { entityType: string; entityId: string; localData: any; remoteData: any };
-  'error': Error;
+  'conflict-detected': {
+    entityType: string;
+    entityId: string;
+    localData: any;
+    remoteData: any;
+  };
+  error: Error;
 }
 
 /**
@@ -72,43 +77,50 @@ export interface ISyncService extends IService<SyncServiceEvents> {
    * Get the current sync status
    */
   getStatus(): SyncStatus;
-  
+
   /**
    * Check if there are any entities waiting to be synced
    */
   hasPendingChanges(): Promise<boolean>;
-  
+
   /**
    * Get the number of entities waiting to be synced
    */
   getPendingChangesCount(): Promise<number>;
-  
+
   /**
    * Synchronize all pending changes with remote storage
    * @param options Sync operation options
    */
   sync(options?: SyncOptions): Promise<SyncResult>;
-  
+
   /**
-   * Synchronize a specific entity type 
+   * Synchronize a specific entity type
    * @param entityType Type of entity to sync (e.g., 'tasks', 'categories')
    * @param options Sync operation options
    */
-  syncEntityType(entityType: string, options?: SyncOptions): Promise<SyncResult>;
-  
+  syncEntityType(
+    entityType: string,
+    options?: SyncOptions
+  ): Promise<SyncResult>;
+
   /**
    * Synchronize a specific entity
    * @param entityType Type of entity to sync
    * @param entityId ID of the entity to sync
    * @param options Sync operation options
    */
-  syncEntity(entityType: string, entityId: string, options?: SyncOptions): Promise<SyncResult>;
-  
+  syncEntity(
+    entityType: string,
+    entityId: string,
+    options?: SyncOptions
+  ): Promise<SyncResult>;
+
   /**
    * Get all unresolved sync conflicts
    */
   getConflicts(): Promise<SyncConflict<any>[]>;
-  
+
   /**
    * Resolve a sync conflict
    * @param conflict The conflict to resolve
@@ -116,11 +128,11 @@ export interface ISyncService extends IService<SyncServiceEvents> {
    * @param customMergeData Optional custom data for manual merge
    */
   resolveConflict<T>(
-    conflict: SyncConflict<T>, 
+    conflict: SyncConflict<T>,
     strategy: 'local' | 'remote' | 'merge' | 'manual',
     customMergeData?: Partial<T>
   ): Promise<void>;
-  
+
   /**
    * Clear all sync history and reset sync status
    */

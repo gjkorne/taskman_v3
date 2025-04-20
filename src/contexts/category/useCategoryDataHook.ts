@@ -62,12 +62,27 @@ export default function useCategoryDataHook() {
   });
 
   const isLoading = categoriesLoading || defaultsLoading || authLoading;
-  const error = categoriesError instanceof Error
-    ? categoriesError.message
-    : (defaultsError instanceof Error ? defaultsError.message : null);
+  const error =
+    categoriesError instanceof Error
+      ? categoriesError.message
+      : defaultsError instanceof Error
+      ? defaultsError.message
+      : null;
 
   const createCategoryMutation = useMutation({
-    mutationFn: async ({ name, subcategories, color, icon, isDefault }: { name: string; subcategories?: string[]; color?: string; icon?: string; isDefault?: boolean }) => {
+    mutationFn: async ({
+      name,
+      subcategories,
+      color,
+      icon,
+      isDefault,
+    }: {
+      name: string;
+      subcategories?: string[];
+      color?: string;
+      icon?: string;
+      isDefault?: boolean;
+    }) => {
       if (!user) throw new Error('You must be logged in to create categories');
       const { data, error } = await categoryService.createCategory({
         name,
@@ -81,19 +96,38 @@ export default function useCategoryDataHook() {
     },
     onSuccess: (newCategory) => {
       queryClient.invalidateQueries({ queryKey: CATEGORY_QUERY_KEYS.lists() });
-      if (newCategory?.is_default) queryClient.invalidateQueries({ queryKey: CATEGORY_QUERY_KEYS.defaults() });
-      queryClient.setQueryData(CATEGORY_QUERY_KEYS.detail(newCategory?.id as string), newCategory);
+      if (newCategory?.is_default)
+        queryClient.invalidateQueries({
+          queryKey: CATEGORY_QUERY_KEYS.defaults(),
+        });
+      queryClient.setQueryData(
+        CATEGORY_QUERY_KEYS.detail(newCategory?.id as string),
+        newCategory
+      );
       addToast(`Category ${newCategory?.name} created successfully`, 'success');
     },
     onError: (error) => {
-      const msg = error instanceof Error ? error.message : 'Failed to create category';
+      const msg =
+        error instanceof Error ? error.message : 'Failed to create category';
       if (isDevelopment) console.error('Error creating category:', error);
       if (!msg.includes('must be logged in')) addToast(msg, 'error');
     },
   });
 
   const updateCategoryMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { name?: string; subcategories?: string[]; color?: string; icon?: string; isDefault?: boolean } }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: {
+        name?: string;
+        subcategories?: string[];
+        color?: string;
+        icon?: string;
+        isDefault?: boolean;
+      };
+    }) => {
       if (!user) throw new Error('You must be logged in to update categories');
       const serverData = {
         name: data.name,
@@ -102,19 +136,27 @@ export default function useCategoryDataHook() {
         icon: data.icon,
         is_default: data.isDefault,
       };
-      const { data: updatedCategory, error } = await categoryService.updateCategory(id, serverData);
+      const { data: updatedCategory, error } =
+        await categoryService.updateCategory(id, serverData);
       if (error) throw error;
       return updatedCategory;
     },
     onSuccess: (updatedCategory) => {
       if (!updatedCategory) return;
       queryClient.invalidateQueries({ queryKey: CATEGORY_QUERY_KEYS.lists() });
-      if (updatedCategory?.is_default) queryClient.invalidateQueries({ queryKey: CATEGORY_QUERY_KEYS.defaults() });
-      queryClient.setQueryData(CATEGORY_QUERY_KEYS.detail(updatedCategory.id), updatedCategory);
+      if (updatedCategory?.is_default)
+        queryClient.invalidateQueries({
+          queryKey: CATEGORY_QUERY_KEYS.defaults(),
+        });
+      queryClient.setQueryData(
+        CATEGORY_QUERY_KEYS.detail(updatedCategory.id),
+        updatedCategory
+      );
       addToast('Category updated successfully', 'success');
     },
     onError: (error) => {
-      const msg = error instanceof Error ? error.message : 'Failed to update category';
+      const msg =
+        error instanceof Error ? error.message : 'Failed to update category';
       if (isDevelopment) console.error('Error updating category:', error);
       addToast(msg, 'error');
     },
@@ -124,37 +166,60 @@ export default function useCategoryDataHook() {
     mutationFn: async (id: string) => categoryService.deleteCategory(id),
     onSuccess: (result, id) => {
       if (result) {
-        queryClient.invalidateQueries({ queryKey: CATEGORY_QUERY_KEYS.lists() });
+        queryClient.invalidateQueries({
+          queryKey: CATEGORY_QUERY_KEYS.lists(),
+        });
         queryClient.removeQueries({ queryKey: CATEGORY_QUERY_KEYS.detail(id) });
         addToast('Category deleted successfully', 'success');
       }
     },
     onError: (error) => {
-      const msg = error instanceof Error ? error.message : 'Failed to delete category';
+      const msg =
+        error instanceof Error ? error.message : 'Failed to delete category';
       if (isDevelopment) console.error('Error deleting category:', error);
       addToast(msg, 'error');
     },
   });
 
-  const setDefaultCategory = useCallback(async (id: string) => {
-    try {
-      const success = await categoryService.setDefaultCategory(id);
-      if (success) {
-        queryClient.invalidateQueries({ queryKey: CATEGORY_QUERY_KEYS.lists() });
-        queryClient.invalidateQueries({ queryKey: CATEGORY_QUERY_KEYS.defaults() });
-        addToast('Default category set', 'success');
+  const setDefaultCategory = useCallback(
+    async (id: string) => {
+      try {
+        const success = await categoryService.setDefaultCategory(id);
+        if (success) {
+          queryClient.invalidateQueries({
+            queryKey: CATEGORY_QUERY_KEYS.lists(),
+          });
+          queryClient.invalidateQueries({
+            queryKey: CATEGORY_QUERY_KEYS.defaults(),
+          });
+          addToast('Default category set', 'success');
+        }
+        return success;
+      } catch (error) {
+        const msg =
+          error instanceof Error
+            ? error.message
+            : 'Failed to set default category';
+        addToast(msg, 'error');
+        return false;
       }
-      return success;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Failed to set default category';
-      addToast(msg, 'error');
-      return false;
-    }
-  }, [queryClient, addToast]);
+    },
+    [queryClient, addToast]
+  );
 
-  const getCategoryById = useCallback((id: string) => categories.find(cat => cat.id === id), [categories]);
-  const getSubcategoriesForCategory = useCallback((categoryId: string) => categories.find(c => c.id === categoryId)?.subcategories || [], [categories]);
-  const refreshCategories = useCallback(async () => refetchCategories(), [refetchCategories]);
+  const getCategoryById = useCallback(
+    (id: string) => categories.find((cat) => cat.id === id),
+    [categories]
+  );
+  const getSubcategoriesForCategory = useCallback(
+    (categoryId: string) =>
+      categories.find((c) => c.id === categoryId)?.subcategories || [],
+    [categories]
+  );
+  const refreshCategories = useCallback(
+    async () => refetchCategories(),
+    [refetchCategories]
+  );
   const getBuiltInCategories = useCallback(() => CATEGORIES, []);
 
   return {

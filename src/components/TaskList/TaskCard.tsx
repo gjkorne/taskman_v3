@@ -3,12 +3,16 @@ import { format } from 'date-fns';
 import { MoreVertical, Clock, Star } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { TaskActions } from './TaskActions';
-import { 
-  getTaskCategory, 
-  getTaskCategoryInfo, 
-  getCategoryColorStyle 
+import {
+  getTaskCategory,
+  getTaskCategoryInfo,
+  getCategoryColorStyle,
 } from '../../lib/categoryUtils';
-import { getPriorityBorderColor, getDueDateStyling, formatEstimatedTime } from '../../lib/taskUtils';
+import {
+  getPriorityBorderColor,
+  getDueDateStyling,
+  formatEstimatedTime,
+} from '../../lib/taskUtils';
 import { Task, TaskStatus, TaskStatusType } from '../../types/task';
 import { TimerControls } from '../Timer/TimerControls';
 import { useTimer } from '../../contexts/TimerCompat';
@@ -25,7 +29,13 @@ interface TaskCardProps {
   onTimerStateChange?: () => void;
 }
 
-export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: TaskCardProps) {
+export function TaskCard({
+  task,
+  index,
+  onEdit,
+  onDelete,
+  onTimerStateChange,
+}: TaskCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { categories } = useCategories();
   const { timerState, stopTimer } = useTimer();
@@ -38,31 +48,43 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
     onError: (error) => {
       console.error('Task action failed:', error);
       // Could display an error toast here
-    }
+    },
   });
-  
+
   // Get category information from the task
   const categoryName = getTaskCategory(task);
   const { id: categoryId } = getTaskCategoryInfo(task, categories);
-  
+
   // Get the color for the ellipsis menu based on category
   const getCategoryColor = () => {
-    const categoryStyle = getCategoryColorStyle(categoryName, categoryId, categories);
+    const categoryStyle = getCategoryColorStyle(
+      categoryName,
+      categoryId,
+      categories
+    );
     return categoryStyle.text;
   };
 
   // Handle status change with proper type conversion
-  const handleStatusChange = async (taskId: string, newStatus: TaskStatusType) => {
+  const handleStatusChange = async (
+    taskId: string,
+    newStatus: TaskStatusType
+  ) => {
     // Validate parameters received
-    if (!taskId || typeof taskId !== 'string' || 
-        !taskId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+    if (
+      !taskId ||
+      typeof taskId !== 'string' ||
+      !taskId.match(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      )
+    ) {
       console.error('TaskCard: Invalid task ID format received:', taskId);
       return;
     }
-    
+
     // Convert TaskStatusType (string literal) to TaskStatus (enum)
     let statusEnum: TaskStatus;
-    switch(newStatus) {
+    switch (newStatus) {
       case 'active':
         statusEnum = TaskStatus.ACTIVE;
         break;
@@ -76,7 +98,7 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
         statusEnum = TaskStatus.COMPLETED;
         if (timerState.taskId === taskId && timerState.status !== 'idle') {
           await stopTimer(TaskStatus.COMPLETED);
-          return; 
+          return;
         }
         break;
       case 'archived':
@@ -90,7 +112,7 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
         console.error('TaskCard: Invalid status value received:', newStatus);
         return;
     }
-    
+
     await updateTaskStatus(taskId, statusEnum);
     await refreshTasks();
   };
@@ -109,13 +131,13 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
       setIsMenuOpen(false);
     }
   };
-  
+
   // Handle starring/unstarring tasks
   const handleStarToggle = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent the card click event from firing
     try {
-      await updateTask(task.id, { 
-        is_starred: !(task.is_starred ?? false) 
+      await updateTask(task.id, {
+        is_starred: !(task.is_starred ?? false),
       });
       await refreshTasks();
     } catch (error) {
@@ -128,12 +150,12 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
   const dueDateStyle = task.due_date ? getDueDateStyling(task.due_date) : null;
 
   return (
-    <div 
+    <div
       className={cn(
-        "group relative flex flex-col sm:flex-row py-1 sm:py-2 px-2 sm:px-3 border-b border-gray-100 transition-colors",
-        `border-l-2 ${priorityColor}`,  // Thin priority indicator
-        index % 2 === 1 ? "bg-gray-50" : "bg-white",  // Alternating row colors
-        "hover:bg-gray-100 cursor-pointer" // Darken hover state for better contrast and add pointer cursor
+        'group relative flex flex-col sm:flex-row py-1 sm:py-2 px-2 sm:px-3 border-b border-gray-100 transition-colors',
+        `border-l-2 ${priorityColor}`, // Thin priority indicator
+        index % 2 === 1 ? 'bg-gray-50' : 'bg-white', // Alternating row colors
+        'hover:bg-gray-100 cursor-pointer' // Darken hover state for better contrast and add pointer cursor
       )}
       onClick={handleEdit} // Make the entire card clickable to edit
     >
@@ -144,7 +166,7 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
           <h3 className="font-bold text-base truncate mr-1 sm:mr-2 max-w-[70%]">
             {task.title}
           </h3>
-          
+
           {/* Category tag */}
           {categoryName && (
             <span className="px-1 py-0.5 rounded-full bg-gray-100 text-xs text-gray-700 flex-shrink-0">
@@ -152,7 +174,7 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
             </span>
           )}
         </div>
-        
+
         {/* Metadata Row */}
         <div className="flex items-center space-x-1 sm:space-x-2 text-xs text-gray-500">
           {/* Estimated time if available */}
@@ -162,33 +184,35 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
               {formatEstimatedTime(task.estimated_time)}
             </span>
           )}
-          
+
           {/* Due date if available */}
           {task.due_date && (
-            <span className={cn(
-              "px-1 py-0.5 rounded-full", 
-              dueDateStyle?.className
-            )}>
+            <span
+              className={cn(
+                'px-1 py-0.5 rounded-full',
+                dueDateStyle?.className
+              )}
+            >
               Due: {format(new Date(task.due_date), 'MM/dd')}
             </span>
           )}
         </div>
-        
+
         {/* Task notes/list if present */}
         {task.description && (
           <div className="mt-1 sm:mt-2">
-            <NotesViewer 
-              value={task.description} 
-              maxLength={100} 
+            <NotesViewer
+              value={task.description}
+              maxLength={100}
               maxListItems={3}
               className="mt-0.5 sm:mt-1"
             />
           </div>
         )}
       </div>
-      
+
       {/* Right Section: All Actions */}
-      <div 
+      <div
         className="flex items-center justify-end space-x-1 sm:space-x-2 ml-auto"
         onClick={(e) => e.stopPropagation()} // Prevent clicks on actions from opening edit form
       >
@@ -196,34 +220,39 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
         <button
           onClick={handleStarToggle}
           className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-          title={task.is_starred ? "Unstar task" : "Star task for Do Next"}
+          title={task.is_starred ? 'Unstar task' : 'Star task for Do Next'}
         >
-          <Star 
-            className={`h-4 w-4 ${task.is_starred ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}`} 
+          <Star
+            className={`h-4 w-4 ${
+              task.is_starred
+                ? 'text-yellow-500 fill-yellow-500'
+                : 'text-gray-400'
+            }`}
           />
         </button>
-        
+
         {/* Timer control */}
-        {task.status !== TaskStatus.COMPLETED && task.status !== TaskStatus.ARCHIVED && (
-          <div className="flex-shrink-0">
-            <TimerControls 
-              taskId={task.id}
-              compact={true}
-              onTimerStateChange={onTimerStateChange}
-              className="scale-90"
-            />
-          </div>
-        )}
-        
+        {task.status !== TaskStatus.COMPLETED &&
+          task.status !== TaskStatus.ARCHIVED && (
+            <div className="flex-shrink-0">
+              <TimerControls
+                taskId={task.id}
+                compact={true}
+                onTimerStateChange={onTimerStateChange}
+                className="scale-90"
+              />
+            </div>
+          )}
+
         {/* Task action buttons */}
         <div className="flex-shrink-0 scale-90">
-          <TaskActions 
-            taskId={task.id} 
-            status={task.status as TaskStatusType} 
+          <TaskActions
+            taskId={task.id}
+            status={task.status as TaskStatusType}
             updateTaskStatus={handleStatusChange}
           />
         </div>
-        
+
         {/* Menu button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -231,7 +260,7 @@ export function TaskCard({ task, index, onEdit, onDelete, onTimerStateChange }: 
         >
           <MoreVertical className={`h-4 w-4 ${getCategoryColor()}`} />
         </button>
-        
+
         {/* Menu popup */}
         {isMenuOpen && (
           <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-10 py-1">

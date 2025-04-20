@@ -18,23 +18,28 @@ export const FormSection: React.FC<FormSectionProps> = ({
   children,
   className = '',
   useGradient = true,
-  hideTitle = false
+  hideTitle = false,
 }) => {
   return (
-    <div className={cn("space-y-6 p-6 bg-gray-200 rounded-lg shadow-sm", className)}>
+    <div
+      className={cn(
+        'space-y-6 p-6 bg-gray-200 rounded-lg shadow-sm',
+        className
+      )}
+    >
       {!hideTitle && title && (
-        <h2 className={cn(
-          "text-lg font-semibold",
-          useGradient 
-            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text"
-            : "text-gray-800"
-        )}>
+        <h2
+          className={cn(
+            'text-lg font-semibold',
+            useGradient
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text'
+              : 'text-gray-800'
+          )}
+        >
           {title}
         </h2>
       )}
-      <div className="space-y-4">
-        {children}
-      </div>
+      <div className="space-y-4">{children}</div>
     </div>
   );
 };

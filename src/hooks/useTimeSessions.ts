@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { TimeSession, timeSessionsService } from '../services/api/timeSessionsService';
+import {
+  TimeSession,
+  timeSessionsService,
+} from '../services/api/timeSessionsService';
 import { formatDistanceToNow, parseISO } from 'date-fns';
-import { 
-  formatDuration, 
-  calculateTotalDuration, 
-  formatTimeForDisplay, 
+import {
+  formatDuration,
+  calculateTotalDuration,
+  formatTimeForDisplay,
   calculateActiveSessionDuration,
-  formatSecondsToTime 
+  formatSecondsToTime,
 } from '../utils/timeUtils';
 
 /**
@@ -19,28 +22,31 @@ export function useTimeSessions(taskId?: string) {
   const [error, setError] = useState<Error | null>(null);
   const [totalTime, setTotalTime] = useState('00:00:00');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+
   // 2. All useRef hooks
   const activeSessions = useRef<string[]>([]);
-  
+
   // 3. All useCallback hooks in the original order
   const calculateTotalTime = useCallback((sessions: TimeSession[]) => {
     // Calculate duration for completed sessions
-    const completedSessions = sessions.filter(session => session.end_time);
+    const completedSessions = sessions.filter((session) => session.end_time);
     let totalFromCompleted = calculateTotalDuration(completedSessions);
-    
+
     // Calculate and add duration for active sessions
-    const activeSessions = sessions.filter(session => !session.end_time);
+    const activeSessions = sessions.filter((session) => !session.end_time);
     let activeDurationSeconds = 0;
-    
-    activeSessions.forEach(session => {
+
+    activeSessions.forEach((session) => {
       if (session.start_time) {
         try {
           const start = parseISO(session.start_time);
           const now = new Date();
           // Only add if the start time is valid and in the past
           if (!isNaN(start.getTime()) && start <= now) {
-            const seconds = Math.max(0, (now.getTime() - start.getTime()) / 1000);
+            const seconds = Math.max(
+              0,
+              (now.getTime() - start.getTime()) / 1000
+            );
             activeDurationSeconds += seconds;
           }
         } catch (error) {
@@ -48,39 +54,41 @@ export function useTimeSessions(taskId?: string) {
         }
       }
     });
-    
+
     // If there are active sessions, we need to add their durations to the total
     if (activeDurationSeconds > 0) {
-      const totalSeconds = 
-        parseInt(totalFromCompleted.split(':')[0], 10) * 3600 + 
-        parseInt(totalFromCompleted.split(':')[1], 10) * 60 + 
-        parseInt(totalFromCompleted.split(':')[2], 10) + 
+      const totalSeconds =
+        parseInt(totalFromCompleted.split(':')[0], 10) * 3600 +
+        parseInt(totalFromCompleted.split(':')[1], 10) * 60 +
+        parseInt(totalFromCompleted.split(':')[2], 10) +
         activeDurationSeconds;
-      
+
       return formatSecondsToTime(totalSeconds);
     }
-    
+
     return totalFromCompleted;
   }, []);
 
   const fetchTaskSessions = useCallback(async () => {
     if (!taskId) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const data = await timeSessionsService.getSessionsByTaskId(taskId);
       setSessions(data);
       setTotalTime(calculateTotalTime(data));
-      
+
       // Reset active sessions list
       activeSessions.current = data
-        .filter(session => !session.end_time)
-        .map(session => session.id);
+        .filter((session) => !session.end_time)
+        .map((session) => session.id);
     } catch (err) {
       console.error('Error fetching task sessions:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch sessions'));
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch sessions')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -89,13 +97,15 @@ export function useTimeSessions(taskId?: string) {
   const fetchUserSessions = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const data = await timeSessionsService.getUserSessions();
       setSessions(data as TimeSession[]);
     } catch (err) {
       console.error('Error fetching user sessions:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch sessions'));
+      setError(
+        err instanceof Error ? err : new Error('Failed to fetch sessions')
+      );
     } finally {
       setIsLoading(false);
     }
@@ -121,12 +131,12 @@ export function useTimeSessions(taskId?: string) {
   useEffect(() => {
     // Only set up timer if we have active sessions
     if (activeSessions.current.length === 0) return;
-    
+
     // Update every second for active sessions
     const timer = setInterval(() => {
-      setRefreshTrigger(prev => prev + 1);
+      setRefreshTrigger((prev) => prev + 1);
     }, 1000);
-    
+
     return () => clearInterval(timer);
   }, [activeSessions.current.length]);
 
@@ -140,35 +150,39 @@ export function useTimeSessions(taskId?: string) {
   const formatSessionTime = (session: TimeSession) => {
     const start = parseISO(session.start_time);
     const formattedStart = formatTimeForDisplay(session.start_time);
-    
+
     // If it's an active session (no end time)
     if (!session.end_time) {
       // Store active session ID for periodic refreshing
       if (!activeSessions.current.includes(session.id)) {
         activeSessions.current.push(session.id);
       }
-      
+
       const activeDuration = calculateActiveSessionDuration(session.start_time);
-      
+
       return {
         start: formattedStart,
         end: 'In progress',
         duration: activeDuration,
-        relative: formatDistanceToNow(start, { addSuffix: true })
+        relative: formatDistanceToNow(start, { addSuffix: true }),
       };
     }
-    
+
     const formattedEnd = formatTimeForDisplay(session.end_time);
-    
+
     // Use the improved formatDuration that can fallback to calculating based on timestamps
     // This handles cases where the database duration is missing or incorrect
-    const displayDuration = formatDuration(session.duration, session.start_time, session.end_time);
-    
+    const displayDuration = formatDuration(
+      session.duration,
+      session.start_time,
+      session.end_time
+    );
+
     return {
       start: formattedStart,
       end: formattedEnd,
       duration: displayDuration,
-      relative: formatDistanceToNow(start, { addSuffix: true })
+      relative: formatDistanceToNow(start, { addSuffix: true }),
     };
   };
 
@@ -181,28 +195,32 @@ export function useTimeSessions(taskId?: string) {
 
     try {
       console.log('Attempting to delete session:', sessionId);
-      
+
       // First, perform the soft-delete operation
       const success = await timeSessionsService.deleteSession(sessionId);
-      
+
       if (success) {
         console.log('Session successfully soft-deleted');
-        
+
         // Now update UI by filtering out the soft-deleted session
-        setSessions(prevSessions => prevSessions.filter(s => s.id !== sessionId));
-        
+        setSessions((prevSessions) =>
+          prevSessions.filter((s) => s.id !== sessionId)
+        );
+
         // Remove from active sessions if present
         if (activeSessions.current.includes(sessionId)) {
-          activeSessions.current = activeSessions.current.filter(id => id !== sessionId);
+          activeSessions.current = activeSessions.current.filter(
+            (id) => id !== sessionId
+          );
         }
-        
+
         // Recalculate total time without the deleted session
-        const updatedSessions = sessions.filter(s => s.id !== sessionId);
+        const updatedSessions = sessions.filter((s) => s.id !== sessionId);
         setTotalTime(calculateTotalTime(updatedSessions));
-        
+
         // No need to fetch again since we've updated the UI state correctly
         console.log('UI updated to reflect deleted session');
-        
+
         return true;
       } else {
         console.error('Failed to delete session');
@@ -221,6 +239,6 @@ export function useTimeSessions(taskId?: string) {
     formatSessionTime,
     totalTime,
     deleteSession,
-    refreshSessions
+    refreshSessions,
   };
 }

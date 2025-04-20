@@ -9,22 +9,22 @@ export interface ProjectModel {
   description: string | null;
   color: string | null;
   icon: string | null;
-  
+
   // Metadata fields (with proper date objects)
   createdAt: Date;
   updatedAt: Date | null;
   createdBy: string | null;
   isDeleted: boolean;
-  
+
   // Organization fields
   parentId: string | null; // For hierarchical project structure
   sortOrder: number | null; // For custom ordering
-  
+
   // Settings
   defaultTaskStatus: string | null;
   defaultTaskPriority: string | null;
   settings: Record<string, any> | null; // Typed settings object
-  
+
   // Offline sync properties
   pendingSync?: boolean;
   lastUpdated?: Date | null;

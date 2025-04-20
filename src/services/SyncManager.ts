@@ -4,7 +4,7 @@ import { AppError, ErrorHandler, ErrorType } from '../utils/errorHandling';
 
 /**
  * SyncManager coordinates synchronization between offline-capable services
- * 
+ *
  * This provides centralized control over synchronization strategies:
  * - Auto-sync when coming back online
  * - Periodic background sync
@@ -18,15 +18,17 @@ export class SyncManager {
   private syncInterval: number | null = null;
   private backgroundSyncEnabled: boolean = true;
   private networkStatusService = ServiceRegistry.getNetworkStatusService();
-  
+
   /**
    * Private constructor to prevent direct instantiation
    */
   private constructor() {
     // Register for network status changes
-    this.networkStatusService.onConnectivityChange(this.handleConnectivityChange);
+    this.networkStatusService.onConnectivityChange(
+      this.handleConnectivityChange
+    );
   }
-  
+
   /**
    * Get the singleton instance
    */
@@ -36,7 +38,7 @@ export class SyncManager {
     }
     return SyncManager.instance;
   }
-  
+
   /**
    * Register a service for synchronization
    */
@@ -46,20 +48,20 @@ export class SyncManager {
       console.log(`Service registered for synchronization`);
     }
   }
-  
+
   /**
    * Enable or disable background synchronization
    */
   public setBackgroundSyncEnabled(enabled: boolean): void {
     this.backgroundSyncEnabled = enabled;
-    
+
     if (enabled) {
       this.startPeriodicSync();
     } else {
       this.stopPeriodicSync();
     }
   }
-  
+
   /**
    * Start periodic background sync
    */
@@ -67,19 +69,18 @@ export class SyncManager {
     if (this.syncInterval) {
       this.stopPeriodicSync();
     }
-    
+
     this.syncInterval = window.setInterval(() => {
       if (this.networkStatusService.isOnline() && this.backgroundSyncEnabled) {
-        this.syncAll(true)
-          .catch(error => {
-            console.error('Background sync failed:', error);
-          });
+        this.syncAll(true).catch((error) => {
+          console.error('Background sync failed:', error);
+        });
       }
     }, intervalMs);
-    
+
     console.log(`Periodic sync started with interval: ${intervalMs}ms`);
   }
-  
+
   /**
    * Stop periodic background sync
    */
@@ -90,7 +91,7 @@ export class SyncManager {
       console.log('Periodic sync stopped');
     }
   }
-  
+
   /**
    * Manually trigger synchronization of all services
    */
@@ -99,37 +100,39 @@ export class SyncManager {
       console.log('Sync already in progress, skipping');
       return;
     }
-    
+
     if (!this.networkStatusService.isOnline()) {
       const error = new AppError(
         ErrorType.NETWORK,
         'Cannot sync while offline',
         {
           originalError: null,
-          code: 'OFFLINE'
+          code: 'OFFLINE',
         }
       );
-      
+
       if (!isBackgroundSync) {
         ErrorHandler.handleError(error);
       }
-      
+
       throw error;
     }
-    
+
     this.isSyncing = true;
-    
+
     try {
       // Check if there are any services with unsynced changes
       const servicesWithChanges = await this.getServicesWithUnsyncedChanges();
-      
+
       if (servicesWithChanges.length === 0) {
         console.log('No unsynced changes found, nothing to synchronize');
         return;
       }
-      
-      console.log(`Starting sync for ${servicesWithChanges.length} services with unsynced changes`);
-      
+
+      console.log(
+        `Starting sync for ${servicesWithChanges.length} services with unsynced changes`
+      );
+
       // Synchronize each service
       const syncPromises = servicesWithChanges.map(async (service) => {
         try {
@@ -139,26 +142,26 @@ export class SyncManager {
           return { success: false, service, error };
         }
       });
-      
+
       const results = await Promise.all(syncPromises);
-      
+
       // Check for errors
-      const failures = results.filter(result => !result.success);
-      
+      const failures = results.filter((result) => !result.success);
+
       if (failures.length > 0) {
         console.error(`Sync completed with ${failures.length} failures`);
-        
+
         // Only throw an error for manual syncs, not background syncs
         if (!isBackgroundSync) {
           const error = new AppError(
             ErrorType.DATA_SYNC,
             `Failed to sync ${failures.length} services`,
             {
-              originalError: failures.map(f => f.error),
-              code: 'SYNC_PARTIAL_FAILURE'
+              originalError: failures.map((f) => f.error),
+              code: 'SYNC_PARTIAL_FAILURE',
             }
           );
-          
+
           ErrorHandler.handleError(error);
           throw error;
         }
@@ -169,20 +172,24 @@ export class SyncManager {
       this.isSyncing = false;
     }
   }
-  
+
   /**
    * Handle connectivity changes
    */
-  private handleConnectivityChange = async (isOnline: boolean): Promise<void> => {
+  private handleConnectivityChange = async (
+    isOnline: boolean
+  ): Promise<void> => {
     if (isOnline) {
       console.log('Connection restored, checking for unsynced changes');
-      
+
       try {
         const servicesWithChanges = await this.getServicesWithUnsyncedChanges();
-        
+
         if (servicesWithChanges.length > 0) {
-          console.log(`Found ${servicesWithChanges.length} services with unsynced changes, initiating sync`);
-          this.syncAll(true).catch(error => {
+          console.log(
+            `Found ${servicesWithChanges.length} services with unsynced changes, initiating sync`
+          );
+          this.syncAll(true).catch((error) => {
             console.error('Auto-sync failed:', error);
           });
         } else {
@@ -194,12 +201,14 @@ export class SyncManager {
     } else {
       console.log('Connection lost, sync paused');
     }
-  }
-  
+  };
+
   /**
    * Get services that have unsynced changes
    */
-  private async getServicesWithUnsyncedChanges(): Promise<IOfflineCapableService[]> {
+  private async getServicesWithUnsyncedChanges(): Promise<
+    IOfflineCapableService[]
+  > {
     const checkPromises = this.services.map(async (service) => {
       try {
         const hasChanges = await service.hasUnsyncedChanges();
@@ -209,12 +218,12 @@ export class SyncManager {
         return { service, hasChanges: false };
       }
     });
-    
+
     const results = await Promise.all(checkPromises);
-    
+
     return results
-      .filter(result => result.hasChanges)
-      .map(result => result.service);
+      .filter((result) => result.hasChanges)
+      .map((result) => result.service);
   }
 }
 

@@ -3,7 +3,7 @@ import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 // Hook for state synchronized with localStorage
 export function useLocalStorageState<T>(
   key: string,
-  defaultValue: T,
+  defaultValue: T
 ): [T, Dispatch<SetStateAction<T>>] {
   const [state, setState] = useState<T>(() => {
     try {

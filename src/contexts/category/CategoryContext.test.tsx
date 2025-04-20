@@ -7,24 +7,60 @@ import { CategoryProvider, useCategories } from './index';
 import { ReactElement } from 'react';
 
 // Mock auth and toast hooks used by CategoryDataProvider
-vi.mock('../../lib/auth', () => ({ useAuth: () => ({ user: { id: 'user1' }, loading: false }) }));
-vi.mock('../../components/Toast', () => ({ useToast: () => ({ addToast: vi.fn() }) }));
+vi.mock('../../lib/auth', () => ({
+  useAuth: () => ({ user: { id: 'user1' }, loading: false }),
+}));
+vi.mock('../../components/Toast', () => ({
+  useToast: () => ({ addToast: vi.fn() }),
+}));
 
 // Spy on categoryService methods with full Category shape
 function setupServiceSpies() {
   vi.spyOn(categoryService, 'getCategories').mockResolvedValue({
     data: [
-      { id: '1', name: 'Work', user_id: 'user1', color: null, icon: null, subcategories: [], is_default: false, created_at: '2025-04-18T00:00:00Z', updated_at: null }
-    ], error: null
+      {
+        id: '1',
+        name: 'Work',
+        user_id: 'user1',
+        color: null,
+        icon: null,
+        subcategories: [],
+        is_default: false,
+        created_at: '2025-04-18T00:00:00Z',
+        updated_at: null,
+      },
+    ],
+    error: null,
   });
   vi.spyOn(categoryService, 'getDefaultCategories').mockResolvedValue({
     data: [
-      { id: 'd1', name: 'General', user_id: 'user1', color: null, icon: null, subcategories: [], is_default: true, created_at: '2025-04-18T00:00:00Z', updated_at: null }
-    ], error: null
+      {
+        id: 'd1',
+        name: 'General',
+        user_id: 'user1',
+        color: null,
+        icon: null,
+        subcategories: [],
+        is_default: true,
+        created_at: '2025-04-18T00:00:00Z',
+        updated_at: null,
+      },
+    ],
+    error: null,
   });
   vi.spyOn(categoryService, 'createCategory').mockResolvedValue({
-    data: { id: '2', name: 'New', user_id: 'user1', color: null, icon: null, subcategories: [], is_default: false, created_at: '2025-04-18T00:00:00Z', updated_at: null },
-    error: null
+    data: {
+      id: '2',
+      name: 'New',
+      user_id: 'user1',
+      color: null,
+      icon: null,
+      subcategories: [],
+      is_default: false,
+      created_at: '2025-04-18T00:00:00Z',
+      updated_at: null,
+    },
+    error: null,
   });
 }
 
@@ -49,7 +85,7 @@ function TestComponent() {
     closeCategoryModal,
     toggleSubcategoriesVisibility,
     setViewMode,
-    createCategory
+    createCategory,
   } = useCategories();
 
   return (
@@ -63,9 +99,15 @@ function TestComponent() {
       <span data-testid="view">{viewMode}</span>
       <button data-testid="open" onClick={() => openCategoryModal('x')} />
       <button data-testid="close" onClick={() => closeCategoryModal()} />
-      <button data-testid="toggle" onClick={() => toggleSubcategoriesVisibility()} />
+      <button
+        data-testid="toggle"
+        onClick={() => toggleSubcategoriesVisibility()}
+      />
       <button data-testid="grid" onClick={() => setViewMode('grid')} />
-      <button data-testid="create" onClick={() => createCategory('New', [], undefined, undefined, false)} />
+      <button
+        data-testid="create"
+        onClick={() => createCategory('New', [], undefined, undefined, false)}
+      />
     </div>
   );
 }
@@ -83,7 +125,9 @@ describe('CategoryContext (merged data+UI)', () => {
       </CategoryProvider>
     );
     expect(screen.getByTestId('loading')).toHaveTextContent('loading');
-    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('loaded'));
+    await waitFor(() =>
+      expect(screen.getByTestId('loading')).toHaveTextContent('loaded')
+    );
     expect(screen.getByTestId('cat-count')).toHaveTextContent('1');
     expect(screen.getByTestId('def-count')).toHaveTextContent('1');
     expect(screen.getByTestId('modal')).toHaveTextContent('closed');
@@ -98,7 +142,9 @@ describe('CategoryContext (merged data+UI)', () => {
         <TestComponent />
       </CategoryProvider>
     );
-    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('loaded'));
+    await waitFor(() =>
+      expect(screen.getByTestId('loading')).toHaveTextContent('loaded')
+    );
 
     fireEvent.click(screen.getByTestId('open'));
     expect(screen.getByTestId('modal')).toHaveTextContent('open');
@@ -106,7 +152,9 @@ describe('CategoryContext (merged data+UI)', () => {
 
     fireEvent.click(screen.getByTestId('close'));
     expect(screen.getByTestId('modal')).toHaveTextContent('closed');
-    await waitFor(() => expect(screen.getByTestId('selected')).toHaveTextContent('none'));
+    await waitFor(() =>
+      expect(screen.getByTestId('selected')).toHaveTextContent('none')
+    );
 
     fireEvent.click(screen.getByTestId('toggle'));
     expect(screen.getByTestId('sub')).toHaveTextContent('hidden');
@@ -115,8 +163,14 @@ describe('CategoryContext (merged data+UI)', () => {
     expect(screen.getByTestId('view')).toHaveTextContent('grid');
 
     fireEvent.click(screen.getByTestId('create'));
-    await waitFor(() => expect(categoryService.createCategory).toHaveBeenCalledWith(
-      { name: 'New', subcategories: [], color: undefined, icon: undefined, is_default: false }
-    ));
+    await waitFor(() =>
+      expect(categoryService.createCategory).toHaveBeenCalledWith({
+        name: 'New',
+        subcategories: [],
+        color: undefined,
+        icon: undefined,
+        is_default: false,
+      })
+    );
   });
 });

@@ -25,9 +25,9 @@ export function useTaskContext() {
     filters,
     setSearchQuery,
     setFilters,
-    resetFilters
+    resetFilters,
   } = useTaskData();
-  
+
   const {
     editTaskId,
     isEditModalOpen,
@@ -38,9 +38,9 @@ export function useTaskContext() {
     closeEditModal,
     openDeleteModal,
     closeDeleteModal,
-    setViewMode
+    setViewMode,
   } = useTaskUI();
-  
+
   // Combine all the functionality to match the old context API
   return {
     // State
@@ -51,35 +51,35 @@ export function useTaskContext() {
     isRefreshing,
     isSyncing,
     hasPendingChanges,
-    
+
     // Task operations
     fetchTasks,
     refreshTasks,
     syncTasks,
     updateTaskStatus,
     deleteTask,
-    
+
     // UI state management
     editTaskId,
     isEditModalOpen,
     isDeleteModalOpen,
     taskToDelete,
     viewMode,
-    
+
     // Modal controls
     openEditModal,
     closeEditModal,
     openDeleteModal,
     closeDeleteModal,
-    
+
     // View controls
     setViewMode,
-    
+
     // Additional properties from searchQuery and filters
     searchQuery,
     filters,
     setSearchQuery,
     setFilters,
-    resetFilters
+    resetFilters,
   };
 }

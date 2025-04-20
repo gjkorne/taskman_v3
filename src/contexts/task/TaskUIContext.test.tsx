@@ -19,9 +19,13 @@ function TestComponent() {
 
   return (
     <div>
-      <span data-testid="edit-modal">{isEditModalOpen ? 'open' : 'closed'}</span>
+      <span data-testid="edit-modal">
+        {isEditModalOpen ? 'open' : 'closed'}
+      </span>
       <span data-testid="edit-id">{editTaskId ?? 'none'}</span>
-      <span data-testid="delete-modal">{isDeleteModalOpen ? 'open' : 'closed'}</span>
+      <span data-testid="delete-modal">
+        {isDeleteModalOpen ? 'open' : 'closed'}
+      </span>
       <span data-testid="delete-id">{taskToDelete ?? 'none'}</span>
       <span data-testid="view">{viewMode}</span>
       <button data-testid="open-edit" onClick={() => openEditModal('e1')} />

@@ -14,12 +14,12 @@ export interface TaskApiDto {
   estimated_time: string | null; // Database uses interval type
   actual_time: string | null; // Database uses interval type
   tags: string[] | null;
-  
+
   // Notes and checklist fields
-  notes: any | null;              // JSONB in database - stores rich text content
-  checklist_items: any[] | null;  // JSONB array - stores checklist items
+  notes: any | null; // JSONB in database - stores rich text content
+  checklist_items: any[] | null; // JSONB array - stores checklist items
   note_type: 'text' | 'checklist' | 'both' | null; // Primary display type
-  
+
   // Metadata fields
   created_at: string;
   updated_at: string | null;
@@ -27,7 +27,7 @@ export interface TaskApiDto {
   is_deleted: boolean | null;
   list_id: string | null;
   category_name: string | null;
-  
+
   // Additional fields for NLP and AI features
   nlp_tokens: any | null;
   extracted_entities: any | null;
@@ -41,14 +41,16 @@ export interface TaskApiDto {
  * Omits generated fields like id, created_at, etc.
  */
 export type CreateTaskApiDto = Omit<
-  TaskApiDto, 
+  TaskApiDto,
   'id' | 'created_at' | 'updated_at'
 >;
 
 /**
  * Update Task input DTO - represents the fields that can be updated
  */
-export type UpdateTaskApiDto = Partial<Omit<TaskApiDto, 'id' | 'created_at' | 'created_by'>>;
+export type UpdateTaskApiDto = Partial<
+  Omit<TaskApiDto, 'id' | 'created_at' | 'created_by'>
+>;
 
 /**
  * Simplified Task DTO for list views
@@ -56,5 +58,13 @@ export type UpdateTaskApiDto = Partial<Omit<TaskApiDto, 'id' | 'created_at' | 'c
  */
 export type TaskListItemApiDto = Pick<
   TaskApiDto,
-  'id' | 'title' | 'description' | 'status' | 'priority' | 'due_date' | 'estimated_time' | 'tags' | 'category_name'
+  | 'id'
+  | 'title'
+  | 'description'
+  | 'status'
+  | 'priority'
+  | 'due_date'
+  | 'estimated_time'
+  | 'tags'
+  | 'category_name'
 >;

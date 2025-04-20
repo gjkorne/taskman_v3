@@ -8,12 +8,12 @@ export type TaskListRefType = {
 
 export const TaskList = forwardRef<TaskListRefType, {}>((_, ref) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+
   // Expose refreshTaskList method via ref
   useImperativeHandle(ref, () => ({
     refreshTaskList: () => {
-      setRefreshTrigger(prev => prev + 1);
-    }
+      setRefreshTrigger((prev) => prev + 1);
+    },
   }));
 
   return (

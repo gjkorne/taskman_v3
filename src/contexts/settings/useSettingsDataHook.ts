@@ -65,20 +65,26 @@ export default function useSettingsDataHook() {
       }
     };
     loadSettings();
-    const unsubscribe = userPreferencesService.on('preferences-changed', (updatedPrefs) => {
-      setSettings(prev => ({ ...prev, ...updatedPrefs }));
-      setIsDirty(false);
-    });
+    const unsubscribe = userPreferencesService.on(
+      'preferences-changed',
+      (updatedPrefs) => {
+        setSettings((prev) => ({ ...prev, ...updatedPrefs }));
+        setIsDirty(false);
+      }
+    );
     return () => unsubscribe();
   }, []);
 
-  const updateSetting = useCallback(<K extends keyof Settings>(key: K, value: Settings[K]) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    setIsDirty(true);
-    if (settings.autoSave) {
-      userPreferencesService.setPreference(key as string, value);
-    }
-  }, [settings.autoSave]);
+  const updateSetting = useCallback(
+    <K extends keyof Settings>(key: K, value: Settings[K]) => {
+      setSettings((prev) => ({ ...prev, [key]: value }));
+      setIsDirty(true);
+      if (settings.autoSave) {
+        userPreferencesService.setPreference(key as string, value);
+      }
+    },
+    [settings.autoSave]
+  );
 
   const saveAllSettings = useCallback(async () => {
     try {

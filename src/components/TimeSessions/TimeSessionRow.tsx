@@ -2,7 +2,10 @@ import React from 'react';
 import { Trash, ChevronDown, ChevronUp, Info, Calendar } from 'lucide-react';
 import type { TimeSession } from '../../services/api/timeSessionsService';
 import { cn } from '../../lib/utils';
-import { formatDurationHumanReadable, calculateDurationBetween } from '../../utils/timeUtils';
+import {
+  formatDurationHumanReadable,
+  calculateDurationBetween,
+} from '../../utils/timeUtils';
 
 interface TimeSessionRowProps {
   session: TimeSession;
@@ -27,35 +30,38 @@ export function TimeSessionRow({
   formattedTimes,
   onToggle,
   onViewDetails,
-  onDelete
+  onDelete,
 }: TimeSessionRowProps) {
   const { start, end, duration, relative } = formattedTimes;
   const taskName = session.tasks?.title || 'Unknown Task';
   const taskCategory = session.tasks?.category_name || '';
-  
+
   // Get a more user-friendly duration format
   // For completed sessions, ensure we use a non-zero duration by checking timestamps
-  const humanReadableDuration = session.end_time 
+  const humanReadableDuration = session.end_time
     ? (() => {
         // First try to use the formatted duration from useTimeSessions hook
         const fromHook = formatDurationHumanReadable(duration);
         if (fromHook && fromHook !== '0m') return fromHook;
-        
+
         // If hook duration is 0, calculate directly from timestamps
-        const calculated = calculateDurationBetween(session.start_time, session.end_time);
+        const calculated = calculateDurationBetween(
+          session.start_time,
+          session.end_time
+        );
         return formatDurationHumanReadable(calculated);
       })()
     : 'Active';
 
   return (
-    <li 
-      key={session.id} 
+    <li
+      key={session.id}
       className={cn(
-        "transition-colors", 
-        isExpanded ? "bg-indigo-50" : "hover:bg-gray-50"
+        'transition-colors',
+        isExpanded ? 'bg-indigo-50' : 'hover:bg-gray-50'
       )}
     >
-      <div 
+      <div
         className="grid grid-cols-4 gap-4 p-4 cursor-pointer"
         onClick={() => onToggle(session.id)}
       >
@@ -76,12 +82,10 @@ export function TimeSessionRow({
             </div>
           )}
         </div>
-        
+
         {/* Task Column */}
         <div className="flex flex-col justify-center">
-          <div className="font-medium text-gray-800 truncate">
-            {taskName}
-          </div>
+          <div className="font-medium text-gray-800 truncate">{taskName}</div>
           {taskCategory && (
             <div className="text-xs mt-1">
               <span className="px-2 py-0.5 bg-gray-100 rounded-full text-gray-600">
@@ -90,7 +94,7 @@ export function TimeSessionRow({
             </div>
           )}
         </div>
-        
+
         {/* Duration Column */}
         <div className="flex items-center">
           <span className="text-lg font-medium text-indigo-600">
@@ -101,7 +105,7 @@ export function TimeSessionRow({
             )}
           </span>
         </div>
-        
+
         {/* Actions Column */}
         <div className="flex items-center justify-end space-x-3">
           <div className="flex items-center space-x-2">
@@ -132,10 +136,10 @@ export function TimeSessionRow({
           </div>
         </div>
       </div>
-      
+
       {/* Expanded Details */}
       {isExpanded && (
-        <TimeSessionExpandedDetails 
+        <TimeSessionExpandedDetails
           start={start}
           end={end}
           duration={duration}
@@ -169,7 +173,7 @@ function TimeSessionExpandedDetails({
   humanReadableDuration,
   isActive,
   sessionId,
-  onDelete
+  onDelete,
 }: TimeSessionExpandedDetailsProps) {
   return (
     <div className="px-4 pb-4 text-sm bg-indigo-50">
@@ -181,7 +185,9 @@ function TimeSessionExpandedDetails({
         <div>
           <p className="text-gray-500 mb-1">End Time:</p>
           <p className="font-medium">
-            {!isActive ? end : (
+            {!isActive ? (
+              end
+            ) : (
               <span className="text-green-600">In progress</span>
             )}
           </p>
@@ -189,17 +195,16 @@ function TimeSessionExpandedDetails({
         <div>
           <p className="text-gray-500 mb-1">Duration:</p>
           <p className="font-medium text-indigo-600">
-            {humanReadableDuration} <span className="text-gray-400 text-xs">({duration})</span>
+            {humanReadableDuration}{' '}
+            <span className="text-gray-400 text-xs">({duration})</span>
           </p>
         </div>
         <div>
           <p className="text-gray-500 mb-1">Status:</p>
-          <p className="font-medium">
-            {!isActive ? 'Completed' : 'Active'}
-          </p>
+          <p className="font-medium">{!isActive ? 'Completed' : 'Active'}</p>
         </div>
       </div>
-      
+
       {/* Add direct delete button in expanded view for improved UX */}
       <div className="mt-3 flex justify-end">
         <button

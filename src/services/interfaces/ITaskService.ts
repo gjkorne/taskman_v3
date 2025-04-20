@@ -1,5 +1,8 @@
 import { Task, TaskStatusType } from '../../types/task';
-import { TaskCreateDTO, TaskUpdateDTO } from '../../repositories/taskRepository';
+import {
+  TaskCreateDTO,
+  TaskUpdateDTO,
+} from '../../repositories/taskRepository';
 import { IOfflineCapableService } from './IService';
 import { ServiceError } from '../BaseService';
 
@@ -12,14 +15,15 @@ export interface TaskServiceEvents {
   'task-deleted': string;
   'tasks-changed': void;
   'tasks-loaded': Task[];
-  'error': ServiceError;
+  error: ServiceError;
 }
 
 /**
  * Interface for the TaskService
  * Extends IOfflineCapableService to provide offline capabilities
  */
-export interface ITaskService extends IOfflineCapableService<TaskServiceEvents> {
+export interface ITaskService
+  extends IOfflineCapableService<TaskServiceEvents> {
   /**
    * Get all tasks for the current user
    */

@@ -7,8 +7,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
 // Mock authentication and toast
-vi.mock('../../lib/auth', () => ({ useAuth: () => ({ user: { id: 'user1' }, loading: false }) }));
-vi.mock('../../components/Toast', () => ({ useToast: () => ({ addToast: vi.fn() }) }));
+vi.mock('../../lib/auth', () => ({
+  useAuth: () => ({ user: { id: 'user1' }, loading: false }),
+}));
+vi.mock('../../components/Toast', () => ({
+  useToast: () => ({ addToast: vi.fn() }),
+}));
 
 // Spy on categoryService methods
 function setupServiceSpies() {
@@ -62,21 +66,29 @@ function setupServiceSpies() {
 
 // Test component to consume the context
 function TestComponent() {
-  const { categories, defaultCategories, isLoading, createCategory } = useCategoryData();
+  const { categories, defaultCategories, isLoading, createCategory } =
+    useCategoryData();
   return (
     <div>
       <span data-testid="loading">{isLoading ? 'loading' : 'loaded'}</span>
       <ul>
-        {categories.map(cat => (
-          <li key={cat.id} data-testid={`category-${cat.id}`}>{cat.name}</li>
+        {categories.map((cat) => (
+          <li key={cat.id} data-testid={`category-${cat.id}`}>
+            {cat.name}
+          </li>
         ))}
       </ul>
       <ul>
-        {defaultCategories.map(cat => (
-          <li key={cat.id} data-testid={`default-${cat.id}`}>{cat.name}</li>
+        {defaultCategories.map((cat) => (
+          <li key={cat.id} data-testid={`default-${cat.id}`}>
+            {cat.name}
+          </li>
         ))}
       </ul>
-      <button data-testid="create" onClick={() => createCategory('New', [], undefined, undefined, false)} />
+      <button
+        data-testid="create"
+        onClick={() => createCategory('New', [], undefined, undefined, false)}
+      />
     </div>
   );
 }
@@ -102,7 +114,9 @@ describe('CategoryDataContext', () => {
       </CategoryDataProvider>
     );
     expect(screen.getByTestId('loading').textContent).toBe('loading');
-    await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('loaded'));
+    await waitFor(() =>
+      expect(screen.getByTestId('loading').textContent).toBe('loaded')
+    );
     expect(screen.getByTestId('category-1')).toHaveTextContent('Work');
     expect(screen.getByTestId('default-d1')).toHaveTextContent('General');
   });
@@ -113,10 +127,14 @@ describe('CategoryDataContext', () => {
         <TestComponent />
       </CategoryDataProvider>
     );
-    await waitFor(() => expect(screen.getByTestId('loading').textContent).toBe('loaded'));
+    await waitFor(() =>
+      expect(screen.getByTestId('loading').textContent).toBe('loaded')
+    );
     fireEvent.click(screen.getByTestId('create'));
     // Ensure createCategory service was called with correct payload
-    await waitFor(() => expect(categoryService.createCategory).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(categoryService.createCategory).toHaveBeenCalled()
+    );
     expect(categoryService.createCategory).toHaveBeenCalledWith({
       name: 'New',
       subcategories: [],

@@ -2,8 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { format, subDays, parseISO, differenceInSeconds } from 'date-fns';
 import { Calendar, Clock, Download, RefreshCw } from 'lucide-react';
 import { TimeSessionsList } from '../components/TimeSessions/TimeSessionsList';
-import { timeSessionsService, TimeSession } from '../services/api/timeSessionsService';
-import { parseDurationToSeconds, formatSecondsToTime, isSameDay, isSameWeek, isSameMonth } from '../utils/timeUtils';
+import {
+  timeSessionsService,
+  TimeSession,
+} from '../services/api/timeSessionsService';
+import {
+  parseDurationToSeconds,
+  formatSecondsToTime,
+  isSameDay,
+  isSameWeek,
+  isSameMonth,
+} from '../utils/timeUtils';
 import { createLogger } from '../utils/logging';
 import { useTimeSessionData } from '../contexts/timeSession/TimeSessionDataContext';
 
@@ -12,7 +21,7 @@ const logger = createLogger('TimeSessionsPage');
 export function TimeSessionsPage() {
   const [dateRange, setDateRange] = useState({
     startDate: subDays(new Date(), 7),
-    endDate: new Date()
+    endDate: new Date(),
   });
   const [isExporting, setIsExporting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -20,18 +29,20 @@ export function TimeSessionsPage() {
   const [timeStats, setTimeStats] = useState({
     today: '00:00:00',
     week: '00:00:00',
-    month: '00:00:00'
+    month: '00:00:00',
   });
   const [isLoading, setIsLoading] = useState(true);
   const isInitialRender = useRef(true);
   const lastLogTime = useRef(0);
 
-  const { queries: { activeSession } } = useTimeSessionData();
+  const {
+    queries: { activeSession },
+  } = useTimeSessionData();
 
   // Fetch sessions and calculate time stats
   useEffect(() => {
     fetchSessionsAndCalculateStats();
-    
+
     // Set up cleanup to avoid memory leaks
     return () => {
       isInitialRender.current = true; // Reset on unmount
@@ -46,7 +57,10 @@ export function TimeSessionsPage() {
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      const data = await timeSessionsService.getSessionsByDateRange(monthStart, now);
+      const data = await timeSessionsService.getSessionsByDateRange(
+        monthStart,
+        now
+      );
       setAllSessions(data);
 
       // Calculate time stats
@@ -71,13 +85,16 @@ export function TimeSessionsPage() {
   // Calculate time for different periods
   const calculateTimeStats = (sessions: TimeSession[]) => {
     // Only log on initial load or explicit refresh to avoid console spam
-    const shouldLog = isInitialRender.current || isRefreshing || Date.now() - lastLogTime.current > 10000;
-    
+    const shouldLog =
+      isInitialRender.current ||
+      isRefreshing ||
+      Date.now() - lastLogTime.current > 10000;
+
     if (shouldLog) {
       logger.log('Calculating time stats with', sessions.length, 'sessions');
       lastLogTime.current = Date.now();
     }
-    
+
     const now = new Date();
 
     // Calculate totals for each period
@@ -86,7 +103,7 @@ export function TimeSessionsPage() {
     let monthSeconds = 0;
 
     // Filter out sessions that have deleted tasks or no task data
-    const validSessions = sessions.filter(session => {
+    const validSessions = sessions.filter((session) => {
       // If the task is deleted or doesn't exist, skip this session
       if (!session.tasks || session.tasks.is_deleted) {
         if (shouldLog) {
@@ -98,15 +115,19 @@ export function TimeSessionsPage() {
     });
 
     if (shouldLog) {
-      logger.log('After filtering, using', validSessions.length, 'valid sessions for calculations');
+      logger.log(
+        'After filtering, using',
+        validSessions.length,
+        'valid sessions for calculations'
+      );
     }
 
-    validSessions.forEach(session => {
+    validSessions.forEach((session) => {
       const startTime = parseISO(session.start_time);
-      
+
       // Make sure we handle the duration correctly
       let durationSeconds = 0;
-      
+
       if (session.duration) {
         durationSeconds = parseDurationToSeconds(session.duration);
       } else if (session.end_time) {
@@ -114,7 +135,7 @@ export function TimeSessionsPage() {
         const endTime = parseISO(session.end_time);
         durationSeconds = differenceInSeconds(endTime, startTime);
       }
-      
+
       // Ensure we have a positive number
       durationSeconds = Math.max(0, durationSeconds);
 
@@ -138,16 +159,16 @@ export function TimeSessionsPage() {
       logger.log('Time totals calculated:', {
         today: formatSecondsToTime(todaySeconds),
         week: formatSecondsToTime(weekSeconds),
-        month: formatSecondsToTime(monthSeconds)
+        month: formatSecondsToTime(monthSeconds),
       });
     }
 
     setTimeStats({
       today: formatSecondsToTime(todaySeconds),
       week: formatSecondsToTime(weekSeconds),
-      month: formatSecondsToTime(monthSeconds)
+      month: formatSecondsToTime(monthSeconds),
     });
-    
+
     // Set initial render to false after first calculation
     isInitialRender.current = false;
   };
@@ -162,12 +183,16 @@ export function TimeSessionsPage() {
         dateRange.startDate,
         dateRange.endDate
       );
-      
+
       // If date range matches current state, use cached sessions
-      const sessionsToExport = 
-        dateRange.startDate.getTime() === new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime() && 
-        dateRange.endDate.getTime() === new Date().getTime() 
-          ? allSessions 
+      const sessionsToExport =
+        dateRange.startDate.getTime() ===
+          new Date(
+            new Date().getFullYear(),
+            new Date().getMonth(),
+            1
+          ).getTime() && dateRange.endDate.getTime() === new Date().getTime()
+          ? allSessions
           : sessions;
 
       // Format sessions for CSV
@@ -176,13 +201,21 @@ export function TimeSessionsPage() {
         'Task ID,Task Title,Start Time,End Time,Duration,Category',
         // Data rows
         ...sessionsToExport.map((session: any) => {
-          const startTime = session.start_time ? new Date(session.start_time).toISOString() : '';
-          const endTime = session.end_time ? new Date(session.end_time).toISOString() : '';
+          const startTime = session.start_time
+            ? new Date(session.start_time).toISOString()
+            : '';
+          const endTime = session.end_time
+            ? new Date(session.end_time).toISOString()
+            : '';
           const taskTitle = session.tasks?.title || 'Unknown Task';
           const category = session.tasks?.category_name || 'Uncategorized';
 
-          return `"${session.task_id}","${taskTitle}","${startTime}","${endTime}","${session.duration || ''}","${category}"`;
-        })
+          return `"${
+            session.task_id
+          }","${taskTitle}","${startTime}","${endTime}","${
+            session.duration || ''
+          }","${category}"`;
+        }),
       ].join('\n');
 
       // Create download link
@@ -191,13 +224,15 @@ export function TimeSessionsPage() {
       const link = document.createElement('a');
 
       link.setAttribute('href', url);
-      link.setAttribute('download', `time-sessions-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      link.setAttribute(
+        'download',
+        `time-sessions-${format(new Date(), 'yyyy-MM-dd')}.csv`
+      );
       link.style.visibility = 'hidden';
 
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
     } catch (error) {
       logger.error('Error exporting sessions:', error);
       alert('Failed to export sessions. Please try again.');
@@ -211,8 +246,12 @@ export function TimeSessionsPage() {
       {/* Active Session Banner */}
       {activeSession && (
         <div className="mb-4 p-3 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 rounded shadow">
-          <strong>Active Session:</strong> Task: <span className="font-semibold">{activeSession.task_id}</span>
-          {' '} | Started at: {activeSession.start_time ? format(new Date(activeSession.start_time), 'PPpp') : 'Unknown'}
+          <strong>Active Session:</strong> Task:{' '}
+          <span className="font-semibold">{activeSession.task_id}</span> |
+          Started at:{' '}
+          {activeSession.start_time
+            ? format(new Date(activeSession.start_time), 'PPpp')
+            : 'Unknown'}
         </div>
       )}
       {/* Controls Bar */}
@@ -220,30 +259,46 @@ export function TimeSessionsPage() {
         {/* Date Range */}
         <div className="flex items-center space-x-2 w-full sm:w-auto">
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
+            <Calendar
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+              size={16}
+            />
             <input
               type="date"
               value={format(dateRange.startDate, 'yyyy-MM-dd')}
-              onChange={(e) => setDateRange({...dateRange, startDate: new Date(e.target.value)})}
+              onChange={(e) =>
+                setDateRange({
+                  ...dateRange,
+                  startDate: new Date(e.target.value),
+                })
+              }
               className="pl-10 pr-3 py-2 border rounded text-sm"
             />
           </div>
           <span className="text-gray-500">to</span>
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={16} />
+            <Calendar
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+              size={16}
+            />
             <input
               type="date"
               value={format(dateRange.endDate, 'yyyy-MM-dd')}
-              onChange={(e) => setDateRange({...dateRange, endDate: new Date(e.target.value)})}
+              onChange={(e) =>
+                setDateRange({
+                  ...dateRange,
+                  endDate: new Date(e.target.value),
+                })
+              }
               className="pl-10 pr-3 py-2 border rounded text-sm"
             />
           </div>
         </div>
-        
+
         {/* Action Buttons */}
         <div className="flex space-x-2 w-full sm:w-auto justify-end">
           {/* Recalculate button - calculates time totals without a full refresh */}
-          <button 
+          <button
             onClick={() => calculateTimeStats(allSessions)}
             className="flex items-center px-4 py-2 border border-indigo-600 text-indigo-600 rounded-md hover:bg-indigo-50 transition-colors"
             title="Recalculate time totals without refreshing data"
@@ -251,19 +306,21 @@ export function TimeSessionsPage() {
             <Clock className="h-4 w-4 mr-2" />
             <span>Recalculate</span>
           </button>
-          
+
           {/* Refresh button - fetches fresh data */}
-          <button 
-            onClick={handleRefresh} 
+          <button
+            onClick={handleRefresh}
             disabled={isRefreshing}
             className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`}
+            />
             <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
-          
+
           {/* Export CSV button */}
-          <button 
+          <button
             onClick={exportSessions}
             disabled={isExporting}
             className="flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50"
@@ -310,10 +367,12 @@ export function TimeSessionsPage() {
 
       {/* Time Sessions List */}
       <div className="mt-6">
-        <TimeSessionsList 
-          className="p-4 bg-white rounded-lg shadow" 
-          onSessionsLoaded={(time) => logger.log('Sessions loaded with total time:', time)}
-          onSessionDeleted={handleRefresh} 
+        <TimeSessionsList
+          className="p-4 bg-white rounded-lg shadow"
+          onSessionsLoaded={(time) =>
+            logger.log('Sessions loaded with total time:', time)
+          }
+          onSessionDeleted={handleRefresh}
         />
       </div>
     </div>

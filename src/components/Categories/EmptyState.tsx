@@ -6,10 +6,15 @@ interface EmptyStateProps {
   onShowAll: () => void;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({ categoriesExist, onShowAll }) => (
+export const EmptyState: React.FC<EmptyStateProps> = ({
+  categoriesExist,
+  onShowAll,
+}) => (
   <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
     <div className="text-gray-500 mb-4">
-      {categoriesExist ? "No categories with active tasks found." : "No categories found."}
+      {categoriesExist
+        ? 'No categories with active tasks found.'
+        : 'No categories found.'}
     </div>
     {categoriesExist ? (
       <button

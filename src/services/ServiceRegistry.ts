@@ -8,9 +8,9 @@ import { ErrorHandler } from '../utils/errorHandling';
 
 /**
  * Service Registry - Configures and registers all application services
- * 
+ *
  * This provides a centralized place to register all services with the
- * service container, making it easier to manage dependencies and 
+ * service container, making it easier to manage dependencies and
  * enable testing with mock implementations.
  */
 export class ServiceRegistry {
@@ -35,7 +35,7 @@ export class ServiceRegistry {
   private static registerTaskService(): void {
     // Register the existing singleton instance
     serviceContainer.register<ITaskService>(
-      SERVICE_TOKENS.TASK_SERVICE, 
+      SERVICE_TOKENS.TASK_SERVICE,
       taskService
     );
   }
@@ -47,7 +47,7 @@ export class ServiceRegistry {
     // Create and register a new instance
     const networkStatusService = new NetworkStatusService();
     serviceContainer.register(
-      SERVICE_TOKENS.NETWORK_STATUS_SERVICE, 
+      SERVICE_TOKENS.NETWORK_STATUS_SERVICE,
       networkStatusService
     );
   }
@@ -58,7 +58,7 @@ export class ServiceRegistry {
   private static registerTimeSessionService(): void {
     // Register the existing time sessions service
     serviceContainer.register<ITimeSessionService>(
-      SERVICE_TOKENS.TIME_SESSION_SERVICE, 
+      SERVICE_TOKENS.TIME_SESSION_SERVICE,
       timeSessionsService as unknown as ITimeSessionService
     );
   }
@@ -74,21 +74,27 @@ export class ServiceRegistry {
    * Get the task service
    */
   static getTaskService(): ITaskService {
-    return ServiceRegistry.getService<ITaskService>(SERVICE_TOKENS.TASK_SERVICE);
+    return ServiceRegistry.getService<ITaskService>(
+      SERVICE_TOKENS.TASK_SERVICE
+    );
   }
 
   /**
    * Get the network status service
    */
   static getNetworkStatusService(): NetworkStatusService {
-    return ServiceRegistry.getService<NetworkStatusService>(SERVICE_TOKENS.NETWORK_STATUS_SERVICE);
+    return ServiceRegistry.getService<NetworkStatusService>(
+      SERVICE_TOKENS.NETWORK_STATUS_SERVICE
+    );
   }
 
   /**
    * Get the time session service
    */
   static getTimeSessionService(): ITimeSessionService {
-    return ServiceRegistry.getService<ITimeSessionService>(SERVICE_TOKENS.TIME_SESSION_SERVICE);
+    return ServiceRegistry.getService<ITimeSessionService>(
+      SERVICE_TOKENS.TIME_SESSION_SERVICE
+    );
   }
 }
 

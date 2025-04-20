@@ -10,9 +10,9 @@ export function CategoryVisibilitySettings() {
   // Toggle hiding a specific category
   const toggleCategoryVisibility = (categoryId: string) => {
     const newHiddenCategories = hiddenCategories.includes(categoryId)
-      ? hiddenCategories.filter(id => id !== categoryId)
+      ? hiddenCategories.filter((id) => id !== categoryId)
       : [...hiddenCategories, categoryId];
-    
+
     updateSetting('hiddenCategories', newHiddenCategories);
   };
 
@@ -22,14 +22,17 @@ export function CategoryVisibilitySettings() {
   };
 
   // Custom categories are those that are not default
-  const customCategories = categories.filter(category => !category.is_default);
+  const customCategories = categories.filter(
+    (category) => !category.is_default
+  );
 
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium mb-4">Category Visibility</h3>
         <p className="text-sm text-gray-600 mb-4">
-          Hide categories you don't use to keep your task interface clean and focused.
+          Hide categories you don't use to keep your task interface clean and
+          focused.
         </p>
       </div>
 
@@ -38,11 +41,13 @@ export function CategoryVisibilitySettings() {
         <div className="flex items-center justify-between">
           <div>
             <h4 className="font-medium">Default Categories</h4>
-            <p className="text-sm text-gray-500">Show or hide all default categories</p>
+            <p className="text-sm text-gray-500">
+              Show or hide all default categories
+            </p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               checked={!hideDefaultCategories}
               onChange={toggleDefaultCategoriesVisibility}
               className="sr-only peer"
@@ -58,11 +63,14 @@ export function CategoryVisibilitySettings() {
         <div className="pb-4 border-b border-gray-200">
           <h4 className="font-medium mb-2">Default Category Settings</h4>
           <ul className="space-y-2">
-            {defaultCategories.map(category => (
-              <li key={category.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+            {defaultCategories.map((category) => (
+              <li
+                key={category.id}
+                className="flex items-center justify-between p-2 bg-gray-50 rounded"
+              >
                 <div className="flex items-center">
-                  <div 
-                    className="w-3 h-3 rounded-full mr-2" 
+                  <div
+                    className="w-3 h-3 rounded-full mr-2"
                     style={{ backgroundColor: category.color || '#6B7280' }}
                   />
                   <span>{category.name}</span>
@@ -70,13 +78,21 @@ export function CategoryVisibilitySettings() {
                 <button
                   onClick={() => toggleCategoryVisibility(category.id)}
                   className={`p-1 rounded ${
-                    hiddenCategories.includes(category.id) 
-                      ? 'text-gray-500 hover:text-blue-600' 
+                    hiddenCategories.includes(category.id)
+                      ? 'text-gray-500 hover:text-blue-600'
                       : 'text-blue-600 hover:text-blue-800'
                   }`}
-                  title={hiddenCategories.includes(category.id) ? 'Show category' : 'Hide category'}
+                  title={
+                    hiddenCategories.includes(category.id)
+                      ? 'Show category'
+                      : 'Hide category'
+                  }
                 >
-                  {hiddenCategories.includes(category.id) ? <Icon name="Eye" size={18} /> : <Icon name="EyeOff" size={18} />}
+                  {hiddenCategories.includes(category.id) ? (
+                    <Icon name="Eye" size={18} />
+                  ) : (
+                    <Icon name="EyeOff" size={18} />
+                  )}
                 </button>
               </li>
             ))}
@@ -89,11 +105,14 @@ export function CategoryVisibilitySettings() {
         <div>
           <h4 className="font-medium mb-2">Custom Category Settings</h4>
           <ul className="space-y-2">
-            {customCategories.map(category => (
-              <li key={category.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+            {customCategories.map((category) => (
+              <li
+                key={category.id}
+                className="flex items-center justify-between p-2 bg-gray-50 rounded"
+              >
                 <div className="flex items-center">
-                  <div 
-                    className="w-3 h-3 rounded-full mr-2" 
+                  <div
+                    className="w-3 h-3 rounded-full mr-2"
                     style={{ backgroundColor: category.color || '#6B7280' }}
                   />
                   <span>{category.name}</span>
@@ -101,13 +120,21 @@ export function CategoryVisibilitySettings() {
                 <button
                   onClick={() => toggleCategoryVisibility(category.id)}
                   className={`p-1 rounded ${
-                    hiddenCategories.includes(category.id) 
-                      ? 'text-gray-500 hover:text-blue-600' 
+                    hiddenCategories.includes(category.id)
+                      ? 'text-gray-500 hover:text-blue-600'
                       : 'text-blue-600 hover:text-blue-800'
                   }`}
-                  title={hiddenCategories.includes(category.id) ? 'Show category' : 'Hide category'}
+                  title={
+                    hiddenCategories.includes(category.id)
+                      ? 'Show category'
+                      : 'Hide category'
+                  }
                 >
-                  {hiddenCategories.includes(category.id) ? <Icon name="Eye" size={18} /> : <Icon name="EyeOff" size={18} />}
+                  {hiddenCategories.includes(category.id) ? (
+                    <Icon name="Eye" size={18} />
+                  ) : (
+                    <Icon name="EyeOff" size={18} />
+                  )}
                 </button>
               </li>
             ))}
@@ -116,7 +143,9 @@ export function CategoryVisibilitySettings() {
       )}
 
       {categories.length === 0 && (
-        <p className="text-sm text-gray-500 italic">No categories found. Create categories to manage their visibility.</p>
+        <p className="text-sm text-gray-500 italic">
+          No categories found. Create categories to manage their visibility.
+        </p>
       )}
     </div>
   );

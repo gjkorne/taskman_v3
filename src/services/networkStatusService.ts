@@ -1,5 +1,8 @@
 import { EventEmitter } from '../utils/eventEmitter';
-import { INetworkStatusService, NetworkStatusEvents } from './interfaces/INetworkStatusService';
+import {
+  INetworkStatusService,
+  NetworkStatusEvents,
+} from './interfaces/INetworkStatusService';
 
 /**
  * Service to track and manage network connectivity status
@@ -13,7 +16,7 @@ export class NetworkStatusService implements INetworkStatusService {
   constructor() {
     // Set initial state based on navigator.onLine
     this.online = typeof navigator !== 'undefined' && navigator.onLine;
-    
+
     // Register event listeners if in browser environment
     if (typeof window !== 'undefined') {
       window.addEventListener('online', this.handleOnline);
@@ -63,7 +66,9 @@ export class NetworkStatusService implements INetworkStatusService {
    * @param callback Function to call when connectivity changes
    * @returns Function to unregister the callback
    */
-  public onConnectivityChange(callback: (isOnline: boolean) => void): () => void {
+  public onConnectivityChange(
+    callback: (isOnline: boolean) => void
+  ): () => void {
     this.addListener(callback);
     return () => this.removeListener(callback);
   }
@@ -79,17 +84,17 @@ export class NetworkStatusService implements INetworkStatusService {
         method: 'HEAD',
         mode: 'no-cors',
         cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' }
+        headers: { 'Cache-Control': 'no-cache' },
       });
-      
+
       const isOnline = response.status >= 200 && response.status < 400;
-      
+
       // If status changed, update and notify
       if (isOnline !== this.online) {
         this.online = isOnline;
         this.notifyListeners();
       }
-      
+
       return isOnline;
     } catch (error) {
       // Network error occurred - we're offline
@@ -129,7 +134,7 @@ export class NetworkStatusService implements INetworkStatusService {
    * Notify all registered listeners of connection status change
    */
   private notifyListeners(): void {
-    this.listeners.forEach(listener => {
+    this.listeners.forEach((listener) => {
       try {
         listener(this.online);
       } catch (error) {
@@ -139,17 +144,26 @@ export class NetworkStatusService implements INetworkStatusService {
   }
 
   // IService interface implementation
-  on<K extends keyof NetworkStatusEvents>(event: K, callback: (data: NetworkStatusEvents[K]) => void): () => void {
+  on<K extends keyof NetworkStatusEvents>(
+    event: K,
+    callback: (data: NetworkStatusEvents[K]) => void
+  ): () => void {
     return this.eventEmitter.on(event, callback);
   }
 
-  off<K extends keyof NetworkStatusEvents>(event: K, _callback?: (data: NetworkStatusEvents[K]) => void): void {
+  off<K extends keyof NetworkStatusEvents>(
+    event: K,
+    _callback?: (data: NetworkStatusEvents[K]) => void
+  ): void {
     // EventEmitter's off method only takes the event name and clears all handlers
     // We ignore the callback parameter to match the interface
     this.eventEmitter.off(event);
   }
 
-  emit<K extends keyof NetworkStatusEvents>(event: K, data?: NetworkStatusEvents[K]): void {
+  emit<K extends keyof NetworkStatusEvents>(
+    event: K,
+    data?: NetworkStatusEvents[K]
+  ): void {
     this.eventEmitter.emit(event, data);
   }
 }

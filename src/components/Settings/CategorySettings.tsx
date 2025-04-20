@@ -12,16 +12,17 @@ export function CategorySettings() {
           Create and manage your task categories here.
         </p>
       </div>
-      
+
       {/* Category Mapping Section - ADDED DIRECTLY TO THE PAGE */}
       <div className="mt-8 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
         <h2 className="text-lg font-semibold mb-4">Map Categories</h2>
         <p className="text-gray-600 mb-4">
-          Use this tool to move tasks from one category to another. This is useful for consolidating custom categories into standard ones.
+          Use this tool to move tasks from one category to another. This is
+          useful for consolidating custom categories into standard ones.
         </p>
         <CategoryMappingSettings />
       </div>
-      
+
       {/* Category Visibility Section */}
       <div className="mt-8">
         <h2 className="text-lg font-semibold mb-4">Category Visibility</h2>

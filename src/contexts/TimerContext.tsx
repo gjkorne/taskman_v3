@@ -1,21 +1,32 @@
-import { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  ReactNode,
+  useCallback,
+} from 'react';
 import { supabase } from '../lib/supabase';
-import { TaskContext } from './TaskContext'; 
+import { TaskContext } from './TaskContext';
 import { Task, TaskStatus, TaskStatusType } from '../types/task';
 import { User } from '@supabase/supabase-js';
 import { useTaskActions } from '../hooks/useTaskActions';
 import { useTimerPersistence } from '../hooks/useTimerPersistence';
 import { TimerState } from '../types/timer';
-import { msToPostgresInterval, formatMillisecondsToTime } from '../utils/timeUtils';
+import {
+  msToPostgresInterval,
+  formatMillisecondsToTime,
+} from '../utils/timeUtils';
 
 interface TimerContextType {
   timerState: TimerState;
   startTimer: (taskId: string) => Promise<void>;
   pauseTimer: (taskStatus?: TaskStatusType) => Promise<void>;
-  resumeTimer: () => Promise<void>; 
-  stopTimer: (finalStatus?: TaskStatusType) => Promise<void>; 
+  resumeTimer: () => Promise<void>;
+  stopTimer: (finalStatus?: TaskStatusType) => Promise<void>;
   resetTimer: () => void;
-  formatElapsedTime: (compact?: boolean) => string; 
+  formatElapsedTime: (compact?: boolean) => string;
   getDisplayTime: (task: Task) => string;
   clearTimerStorage: () => void;
 }
@@ -26,32 +37,41 @@ const TimerContext = createContext<TimerContextType | undefined>(undefined);
 // Timer Provider component
 export const TimerProvider = ({ children }: { children: ReactNode }) => {
   // Use our new timer persistence hook
-  const { state: timerState, setState: setTimerState, clearTimerStorage, syncWithRemote } = useTimerPersistence();
-  
+  const {
+    state: timerState,
+    setState: setTimerState,
+    clearTimerStorage,
+    syncWithRemote,
+  } = useTimerPersistence();
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Get task context to update UI after timer actions
   const taskContext = useContext(TaskContext);
 
   // Use the task actions hook, passing the refreshTasks function from context
   const taskActions = useTaskActions({
     refreshTasks: taskContext?.refreshTasks,
-    showToasts: false // Optionally disable toasts if they are redundant here
+    showToasts: false, // Optionally disable toasts if they are redundant here
   });
- 
+
   // Get current user
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setCurrentUser(user);
     };
     fetchUser();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user ?? null);
-    });
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setCurrentUser(session?.user ?? null);
+      }
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -62,7 +82,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Initial sync when component mounts
     syncWithRemote();
-    
+
     // Set up an interval to check for remote timer sessions periodically
     syncIntervalRef.current = setInterval(() => {
       // Only sync if we're not currently timing something locally
@@ -96,20 +116,22 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      
+
       // Start a new interval
       intervalRef.current = setInterval(() => {
         const now = new Date().getTime();
         // Add null check to prevent TypeScript error
-        const currentSessionElapsed = timerState.startTime ? now - timerState.startTime : 0;
-        
+        const currentSessionElapsed = timerState.startTime
+          ? now - timerState.startTime
+          : 0;
+
         // Update state with new elapsed time
         setTimerState({
-          elapsedTime: currentSessionElapsed
+          elapsedTime: currentSessionElapsed,
           // The displayTime will be automatically calculated by the updateState function in useTimerPersistence
         });
       }, 1000); // Update every second
-      
+
       // Clean up interval on unmount or when deps change
       return () => {
         if (intervalRef.current) {
@@ -144,13 +166,14 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         .insert({
           task_id: taskId,
           user_id: currentUser.id,
-          start_time: new Date().toISOString()
+          start_time: new Date().toISOString(),
         })
         .select('id')
         .single();
 
       if (insertError) throw insertError;
-      if (!newSession || !newSession.id) throw new Error('Failed to create session record');
+      if (!newSession || !newSession.id)
+        throw new Error('Failed to create session record');
 
       const newSessionId = newSession.id;
 
@@ -165,12 +188,12 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         startTime: new Date().getTime(),
         elapsedTime: 0, // Reset elapsed time for the new session
         // Keep previous elapsed if continuing with same task, otherwise reset
-        previouslyElapsed: timerState.taskId === taskId ? timerState.previouslyElapsed : 0
+        previouslyElapsed:
+          timerState.taskId === taskId ? timerState.previouslyElapsed : 0,
         // displayTime will be calculated by useTimerPersistence
       });
 
       // No need to explicitly call startTimerInterval, useEffect handles it
-
     } catch (error) {
       console.error('Error starting timer:', error);
     }
@@ -178,23 +201,31 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
   // Pause the currently running timer
   const pauseTimer = async (taskStatus?: TaskStatusType) => {
-    if (timerState.status !== 'running' || !timerState.startTime || !timerState.taskId || !timerState.sessionId) {
+    if (
+      timerState.status !== 'running' ||
+      !timerState.startTime ||
+      !timerState.taskId ||
+      !timerState.sessionId
+    ) {
       console.warn('Cannot pause: Timer not running or missing data');
       return;
     }
 
     const endTime = new Date().getTime();
     const currentSessionDurationMs = endTime - timerState.startTime;
-    const currentSessionDurationInterval = msToPostgresInterval(currentSessionDurationMs);
-    const totalElapsedMs = timerState.previouslyElapsed + currentSessionDurationMs;
+    const currentSessionDurationInterval = msToPostgresInterval(
+      currentSessionDurationMs
+    );
+    const totalElapsedMs =
+      timerState.previouslyElapsed + currentSessionDurationMs;
 
     try {
-      // 1. Update the time session in Supabase 
+      // 1. Update the time session in Supabase
       const { error: sessionError } = await supabase
         .from('time_sessions')
         .update({
           end_time: new Date().toISOString(),
-          duration: currentSessionDurationInterval
+          duration: currentSessionDurationInterval,
         })
         .eq('id', timerState.sessionId);
 
@@ -206,7 +237,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
           .from('tasks')
           .update({ status: taskStatus })
           .eq('id', timerState.taskId);
-          
+
         if (taskError) throw taskError;
       }
 
@@ -216,10 +247,10 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         startTime: null,
         elapsedTime: 0, // Reset current session elapsed time
         // Add the just-completed session's duration to previouslyElapsed
-        previouslyElapsed: totalElapsedMs
+        previouslyElapsed: totalElapsedMs,
         // displayTime will be calculated by useTimerPersistence
       });
-      
+
       // 3. Refresh tasks to show updated times
       if (taskContext?.refreshTasks) {
         taskContext.refreshTasks();
@@ -243,7 +274,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         .insert({
           task_id: timerState.taskId,
           user_id: currentUser?.id,
-          start_time: new Date().toISOString()
+          start_time: new Date().toISOString(),
         })
         .select('id')
         .single();
@@ -255,7 +286,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         status: 'running',
         startTime: new Date().getTime(),
         sessionId: data.id,
-        elapsedTime: 0
+        elapsedTime: 0,
         // Keep previouslyElapsed unchanged
         // displayTime will be calculated by useTimerPersistence
       });
@@ -312,7 +343,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   const stopTimer = async (finalStatus?: TaskStatusType) => {
     if (timerState.status === 'idle' || !timerState.taskId) return;
     const currentTaskId = timerState.taskId; // Store taskId before potential state changes
-    
+
     // Ensure finalStatus is a valid TaskStatusType
     const taskStatus = finalStatus || TaskStatus.PENDING;
 
@@ -324,7 +355,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         // If it was already paused, just update the task status
         await taskActions.updateTaskStatus(currentTaskId, taskStatus);
       }
-      
+
       // Update task's total time
       await updateTaskActualTime(currentTaskId);
 
@@ -335,7 +366,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         sessionId: null,
         startTime: null,
         elapsedTime: 0,
-        previouslyElapsed: 0
+        previouslyElapsed: 0,
         // displayTime will be calculated to 00:00:00 by useTimerPersistence
       });
 
@@ -352,19 +383,28 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   const resetTimer = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = null;
-    setTimerState({ status: 'idle', taskId: null, sessionId: null, startTime: null, elapsedTime: 0, previouslyElapsed: 0, displayTime: '00:00:00' });
+    setTimerState({
+      status: 'idle',
+      taskId: null,
+      sessionId: null,
+      startTime: null,
+      elapsedTime: 0,
+      previouslyElapsed: 0,
+      displayTime: '00:00:00',
+    });
     clearTimerStorage(); // Clear storage
   };
 
   // Format total time for display with compact option
-  const formatTotalTime = useCallback((compact: boolean = false) => {
+  const formatTotalTime = useCallback(
+    (compact: boolean = false) => {
       // This uses the state's displayTime which is updated by the interval
       if (compact) {
         // For compact displays, show mini time format (e.g., "1h 23m")
         const time = timerState.displayTime.split(':');
         const hours = parseInt(time[0], 10);
         const minutes = parseInt(time[1], 10);
-        
+
         if (hours > 0) {
           return `${hours}h ${minutes}m`;
         } else {
@@ -372,9 +412,11 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       return timerState.displayTime;
-  }, [timerState.displayTime]);
+    },
+    [timerState.displayTime]
+  );
 
-  // --- TODO: Review getDisplayTime --- 
+  // --- TODO: Review getDisplayTime ---
   // This function seems less useful now that the context manages the active timer's display
   // It might be used for displaying *historical* actual_time on non-active tasks?
   const getDisplayTime = (task: Task): string => {
@@ -382,17 +424,17 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
       return formatTotalTime(); // If it's the active task, use live state
     }
     // If not active, display the stored actual_time (needs conversion from interval)
-    if (task.actual_time && typeof task.actual_time === 'string') { 
-        // Basic parser for 'X seconds' interval format
-        const parts = (task.actual_time as string).split(' '); // Temporary type assertion
-        if (parts.length === 2 && parts[1] === 'seconds') {
-            const seconds = parseInt(parts[0], 10);
-            if (!isNaN(seconds)) {
-                return formatMillisecondsToTime(seconds * 1000); 
-            }
+    if (task.actual_time && typeof task.actual_time === 'string') {
+      // Basic parser for 'X seconds' interval format
+      const parts = (task.actual_time as string).split(' '); // Temporary type assertion
+      if (parts.length === 2 && parts[1] === 'seconds') {
+        const seconds = parseInt(parts[0], 10);
+        if (!isNaN(seconds)) {
+          return formatMillisecondsToTime(seconds * 1000);
         }
-        // Fallback or handle other interval formats if necessary
-        return '--:--:--'; // Or task.actual_time directly?
+      }
+      // Fallback or handle other interval formats if necessary
+      return '--:--:--'; // Or task.actual_time directly?
     }
     return '00:00:00';
   };
@@ -402,15 +444,17 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     timerState,
     startTimer,
     pauseTimer,
-    resumeTimer, 
+    resumeTimer,
     stopTimer,
     resetTimer,
-    formatElapsedTime: formatTotalTime, 
+    formatElapsedTime: formatTotalTime,
     getDisplayTime,
     clearTimerStorage,
   };
 
-  return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>;
+  return (
+    <TimerContext.Provider value={value}>{children}</TimerContext.Provider>
+  );
 };
 
 // Custom hook to use the Timer Context

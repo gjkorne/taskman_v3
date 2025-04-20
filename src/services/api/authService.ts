@@ -7,7 +7,10 @@ import { AuthServiceEvents, IAuthService } from '../interfaces/IAuthService';
  * Implementation of the Auth service using Supabase
  * Extends BaseService for standardized error handling and event management
  */
-export class AuthService extends BaseService<AuthServiceEvents> implements IAuthService {
+export class AuthService
+  extends BaseService<AuthServiceEvents>
+  implements IAuthService
+{
   constructor() {
     super();
     // Initialize auth state listener
@@ -44,12 +47,15 @@ export class AuthService extends BaseService<AuthServiceEvents> implements IAuth
   /**
    * Get the current session
    */
-  async getSession(): Promise<{ session: Session | null; error: ServiceError | null }> {
+  async getSession(): Promise<{
+    session: Session | null;
+    error: ServiceError | null;
+  }> {
     try {
       const { data, error } = await supabase.auth.getSession();
-      
+
       if (error) throw error;
-      
+
       return { session: data.session, error: null };
     } catch (error) {
       const serviceError = this.processError(error, 'auth.session_error');
@@ -64,9 +70,9 @@ export class AuthService extends BaseService<AuthServiceEvents> implements IAuth
   async getUser(): Promise<{ user: User | null; error: ServiceError | null }> {
     try {
       const { data, error } = await supabase.auth.getUser();
-      
+
       if (error) throw error;
-      
+
       return { user: data.user, error: null };
     } catch (error) {
       const serviceError = this.processError(error, 'auth.user_error');
@@ -78,15 +84,18 @@ export class AuthService extends BaseService<AuthServiceEvents> implements IAuth
   /**
    * Sign in with email and password
    */
-  async signIn(email: string, password: string): Promise<{ session: Session | null; error: ServiceError | null }> {
+  async signIn(
+    email: string,
+    password: string
+  ): Promise<{ session: Session | null; error: ServiceError | null }> {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
-      
+
       if (error) throw error;
-      
+
       // Event is automatically emitted by auth state listener
       return { session: data.session, error: null };
     } catch (error) {
@@ -99,15 +108,18 @@ export class AuthService extends BaseService<AuthServiceEvents> implements IAuth
   /**
    * Sign up with email and password
    */
-  async signUp(email: string, password: string): Promise<{ user: User | null; error: ServiceError | null }> {
+  async signUp(
+    email: string,
+    password: string
+  ): Promise<{ user: User | null; error: ServiceError | null }> {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
       });
-      
+
       if (error) throw error;
-      
+
       return { user: data.user, error: null };
     } catch (error) {
       const serviceError = this.processError(error, 'auth.signup_error');
@@ -122,9 +134,9 @@ export class AuthService extends BaseService<AuthServiceEvents> implements IAuth
   async signOut(): Promise<{ error: ServiceError | null }> {
     try {
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) throw error;
-      
+
       // Event is automatically emitted by auth state listener
       return { error: null };
     } catch (error) {
@@ -140,13 +152,16 @@ export class AuthService extends BaseService<AuthServiceEvents> implements IAuth
   async resetPassword(email: string): Promise<{ error: ServiceError | null }> {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
-      
+
       if (error) throw error;
-      
+
       this.emit('password-reset');
       return { error: null };
     } catch (error) {
-      const serviceError = this.processError(error, 'auth.reset_password_error');
+      const serviceError = this.processError(
+        error,
+        'auth.reset_password_error'
+      );
       this.emit('error', serviceError);
       return { error: serviceError };
     }
@@ -155,17 +170,22 @@ export class AuthService extends BaseService<AuthServiceEvents> implements IAuth
   /**
    * Update the user's password
    */
-  async updatePassword(password: string): Promise<{ error: ServiceError | null }> {
+  async updatePassword(
+    password: string
+  ): Promise<{ error: ServiceError | null }> {
     try {
       const { error } = await supabase.auth.updateUser({
-        password
+        password,
       });
-      
+
       if (error) throw error;
-      
+
       return { error: null };
     } catch (error) {
-      const serviceError = this.processError(error, 'auth.update_password_error');
+      const serviceError = this.processError(
+        error,
+        'auth.update_password_error'
+      );
       this.emit('error', serviceError);
       return { error: serviceError };
     }

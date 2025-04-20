@@ -17,14 +17,14 @@ export function LoadingIndicator({
   variant = 'default',
   text,
   className,
-  fullScreen = false
+  fullScreen = false,
 }: LoadingIndicatorProps) {
   // Size map
   const sizeMap: Record<LoadingIndicatorSize, number> = {
     xs: 12,
     sm: 16,
     md: 24,
-    lg: 32
+    lg: 32,
   };
 
   // Variant styling
@@ -41,15 +41,19 @@ export function LoadingIndicator({
     : '';
 
   return (
-    <div className={cn('flex flex-col items-center justify-center', fullScreenClasses, className)}>
-      <Loader2 
-        className={cn('animate-spin', variantClasses[variant])} 
-        size={sizeMap[size]} 
+    <div
+      className={cn(
+        'flex flex-col items-center justify-center',
+        fullScreenClasses,
+        className
+      )}
+    >
+      <Loader2
+        className={cn('animate-spin', variantClasses[variant])}
+        size={sizeMap[size]}
       />
       {text && (
-        <p className={cn('mt-2 text-sm', variantClasses[variant])}>
-          {text}
-        </p>
+        <p className={cn('mt-2 text-sm', variantClasses[variant])}>{text}</p>
       )}
     </div>
   );

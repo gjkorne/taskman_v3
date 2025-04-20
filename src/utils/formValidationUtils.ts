@@ -13,7 +13,8 @@ export type ValidationErrors = Record<string, string | null>;
  */
 
 // Required field validation
-export const required = (message: string = 'This field is required'): ValidationRule => 
+export const required =
+  (message: string = 'This field is required'): ValidationRule =>
   (value: any) => {
     if (value === null || value === undefined || value === '') {
       return message;
@@ -22,7 +23,8 @@ export const required = (message: string = 'This field is required'): Validation
   };
 
 // Minimum length validation
-export const minLength = (length: number, message?: string): ValidationRule => 
+export const minLength =
+  (length: number, message?: string): ValidationRule =>
   (value: string) => {
     if (!value || value.length < length) {
       return message || `Must be at least ${length} characters`;
@@ -31,7 +33,8 @@ export const minLength = (length: number, message?: string): ValidationRule =>
   };
 
 // Maximum length validation
-export const maxLength = (length: number, message?: string): ValidationRule => 
+export const maxLength =
+  (length: number, message?: string): ValidationRule =>
   (value: string) => {
     if (value && value.length > length) {
       return message || `Must be no more than ${length} characters`;
@@ -40,7 +43,8 @@ export const maxLength = (length: number, message?: string): ValidationRule =>
   };
 
 // Pattern validation (regex)
-export const pattern = (regex: RegExp, message: string): ValidationRule => 
+export const pattern =
+  (regex: RegExp, message: string): ValidationRule =>
   (value: string) => {
     if (value && !regex.test(value)) {
       return message;
@@ -49,14 +53,16 @@ export const pattern = (regex: RegExp, message: string): ValidationRule =>
   };
 
 // Email validation
-export const isEmail = (message: string = 'Please enter a valid email address'): ValidationRule => 
-  pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, message);
+export const isEmail = (
+  message: string = 'Please enter a valid email address'
+): ValidationRule => pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, message);
 
 // Date validation
-export const isValidDate = (message: string = 'Please enter a valid date'): ValidationRule => 
+export const isValidDate =
+  (message: string = 'Please enter a valid date'): ValidationRule =>
   (value: any) => {
     if (!value) return null;
-    
+
     // Check if it's a valid date string
     const date = new Date(value);
     if (isNaN(date.getTime())) {
@@ -66,26 +72,28 @@ export const isValidDate = (message: string = 'Please enter a valid date'): Vali
   };
 
 // Future date validation
-export const isFutureDate = (message: string = 'Date must be in the future'): ValidationRule => 
+export const isFutureDate =
+  (message: string = 'Date must be in the future'): ValidationRule =>
   (value: any) => {
     if (!value) return null;
-    
+
     const date = new Date(value);
     const now = new Date();
-    
+
     if (isNaN(date.getTime())) {
       return 'Please enter a valid date';
     }
-    
+
     if (date <= now) {
       return message;
     }
-    
+
     return null;
   };
 
 // Custom field validation
-export const custom = (validationFn: (value: any) => boolean, message: string): ValidationRule =>
+export const custom =
+  (validationFn: (value: any) => boolean, message: string): ValidationRule =>
   (value: any) => {
     if (!validationFn(value)) {
       return message;
@@ -97,7 +105,10 @@ export const custom = (validationFn: (value: any) => boolean, message: string): 
  * Validate a single value against an array of validation rules
  * Returns the first error message or null if all validations pass
  */
-export function validateField(value: any, rules: ValidationRule[]): string | null {
+export function validateField(
+  value: any,
+  rules: ValidationRule[]
+): string | null {
   for (const rule of rules) {
     const error = rule(value);
     if (error) {
@@ -112,16 +123,16 @@ export function validateField(value: any, rules: ValidationRule[]): string | nul
  * Returns an object with field names and error messages
  */
 export function validateForm(
-  values: Record<string, any>, 
+  values: Record<string, any>,
   fieldValidations: FieldValidation
 ): ValidationErrors {
   const errors: ValidationErrors = {};
-  
+
   for (const [field, rules] of Object.entries(fieldValidations)) {
     const error = validateField(values[field], rules);
     errors[field] = error;
   }
-  
+
   return errors;
 }
 
@@ -129,7 +140,7 @@ export function validateForm(
  * Check if form has any validation errors
  */
 export function hasFormErrors(errors: ValidationErrors): boolean {
-  return Object.values(errors).some(error => error !== null);
+  return Object.values(errors).some((error) => error !== null);
 }
 
 /**
@@ -140,16 +151,14 @@ export function createTaskValidationSchema() {
     title: [
       required('Task title is required'),
       minLength(3, 'Title must be at least 3 characters'),
-      maxLength(100, 'Title must be less than 100 characters')
+      maxLength(100, 'Title must be less than 100 characters'),
     ],
-    due_date: [
-      isValidDate('Please enter a valid due date')
-    ],
+    due_date: [isValidDate('Please enter a valid due date')],
     estimated_time: [
       custom(
         (value) => !value || (typeof value === 'number' && value > 0),
         'Estimated time must be a positive number'
-      )
-    ]
+      ),
+    ],
   };
 }

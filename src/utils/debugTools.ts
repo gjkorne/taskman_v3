@@ -5,7 +5,7 @@ if (process.env.NODE_ENV === 'development') {
   // @ts-ignore - Adding to window object
   window.debugTools = {
     resetAllTimerState,
-    
+
     // View current timer state
     getTimerState: () => {
       try {
@@ -16,13 +16,13 @@ if (process.env.NODE_ENV === 'development') {
         return null;
       }
     },
-    
+
     // Clear local storage timer data
     clearTimerStorage: () => {
       localStorage.removeItem('timerState');
       console.log('Timer storage cleared');
-    }
+    },
   };
-  
+
   console.log('Debug tools loaded. Access via window.debugTools');
 }

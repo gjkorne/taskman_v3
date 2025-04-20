@@ -43,38 +43,38 @@ export function UnifiedTaskForm({
   onSuccess,
   onCancel,
   onClose,
-  initialValues
+  initialValues,
 }: UnifiedTaskFormProps) {
   // Merge callbacks for simpler interaction with different parent components
   const handleSuccess = () => {
     if (onSuccess) onSuccess();
     if (onClose) onClose();
   };
-  
+
   const handleCancel = () => {
     if (onCancel) onCancel();
     else if (onClose) onClose();
   };
-  
+
   // Custom hook to manage form state and submission
-  const { 
-    register, 
-    handleSubmit, 
+  const {
+    register,
+    handleSubmit,
     control,
     formState: { errors },
     watch,
     setValue,
     getValues,
     isLoading,
-    error
+    error,
   } = useTaskForm({
     taskId: mode === 'edit' ? taskId : null,
     onSuccess: handleSuccess,
     onError: () => {
       // Custom error handling if needed
-    }
+    },
   });
-  
+
   // Apply initial values when provided
   useEffect(() => {
     if (initialValues && !taskId) {
@@ -82,7 +82,7 @@ export function UnifiedTaskForm({
       Object.entries(initialValues).forEach(([key, value]) => {
         if (value !== undefined) {
           setValue(key as any, value);
-          
+
           // Special handling for due date
           if (key === 'due_date' && value) {
             setValue('hasDueDate', true);
@@ -91,18 +91,18 @@ export function UnifiedTaskForm({
       });
     }
   }, [initialValues, setValue, taskId]);
-  
+
   // Watch form values for reactive UI updates
   const categoryName = watch('category_name');
   const hasDueDate = watch('hasDueDate');
   const watchedTags = watch('tags') || [];
-  
+
   // Track expanded/collapsed state for the notes field
   const [isNotesExpanded, setIsNotesExpanded] = useState(mode === 'edit');
-  
+
   // Ref for the form container to detect outside clicks
   const formRef = useRef<HTMLDivElement>(null);
-  
+
   // Add a click outside event listener to close the form when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -111,10 +111,10 @@ export function UnifiedTaskForm({
         else if (onClose) onClose();
       }
     }
-    
+
     // Attach the event listener
     document.addEventListener('mousedown', handleClickOutside);
-    
+
     // Clean up the event listener
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -133,12 +133,15 @@ export function UnifiedTaskForm({
             </div>
           </div>
         )}
-        
+
         {/* TASK DETAILS SECTION */}
         <FormSection title="Task Details" useGradient={true} hideTitle={true}>
           {/* Title Field */}
           <div>
-            <label htmlFor="task-title" className="block text-sm font-semibold text-gray-800">
+            <label
+              htmlFor="task-title"
+              className="block text-sm font-semibold text-gray-800"
+            >
               Task Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -153,14 +156,18 @@ export function UnifiedTaskForm({
               )}
             />
             {errors.title && (
-              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+              <p className="mt-1 text-sm text-red-600">
+                {errors.title.message}
+              </p>
             )}
           </div>
-          
+
           {/* Classification Fields */}
           <div className="mt-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Classification</h3>
-            
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Classification
+            </h3>
+
             {/* Category Selection */}
             <CategorySelector
               value={categoryName || ''}
@@ -168,11 +175,14 @@ export function UnifiedTaskForm({
               error={errors.category_name?.message}
               required={true}
             />
-            
+
             {/* Subcategory Selection - Only shown when a category is selected */}
             {categoryName && (
               <div className="mt-3">
-                <label htmlFor="subcategory" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="subcategory"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Subcategory
                 </label>
                 <select
@@ -180,33 +190,39 @@ export function UnifiedTaskForm({
                   value={getValues('subcategory') || ''}
                   onChange={(e) => {
                     setValue('subcategory', e.target.value);
-                    
+
                     // Update tags with the subcategory information
                     const currentTags = getValues('tags') || [];
-                    const updatedTags = currentTags.filter(tag => !tag.startsWith('subcategory:'));
-                    
+                    const updatedTags = currentTags.filter(
+                      (tag) => !tag.startsWith('subcategory:')
+                    );
+
                     if (e.target.value) {
                       updatedTags.push(`subcategory:${e.target.value}`);
                     }
-                    
+
                     setValue('tags', updatedTags);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   <option value="">-- Select Subcategory --</option>
-                  {categoryName && getSubcategoriesForCategory(categoryName).map((subcat) => (
-                    <option key={subcat} value={subcat}>
-                      {subcat}
-                    </option>
-                  ))}
+                  {categoryName &&
+                    getSubcategoriesForCategory(categoryName).map((subcat) => (
+                      <option key={subcat} value={subcat}>
+                        {subcat}
+                      </option>
+                    ))}
                 </select>
               </div>
             )}
-            
+
             {/* Status Field - Only show in edit mode */}
             {mode === 'edit' && (
               <div className="mt-4">
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="status"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Status
                 </label>
                 <select
@@ -221,12 +237,14 @@ export function UnifiedTaskForm({
                   <option value="archived">Archived</option>
                 </select>
                 {errors.status && (
-                  <p className="mt-1 text-sm text-red-600">{errors.status.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.status.message}
+                  </p>
                 )}
               </div>
             )}
           </div>
-          
+
           {/* Notes Field */}
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
@@ -251,7 +269,7 @@ export function UnifiedTaskForm({
                 )}
               </button>
             </div>
-            
+
             <div className={cn(!isNotesExpanded && 'hidden')}>
               {/* Controller for handling both notes and checklist items in a unified way */}
               <Controller
@@ -270,9 +288,13 @@ export function UnifiedTaskForm({
             </div>
           </div>
         </FormSection>
-        
+
         {/* PRIORITY & TIMING SECTION */}
-        <FormSection title="Priority & Timing" useGradient={true} hideTitle={true}>
+        <FormSection
+          title="Priority & Timing"
+          useGradient={true}
+          hideTitle={true}
+        >
           {/* Priority Selection */}
           <PrioritySelector
             value={watch('priority') || 'medium'}
@@ -280,7 +302,7 @@ export function UnifiedTaskForm({
             layout="radio"
             error={errors.priority?.message}
           />
-          
+
           {/* Estimated Time */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -292,16 +314,20 @@ export function UnifiedTaskForm({
               {...register('estimatedTime')}
               placeholder="e.g., 60"
               className={cn(
-                "w-full px-3 py-2 border rounded-md",
-                errors.estimatedTime ? "border-red-500" : "border-gray-300"
+                'w-full px-3 py-2 border rounded-md',
+                errors.estimatedTime ? 'border-red-500' : 'border-gray-300'
               )}
             />
             {errors.estimatedTime && (
-              <p className="mt-1 text-sm text-red-500">{errors.estimatedTime.message}</p>
+              <p className="mt-1 text-sm text-red-500">
+                {errors.estimatedTime.message}
+              </p>
             )}
-            <p className="mt-1 text-xs text-gray-500">Enter total minutes (e.g., 300 for 5 hours)</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Enter total minutes (e.g., 300 for 5 hours)
+            </p>
           </div>
-          
+
           {/* Due Date Field */}
           <div className="mt-4">
             <label className="flex items-center space-x-2">
@@ -310,9 +336,11 @@ export function UnifiedTaskForm({
                 {...register('hasDueDate')}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
-              <span className="text-sm font-medium text-gray-700">Has due date</span>
+              <span className="text-sm font-medium text-gray-700">
+                Has due date
+              </span>
             </label>
-            
+
             {hasDueDate && (
               <div className="mt-2">
                 <input
@@ -324,22 +352,24 @@ export function UnifiedTaskForm({
                   )}
                 />
                 {errors.due_date && (
-                  <p className="mt-1 text-sm text-red-600">{errors.due_date.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.due_date.message}
+                  </p>
                 )}
               </div>
             )}
           </div>
-          
+
           {/* Tags Field */}
           <TagsInput
             value={watchedTags}
             onChange={(tags) => setValue('tags', tags)}
           />
         </FormSection>
-        
+
         {/* Task Creation Diagnostic - Only shown in development */}
         {isDevelopment && <TaskDebug />}
-        
+
         {/* FORM ACTIONS */}
         <div className="flex justify-end space-x-3">
           {/* Cancel Button - Only show if we have a cancel handler */}
@@ -352,7 +382,7 @@ export function UnifiedTaskForm({
               Cancel
             </button>
           )}
-          
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -361,14 +391,32 @@ export function UnifiedTaskForm({
           >
             {isLoading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 {mode === 'edit' ? 'Updating...' : 'Creating...'}
               </>
+            ) : mode === 'edit' ? (
+              'Update Task'
             ) : (
-              mode === 'edit' ? 'Update Task' : 'Create Task'
+              'Create Task'
             )}
           </button>
         </div>

@@ -41,7 +41,7 @@ export const timerStateChangeEvent = new Event('taskman:timer_state_changed');
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  
+
   // If still loading auth state, show nothing
   if (loading) {
     return (
@@ -50,12 +50,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
+
   // If no user, redirect to login
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  
+
   // If authenticated, show the protected content
   return children;
 }
@@ -65,7 +65,7 @@ function App() {
   const taskListRef = useRef<TaskListRefType>(null);
   const [appInitialized, setAppInitialized] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
-  
+
   // Initialize app on mount
   useEffect(() => {
     const initApp = async () => {
@@ -99,12 +99,18 @@ function App() {
 
     // Add event listeners
     window.addEventListener('taskman:task_created', handleTaskCreated);
-    window.addEventListener('taskman:timer_state_changed', handleTimerStateChange);
+    window.addEventListener(
+      'taskman:timer_state_changed',
+      handleTimerStateChange
+    );
 
     // Clean up event listeners
     return () => {
       window.removeEventListener('taskman:task_created', handleTaskCreated);
-      window.removeEventListener('taskman:timer_state_changed', handleTimerStateChange);
+      window.removeEventListener(
+        'taskman:timer_state_changed',
+        handleTimerStateChange
+      );
     };
   }, []);
 
@@ -118,7 +124,7 @@ function App() {
       </div>
     );
   }
-  
+
   // If there was an error during initialization, show error screen
   if (initError) {
     return (
@@ -145,7 +151,9 @@ function App() {
               <AuthProvider>
                 <BrowserRouter>
                   {/* Removed separate SettingsData/UI providers (merged into SettingsProvider) */}
-                  <SettingsProvider> {/* merged data & UI providers */}
+                  <SettingsProvider>
+                    {' '}
+                    {/* merged data & UI providers */}
                     <CategoryProvider>
                       <TaskProvider>
                         <TimeSessionProvider>
@@ -154,143 +162,152 @@ function App() {
                             <Routes>
                               {/* Auth routes */}
                               <Route path="/login" element={<LoginForm />} />
-                              <Route path="/register" element={<RegisterForm />} />
-                              
+                              <Route
+                                path="/register"
+                                element={<RegisterForm />}
+                              />
+
                               {/* Protected routes */}
-                              <Route 
-                                path="/" 
+                              <Route
+                                path="/"
                                 element={
                                   <ProtectedRoute>
                                     <Layout>
                                       <HomePage />
                                     </Layout>
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
-                              <Route 
-                                path="/tasks" 
+
+                              <Route
+                                path="/tasks"
                                 element={
                                   <ProtectedRoute>
                                     <Layout>
                                       <TaskList ref={taskListRef} />
                                     </Layout>
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
-                              <Route 
-                                path="/categories" 
+
+                              <Route
+                                path="/categories"
                                 element={
                                   <ProtectedRoute>
                                     <Layout>
                                       <CategoriesPage />
                                     </Layout>
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
-                              <Route 
-                                path="/timer" 
+
+                              <Route
+                                path="/timer"
                                 element={
                                   <ProtectedRoute>
                                     <Layout>
                                       <Timer />
                                     </Layout>
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
-                              <Route 
-                                path="/reports" 
+
+                              <Route
+                                path="/reports"
                                 element={
                                   <ProtectedRoute>
                                     <Layout>
                                       <ReportsPage />
                                     </Layout>
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
-                              <Route 
-                                path="/settings" 
+
+                              <Route
+                                path="/settings"
                                 element={
                                   <ProtectedRoute>
                                     <Layout>
                                       <SimpleSettingsPage />
                                     </Layout>
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
-                              <Route 
-                                path="/category-mapping" 
+
+                              <Route
+                                path="/category-mapping"
                                 element={
                                   <ProtectedRoute>
                                     <Layout>
                                       <CategoryMappingPage />
                                     </Layout>
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
-                              <Route 
-                                path="/admin" 
+
+                              <Route
+                                path="/admin"
                                 element={
                                   <ProtectedRoute>
                                     <Layout>
                                       <div>Admin Dashboard</div>
                                     </Layout>
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
-                              <Route 
-                                path="/time-sessions" 
+
+                              <Route
+                                path="/time-sessions"
                                 element={
                                   <ProtectedRoute>
                                     <Layout>
                                       <TimeSessionsPage />
                                     </Layout>
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
-                              <Route 
-                                path="/calendar" 
+
+                              <Route
+                                path="/calendar"
                                 element={
                                   <ProtectedRoute>
                                     <Layout>
                                       <CalendarPage />
                                     </Layout>
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
+
                               {/* Task details page */}
-                              <Route 
-                                path="/tasks/:taskId" 
+                              <Route
+                                path="/tasks/:taskId"
                                 element={
                                   <ProtectedRoute>
                                     <TaskDetailsPage />
                                   </ProtectedRoute>
-                                } 
+                                }
                               />
-                              
+
                               {/* Redirect for legacy URLs */}
-                              <Route 
-                                path="/app/task/:taskId" 
-                                element={<Navigate to="/tasks/:taskId" replace />} 
+                              <Route
+                                path="/app/task/:taskId"
+                                element={
+                                  <Navigate to="/tasks/:taskId" replace />
+                                }
                               />
-                              
+
                               {/* Fallback route - redirect to home */}
-                              <Route path="*" element={<Navigate to="/" replace />} />
+                              <Route
+                                path="*"
+                                element={<Navigate to="/" replace />}
+                              />
                             </Routes>
                           </AdminProvider>
                         </TimeSessionProvider>
                       </TaskProvider>
                     </CategoryProvider>
-                  </SettingsProvider> {/* end merged SettingsProvider */}
+                  </SettingsProvider>{' '}
+                  {/* end merged SettingsProvider */}
                 </BrowserRouter>
               </AuthProvider>
             </ErrorProvider>

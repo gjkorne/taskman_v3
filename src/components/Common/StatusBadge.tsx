@@ -24,42 +24,41 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   className = '',
 }) => {
   const config = getStatusDisplayConfig(status);
-  
+
   // Size-based classes
   const sizeClasses = {
     sm: 'text-xs px-1.5 py-0.5 rounded',
     md: 'text-sm px-2 py-1 rounded-md',
     lg: 'text-base px-3 py-1.5 rounded-lg',
   };
-  
+
   // Icon size based on badge size
   const iconSizes = {
     sm: 12,
     md: 14,
     lg: 16,
   };
-  
+
   // Get the appropriate icon component with proper typing
-  const IconComponent = (Icons[config.icon as keyof typeof Icons] || Icons.Circle) as LucideIcon;
-  
+  const IconComponent = (Icons[config.icon as keyof typeof Icons] ||
+    Icons.Circle) as LucideIcon;
+
   return (
-    <div 
+    <div
       className={`inline-flex items-center gap-1.5 ${config.bgColor} ${sizeClasses[size]} ${className}`}
       data-status={status}
     >
       {showIcon && (
-        <IconComponent 
-          size={iconSizes[size]} 
+        <IconComponent
+          size={iconSizes[size]}
           className={config.color}
           strokeWidth={2}
           aria-hidden="true"
         />
       )}
-      
+
       {showLabel && (
-        <span className={`font-medium ${config.color}`}>
-          {config.label}
-        </span>
+        <span className={`font-medium ${config.color}`}>{config.label}</span>
       )}
     </div>
   );

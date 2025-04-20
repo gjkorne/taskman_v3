@@ -21,13 +21,16 @@ export const CategoryList: FC<CategoryListProps> = ({
   countActiveTasks,
 }) => (
   <div className="grid grid-cols-1 gap-6">
-    {categories.map(category => {
+    {categories.map((category) => {
       const tasks = getTasksByCategory(category.name);
       const activeCount = countActiveTasks(category.name);
       const isExpanded = !!expandedCategories[category.id];
 
       return (
-        <div key={category.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div
+          key={category.id}
+          className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+        >
           <div
             className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
             onClick={() => toggleCategory(category.id)}
@@ -50,11 +53,16 @@ export const CategoryList: FC<CategoryListProps> = ({
           {isExpanded && tasks.length > 0 && (
             <div className="border-t border-gray-200">
               <div className="divide-y divide-gray-100">
-                {tasks.map(task => (
+                {tasks.map((task) => (
                   <div key={task.id} className="px-6 py-3 hover:bg-gray-50">
-                    <Link to={`/tasks/${task.id}`} className="flex items-start justify-between">
+                    <Link
+                      to={`/tasks/${task.id}`}
+                      className="flex items-start justify-between"
+                    >
                       <div>
-                        <div className="font-medium text-gray-900">{task.title}</div>
+                        <div className="font-medium text-gray-900">
+                          {task.title}
+                        </div>
                         {task.description && (
                           <div className="text-sm text-gray-500 line-clamp-1 mt-1">
                             {task.description}
@@ -66,13 +74,16 @@ export const CategoryList: FC<CategoryListProps> = ({
                         {task.priority && (
                           <div
                             className={`text-xs px-2 py-0.5 rounded-full font-medium
-                              ${task.priority === 'high'
-                                ? 'bg-red-100 text-red-700'
-                                : task.priority === 'medium'
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-green-100 text-green-700'}`}
+                              ${
+                                task.priority === 'high'
+                                  ? 'bg-red-100 text-red-700'
+                                  : task.priority === 'medium'
+                                  ? 'bg-amber-100 text-amber-700'
+                                  : 'bg-green-100 text-green-700'
+                              }`}
                           >
-                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                            {task.priority.charAt(0).toUpperCase() +
+                              task.priority.slice(1)}
                           </div>
                         )}
                       </div>

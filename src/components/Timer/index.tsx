@@ -23,7 +23,7 @@ export function Timer() {
             .select('*')
             .eq('id', timerState.taskId)
             .single();
-          
+
           if (taskError) throw taskError;
           setActiveTask(taskData);
         } else {
@@ -37,7 +37,7 @@ export function Timer() {
           .neq('status', 'completed')
           .order('updated_at', { ascending: false })
           .limit(5);
-        
+
         if (recentError) throw recentError;
         setRecentTasks(recentData || []);
       } catch (error) {
@@ -62,7 +62,9 @@ export function Timer() {
     <div className="px-4 py-6 max-w-4xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Time Tracking</h1>
-        <p className="text-gray-600">Track time spent on your tasks to improve productivity.</p>
+        <p className="text-gray-600">
+          Track time spent on your tasks to improve productivity.
+        </p>
       </div>
 
       {/* Active Timer Section */}
@@ -71,19 +73,21 @@ export function Timer() {
           <Clock className="mr-2" size={20} />
           Current Timer
         </h2>
-        
+
         {activeTask ? (
           <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
             <div className="flex justify-between items-start mb-3">
               <div>
                 <h3 className="font-medium text-lg">{activeTask.title}</h3>
-                <p className="text-gray-600 text-sm line-clamp-2">{activeTask.description}</p>
+                <p className="text-gray-600 text-sm line-clamp-2">
+                  {activeTask.description}
+                </p>
               </div>
               <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
                 {formatElapsedTime('short')} elapsed
               </div>
             </div>
-            
+
             <div className="mt-4">
               <TimerControls taskId={activeTask.id} />
             </div>
@@ -91,21 +95,28 @@ export function Timer() {
         ) : (
           <div className="bg-gray-50 rounded-lg p-6 text-center">
             <div className="text-gray-500 mb-4">No active timer running</div>
-            <p className="text-sm text-gray-600 mb-4">Start a timer from the task list or select a task below</p>
+            <p className="text-sm text-gray-600 mb-4">
+              Start a timer from the task list or select a task below
+            </p>
           </div>
         )}
       </div>
 
       {/* Recent Tasks Section */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">Recent Tasks</h2>
-        
+        <h2 className="text-xl font-semibold text-gray-700 mb-4">
+          Recent Tasks
+        </h2>
+
         {recentTasks.length > 0 ? (
           <div className="grid gap-4">
             {recentTasks
-              .filter(task => task.id !== activeTask?.id) // Don't show active task again
-              .map(task => (
-                <div key={task.id} className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+              .filter((task) => task.id !== activeTask?.id) // Don't show active task again
+              .map((task) => (
+                <div
+                  key={task.id}
+                  className="bg-white rounded-lg shadow-sm p-4 border border-gray-200"
+                >
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-medium">{task.title}</h3>
                     <div className="text-xs text-gray-500">
@@ -120,7 +131,7 @@ export function Timer() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="mt-3">
                     <TimerControls taskId={task.id} compact={true} />
                   </div>
@@ -128,7 +139,9 @@ export function Timer() {
               ))}
           </div>
         ) : (
-          <div className="text-gray-500 text-center py-8">No tasks available</div>
+          <div className="text-gray-500 text-center py-8">
+            No tasks available
+          </div>
         )}
       </div>
     </div>

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ListNotes, 
-  TextNotes, 
+import {
+  ListNotes,
+  TextNotes,
   CombinedNotes,
-  Notes, 
-  NoteFormat, 
-  createEmptyListNotes, 
+  Notes,
+  NoteFormat,
+  createEmptyListNotes,
   createEmptyTextNotes,
   createEmptyCombinedNotes,
-  parseNotes, 
+  parseNotes,
   stringifyNotes,
-  toCombinedNotes
+  toCombinedNotes,
 } from '../../types/list';
 import ListEditor from './ListEditor';
 import { ListChecks, FileText, Layers } from 'lucide-react';
@@ -35,19 +35,19 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
 }) => {
   const { settings } = useSettings();
   const allowTaskSwitching = settings.allowTaskSwitching;
-  
+
   // Parse the notes string into a structured Notes object or create a default list if empty
   const [notes, setNotes] = useState<Notes>(() => {
     const parsedNotes = parseNotes(value);
-    
+
     // If it's a new note (empty), default to list format
     if (!value) {
       return createEmptyListNotes();
     }
-    
+
     return parsedNotes;
   });
-  
+
   // Update internal state when props change
   useEffect(() => {
     if (value) {
@@ -58,9 +58,9 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
   // Handle switching between note formats
   const switchFormat = (format: NoteFormat) => {
     if (format === notes.format) return;
-    
+
     let newNotes: Notes;
-    
+
     if (allowTaskSwitching) {
       // If task switching is allowed, replace the content type completely
       if (format === NoteFormat.LIST) {
@@ -80,7 +80,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
           // Keep list items from combined notes
           newNotes = {
             format: NoteFormat.LIST,
-            items: (notes as CombinedNotes).items
+            items: (notes as CombinedNotes).items,
           };
         } else {
           // Create new list and lose text content
@@ -92,7 +92,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
           // Keep text content from combined notes
           newNotes = {
             format: NoteFormat.TEXT,
-            content: (notes as CombinedNotes).content
+            content: (notes as CombinedNotes).content,
           };
         } else {
           // Create new text and lose list content
@@ -100,7 +100,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
         }
       }
     }
-    
+
     setNotes(newNotes);
     onChange(stringifyNotes(newNotes));
   };
@@ -112,7 +112,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
       const updatedNotes: CombinedNotes = {
         format: NoteFormat.BOTH,
         content: text,
-        items: (notes as CombinedNotes).items
+        items: (notes as CombinedNotes).items,
       };
       setNotes(updatedNotes);
       onChange(stringifyNotes(updatedNotes));
@@ -120,7 +120,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
       // Standard text note update
       const updatedNotes: TextNotes = {
         format: NoteFormat.TEXT,
-        content: text
+        content: text,
       };
       setNotes(updatedNotes);
       onChange(stringifyNotes(updatedNotes));
@@ -134,7 +134,7 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
       const updatedNotes: CombinedNotes = {
         format: NoteFormat.BOTH,
         content: (notes as CombinedNotes).content,
-        items: listNotes.items
+        items: listNotes.items,
       };
       setNotes(updatedNotes);
       onChange(stringifyNotes(updatedNotes));
@@ -151,45 +151,47 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
       <div className="flex items-center justify-between mb-2 border-b pb-2">
         <div className="flex items-center">
           <h3 className="text-sm font-medium text-gray-700 mr-2">
-            {notes.format === NoteFormat.LIST ? 'Checklist' : 
-             notes.format === NoteFormat.TEXT ? 'Notes' : 
-             'Notes & Checklist'}
+            {notes.format === NoteFormat.LIST
+              ? 'Checklist'
+              : notes.format === NoteFormat.TEXT
+              ? 'Notes'
+              : 'Notes & Checklist'}
           </h3>
-          
+
           {!readOnly && (
             <div className="flex space-x-1">
               <button
                 type="button"
                 onClick={() => switchFormat(NoteFormat.LIST)}
                 className={`p-1 rounded-md ${
-                  notes.format === NoteFormat.LIST 
-                    ? 'bg-blue-100 text-blue-700' 
+                  notes.format === NoteFormat.LIST
+                    ? 'bg-blue-100 text-blue-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
                 title="Checklist format"
               >
                 <ListChecks className="w-4 h-4" />
               </button>
-              
+
               <button
                 type="button"
                 onClick={() => switchFormat(NoteFormat.TEXT)}
                 className={`p-1 rounded-md ${
-                  notes.format === NoteFormat.TEXT 
-                    ? 'bg-blue-100 text-blue-700' 
+                  notes.format === NoteFormat.TEXT
+                    ? 'bg-blue-100 text-blue-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
                 title="Text format"
               >
                 <FileText className="w-4 h-4" />
               </button>
-              
+
               <button
                 type="button"
                 onClick={() => switchFormat(NoteFormat.BOTH)}
                 className={`p-1 rounded-md ${
-                  notes.format === NoteFormat.BOTH 
-                    ? 'bg-blue-100 text-blue-700' 
+                  notes.format === NoteFormat.BOTH
+                    ? 'bg-blue-100 text-blue-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
                 title="Combined format (notes & checklist)"
@@ -200,16 +202,23 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
           )}
         </div>
       </div>
-      
+
       {/* Text editor section */}
-      {(notes.format === NoteFormat.TEXT || notes.format === NoteFormat.BOTH) && (
+      {(notes.format === NoteFormat.TEXT ||
+        notes.format === NoteFormat.BOTH) && (
         <div className="mb-4">
           {notes.format === NoteFormat.BOTH && (
-            <h4 className="text-xs font-medium text-gray-500 mb-1">Text Notes</h4>
+            <h4 className="text-xs font-medium text-gray-500 mb-1">
+              Text Notes
+            </h4>
           )}
           <textarea
             placeholder="Enter your notes here..."
-            value={notes.format === NoteFormat.TEXT ? (notes as TextNotes).content : (notes as CombinedNotes).content}
+            value={
+              notes.format === NoteFormat.TEXT
+                ? (notes as TextNotes).content
+                : (notes as CombinedNotes).content
+            }
             onChange={(e) => handleTextChange(e.target.value)}
             readOnly={readOnly}
             className="w-full p-2 rounded-md border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -217,16 +226,25 @@ export const NotesEditor: React.FC<NotesEditorProps> = ({
           />
         </div>
       )}
-      
+
       {/* List editor section */}
-      {(notes.format === NoteFormat.LIST || notes.format === NoteFormat.BOTH) && (
+      {(notes.format === NoteFormat.LIST ||
+        notes.format === NoteFormat.BOTH) && (
         <div>
           {notes.format === NoteFormat.BOTH && (
-            <h4 className="text-xs font-medium text-gray-500 mb-1">Checklist Items</h4>
+            <h4 className="text-xs font-medium text-gray-500 mb-1">
+              Checklist Items
+            </h4>
           )}
           <ListEditor
-            value={notes.format === NoteFormat.LIST ? notes as ListNotes : 
-                   { format: NoteFormat.LIST, items: (notes as CombinedNotes).items }}
+            value={
+              notes.format === NoteFormat.LIST
+                ? (notes as ListNotes)
+                : {
+                    format: NoteFormat.LIST,
+                    items: (notes as CombinedNotes).items,
+                  }
+            }
             onChange={handleListChange}
             readOnly={readOnly}
           />

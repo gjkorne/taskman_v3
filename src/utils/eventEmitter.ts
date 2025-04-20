@@ -1,21 +1,21 @@
 /**
  * A simple typed event emitter for application events
- * 
+ *
  * Example usage:
  * ```
  * const events = new EventEmitter<{
  *   'user-login': { userId: string };
  *   'data-loaded': Array<any>;
  * }>();
- * 
+ *
  * // Subscribe to events
  * const unsubscribe = events.on('user-login', (data) => {
  *   console.log('User logged in:', data.userId);
  * });
- * 
+ *
  * // Emit events
  * events.emit('user-login', { userId: '123' });
- * 
+ *
  * // Unsubscribe when done
  * unsubscribe();
  * ```
@@ -39,7 +39,7 @@ export class EventEmitter<T extends Record<string, any>> {
 
     // Return unsubscribe function
     return () => {
-      this.handlers[event] = this.handlers[event]!.filter(h => h !== handler);
+      this.handlers[event] = this.handlers[event]!.filter((h) => h !== handler);
     };
   }
 
@@ -53,7 +53,7 @@ export class EventEmitter<T extends Record<string, any>> {
       unsubscribe();
       handler(data);
     });
-    
+
     return unsubscribe;
   }
 

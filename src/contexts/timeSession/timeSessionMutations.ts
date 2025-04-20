@@ -12,7 +12,8 @@ function handleError(
   type: ToastType = 'error',
   duration?: number
 ) {
-  return (error: Error) => addToast(`Error ${action}: ${error.message}`, type, duration);
+  return (error: Error) =>
+    addToast(`Error ${action}: ${error.message}`, type, duration);
 }
 
 export function useTimeSessionMutations() {
@@ -30,7 +31,11 @@ export function useTimeSessionMutations() {
     onError: handleError(addToast, 'creating time session', 'error', 3000),
   });
 
-  const updateMutation = useMutation<TimeSession | null, Error, { id: string; data: Partial<TimeSession> }>({
+  const updateMutation = useMutation<
+    TimeSession | null,
+    Error,
+    { id: string; data: Partial<TimeSession> }
+  >({
     mutationFn: ({ id, data }) => service.updateSession(id, data),
     onSuccess: (sess: TimeSession | null) => {
       if (!sess) return;
@@ -44,10 +49,10 @@ export function useTimeSessionMutations() {
     mutationFn: (id: string) => service.deleteSession(id),
     onSuccess: (result: boolean, id: string) => {
       if (!result) return;
-      queryClient.invalidateQueries({ queryKey: ["time-sessions", "list"] });
-      queryClient.invalidateQueries({ queryKey: ["time-sessions", "active"] });
-      queryClient.invalidateQueries({ queryKey: ["time-sessions", "metrics"] });
-      queryClient.removeQueries({ queryKey: ["time-sessions", "detail", id] });
+      queryClient.invalidateQueries({ queryKey: ['time-sessions', 'list'] });
+      queryClient.invalidateQueries({ queryKey: ['time-sessions', 'active'] });
+      queryClient.invalidateQueries({ queryKey: ['time-sessions', 'metrics'] });
+      queryClient.removeQueries({ queryKey: ['time-sessions', 'detail', id] });
       addToast('Time session deleted', 'success', 3000);
     },
     onError: handleError(addToast, 'deleting time session', 'error', 3000),

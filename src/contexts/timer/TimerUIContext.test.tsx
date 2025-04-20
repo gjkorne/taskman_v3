@@ -5,15 +5,24 @@ import { describe, it, expect } from 'vitest';
 import { TimerUIProvider, useTimerUI } from './TimerUIContext';
 
 function TestComponent() {
-  const { isTimerOpen, openTimer, closeTimer, viewMode, setViewMode } = useTimerUI();
+  const { isTimerOpen, openTimer, closeTimer, viewMode, setViewMode } =
+    useTimerUI();
   return (
     <div>
       <span data-testid="open">{isTimerOpen.toString()}</span>
       <span data-testid="view">{viewMode}</span>
-      <button data-testid="open-btn" onClick={() => openTimer()}>Open</button>
-      <button data-testid="close-btn" onClick={() => closeTimer()}>Close</button>
-      <button data-testid="mode-digital" onClick={() => setViewMode('digital')}>Digital</button>
-      <button data-testid="mode-analog" onClick={() => setViewMode('analog')}>Analog</button>
+      <button data-testid="open-btn" onClick={() => openTimer()}>
+        Open
+      </button>
+      <button data-testid="close-btn" onClick={() => closeTimer()}>
+        Close
+      </button>
+      <button data-testid="mode-digital" onClick={() => setViewMode('digital')}>
+        Digital
+      </button>
+      <button data-testid="mode-analog" onClick={() => setViewMode('analog')}>
+        Analog
+      </button>
     </div>
   );
 }

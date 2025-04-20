@@ -7,10 +7,20 @@ import { TaskDataProvider, useTaskData } from './TaskDataContext';
 import { Task } from '../../types/task';
 
 // Mock toast hook
-vi.mock('../../components/Toast/ToastContext', () => ({ useToast: () => ({ addToast: vi.fn() }) }));
+vi.mock('../../components/Toast/ToastContext', () => ({
+  useToast: () => ({ addToast: vi.fn() }),
+}));
 
 // Mock task service methods
-const mockTasks = [{ id: 't1', title: 'Test', status: 'pending', created_at: '', updated_at: '' } as Task];
+const mockTasks = [
+  {
+    id: 't1',
+    title: 'Test',
+    status: 'pending',
+    created_at: '',
+    updated_at: '',
+  } as Task,
+];
 const updatedTask = { ...mockTasks[0], status: 'completed' } as Task;
 const taskServiceMock = {
   getTasks: vi.fn().mockResolvedValue(mockTasks),
@@ -23,7 +33,9 @@ const taskServiceMock = {
 };
 
 beforeEach(() => {
-  vi.spyOn(ServiceRegistry, 'getTaskService').mockReturnValue(taskServiceMock as any);
+  vi.spyOn(ServiceRegistry, 'getTaskService').mockReturnValue(
+    taskServiceMock as any
+  );
 });
 
 type ReactElement = import('react').ReactElement;
@@ -54,7 +66,10 @@ function TestComponent() {
       <button data-testid="fetch" onClick={() => fetchTasks()} />
       <button data-testid="refresh" onClick={() => refreshTasks()} />
       <button data-testid="sync" onClick={() => syncTasks()} />
-      <button data-testid="update" onClick={() => updateTaskStatus('t1', 'completed')} />
+      <button
+        data-testid="update"
+        onClick={() => updateTaskStatus('t1', 'completed')}
+      />
       <button data-testid="delete" onClick={() => deleteTask('t1')} />
     </div>
   );
@@ -64,14 +79,18 @@ describe('TaskDataContext', () => {
   it('loads tasks on mount', async () => {
     renderWithClient(<TestComponent />);
     expect(screen.getByTestId('loading')).toHaveTextContent('loading');
-    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('loaded'));
+    await waitFor(() =>
+      expect(screen.getByTestId('loading')).toHaveTextContent('loaded')
+    );
     expect(screen.getByTestId('count')).toHaveTextContent('1');
     expect(taskServiceMock.getTasks).toHaveBeenCalled();
   });
 
   it('invokes service methods on actions', async () => {
     renderWithClient(<TestComponent />);
-    await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('loaded'));
+    await waitFor(() =>
+      expect(screen.getByTestId('loading')).toHaveTextContent('loaded')
+    );
 
     fireEvent.click(screen.getByTestId('fetch'));
     expect(taskServiceMock.getTasks).toHaveBeenCalled();
@@ -83,9 +102,16 @@ describe('TaskDataContext', () => {
     await waitFor(() => expect(taskServiceMock.sync).toHaveBeenCalled());
 
     fireEvent.click(screen.getByTestId('update'));
-    await waitFor(() => expect(taskServiceMock.updateTaskStatus).toHaveBeenCalledWith('t1', 'completed'));
+    await waitFor(() =>
+      expect(taskServiceMock.updateTaskStatus).toHaveBeenCalledWith(
+        't1',
+        'completed'
+      )
+    );
 
     fireEvent.click(screen.getByTestId('delete'));
-    await waitFor(() => expect(taskServiceMock.deleteTask).toHaveBeenCalledWith('t1'));
+    await waitFor(() =>
+      expect(taskServiceMock.deleteTask).toHaveBeenCalledWith('t1')
+    );
   });
 });

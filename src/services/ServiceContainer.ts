@@ -1,6 +1,6 @@
 /**
  * Service container for dependency injection
- * 
+ *
  * This allows decoupling service implementations from their consumers,
  * enabling easier testing and future refactoring.
  */
@@ -50,7 +50,11 @@ export class ServiceContainer {
   /**
    * Register a class as a service (will be instantiated lazily on first get)
    */
-  registerClass<T>(token: string, serviceClass: ServiceConstructor<T>, deps: any[] = []): void {
+  registerClass<T>(
+    token: string,
+    serviceClass: ServiceConstructor<T>,
+    deps: any[] = []
+  ): void {
     this.factories.set(token, () => new serviceClass(...deps));
   }
 
@@ -95,12 +99,12 @@ export const SERVICE_TOKENS = {
   AUTH_SERVICE: 'authService',
   CATEGORY_SERVICE: 'categoryService',
   TIME_SESSION_SERVICE: 'timeSessionService',
-  
+
   // New services
   FORM_SERVICE: 'formService',
   SYNC_SERVICE: 'syncService',
   NOTIFICATION_SERVICE: 'notificationService',
   PERFORMANCE_SERVICE: 'performanceService',
-  
+
   // Add more service tokens here as needed
 } as const;

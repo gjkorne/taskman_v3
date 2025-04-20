@@ -5,12 +5,15 @@ import { TimeSession } from './types';
 export const TIME_SESSION_QUERY_KEYS = {
   all: ['time-sessions'] as const,
   lists: () => [...TIME_SESSION_QUERY_KEYS.all, 'list'] as const,
-  list: (filter?: string) => [...TIME_SESSION_QUERY_KEYS.lists(), filter] as const,
+  list: (filter?: string) =>
+    [...TIME_SESSION_QUERY_KEYS.lists(), filter] as const,
   active: () => [...TIME_SESSION_QUERY_KEYS.all, 'active'] as const,
   byTask: () => [...TIME_SESSION_QUERY_KEYS.all, 'by-task'] as const,
-  task: (taskId: string) => [...TIME_SESSION_QUERY_KEYS.byTask(), taskId] as const,
+  task: (taskId: string) =>
+    [...TIME_SESSION_QUERY_KEYS.byTask(), taskId] as const,
   byDate: () => [...TIME_SESSION_QUERY_KEYS.all, 'by-date'] as const,
-  dateRange: (start: string, end: string) => [...TIME_SESSION_QUERY_KEYS.byDate(), start, end] as const,
+  dateRange: (start: string, end: string) =>
+    [...TIME_SESSION_QUERY_KEYS.byDate(), start, end] as const,
   details: () => [...TIME_SESSION_QUERY_KEYS.all, 'detail'] as const,
   detail: (id: string) => [...TIME_SESSION_QUERY_KEYS.details(), id] as const,
   metrics: () => [...TIME_SESSION_QUERY_KEYS.all, 'metrics'] as const,

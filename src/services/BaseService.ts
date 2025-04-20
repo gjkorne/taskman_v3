@@ -14,8 +14,8 @@ export interface ServiceError {
  * Base events that all services should support
  */
 export interface BaseServiceEvents {
-  'error': ServiceError;
-  'ready': void;
+  error: ServiceError;
+  ready: void;
 }
 
 /**
@@ -31,7 +31,9 @@ export interface ServiceResponse<T> {
  * Base service class that implements IService interface
  * Provides standard event handling and error processing
  */
-export abstract class BaseService<TEvents extends Record<string, any>> implements IService<TEvents & BaseServiceEvents> {
+export abstract class BaseService<TEvents extends Record<string, any>>
+  implements IService<TEvents & BaseServiceEvents>
+{
   private eventCallbacks: Map<string, Set<Function>> = new Map();
   protected ready = false;
 
@@ -39,15 +41,15 @@ export abstract class BaseService<TEvents extends Record<string, any>> implement
    * Subscribe to service events
    */
   public on<K extends keyof (TEvents & BaseServiceEvents)>(
-    event: K, 
+    event: K,
     callback: (data: (TEvents & BaseServiceEvents)[K]) => void
   ): () => void {
     if (!this.eventCallbacks.has(event as string)) {
       this.eventCallbacks.set(event as string, new Set());
     }
-    
+
     this.eventCallbacks.get(event as string)?.add(callback);
-    
+
     // Return unsubscribe function
     return () => this.off(event, callback);
   }
@@ -56,7 +58,7 @@ export abstract class BaseService<TEvents extends Record<string, any>> implement
    * Unsubscribe from service events
    */
   public off<K extends keyof (TEvents & BaseServiceEvents)>(
-    event: K, 
+    event: K,
     callback: (data: (TEvents & BaseServiceEvents)[K]) => void
   ): void {
     this.eventCallbacks.get(event as string)?.delete(callback);
@@ -66,12 +68,12 @@ export abstract class BaseService<TEvents extends Record<string, any>> implement
    * Emit an event with data
    */
   public emit<K extends keyof (TEvents & BaseServiceEvents)>(
-    event: K, 
+    event: K,
     data?: (TEvents & BaseServiceEvents)[K]
   ): void {
     const callbacks = this.eventCallbacks.get(event as string);
     if (!callbacks) return;
-    
+
     for (const callback of callbacks) {
       try {
         callback(data);
@@ -84,22 +86,25 @@ export abstract class BaseService<TEvents extends Record<string, any>> implement
   /**
    * Process an error into a standardized ServiceError
    */
-  protected processError(error: any, defaultCode = 'service_error'): ServiceError {
+  protected processError(
+    error: any,
+    defaultCode = 'service_error'
+  ): ServiceError {
     // Handle Supabase errors
     if (error?.code && error?.message) {
       return {
         code: error.code,
         message: error.message,
         detail: error.details || error.hint || undefined,
-        originalError: error
+        originalError: error,
       };
     }
-    
+
     // Handle generic errors
     return {
       code: defaultCode,
       message: error?.message || 'An unexpected error occurred',
-      originalError: error
+      originalError: error,
     };
   }
 
@@ -109,22 +114,25 @@ export abstract class BaseService<TEvents extends Record<string, any>> implement
   protected createSuccessResponse<T>(data: T): ServiceResponse<T> {
     return {
       data,
-      success: true
+      success: true,
     };
   }
 
   /**
    * Create an error response and emit the error event
    */
-  protected createErrorResponse<T>(error: any, code?: string): ServiceResponse<T> {
+  protected createErrorResponse<T>(
+    error: any,
+    code?: string
+  ): ServiceResponse<T> {
     const processedError = this.processError(error, code);
-    
-    // Emit the error event 
+
+    // Emit the error event
     this.emit('error', processedError);
-    
+
     return {
       error: processedError,
-      success: false
+      success: false,
     };
   }
 

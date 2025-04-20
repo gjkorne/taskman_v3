@@ -9,7 +9,7 @@ export interface FormServiceEvents {
   'form-validation-error': { formId: string; errors: ZodError };
   'form-reset': { formId: string };
   'form-field-changed': { formId: string; field: string; value: any };
-  'error': Error;
+  error: Error;
 }
 
 /**
@@ -46,29 +46,37 @@ export interface IFormService extends IService<FormServiceEvents> {
    * @returns Validation result with typed data or errors
    */
   validate<T>(schema: ZodSchema<T>, data: any): ValidationResult<T>;
-  
+
   /**
    * Register a form with the service and get its initial state
    * @param formId Unique identifier for the form
    * @param schema Zod schema for form validation
    * @param initialValues Initial form values (optional)
    */
-  registerForm<T>(formId: string, schema: ZodSchema<T>, initialValues?: Partial<T>): FormState<T>;
-  
+  registerForm<T>(
+    formId: string,
+    schema: ZodSchema<T>,
+    initialValues?: Partial<T>
+  ): FormState<T>;
+
   /**
    * Update form values and validate
    * @param formId Unique identifier for the form
    * @param values Form values to update
    * @param shouldValidate Whether to validate after update (default: true)
    */
-  updateForm<T>(formId: string, values: Partial<T>, shouldValidate?: boolean): FormState<T>;
-  
+  updateForm<T>(
+    formId: string,
+    values: Partial<T>,
+    shouldValidate?: boolean
+  ): FormState<T>;
+
   /**
    * Get current form state
    * @param formId Unique identifier for the form
    */
   getFormState<T>(formId: string): FormState<T> | null;
-  
+
   /**
    * Handle form submission
    * @param formId Unique identifier for the form
@@ -76,17 +84,17 @@ export interface IFormService extends IService<FormServiceEvents> {
    * @param onError Callback for validation errors
    */
   submitForm<T>(
-    formId: string, 
+    formId: string,
     onSuccess: (data: T) => void | Promise<void>,
     onError?: (errors: ZodError) => void
   ): Promise<void>;
-  
+
   /**
    * Reset a form to its initial state
    * @param formId Unique identifier for the form
    */
   resetForm(formId: string): void;
-  
+
   /**
    * Unregister a form when no longer needed
    * @param formId Unique identifier for the form

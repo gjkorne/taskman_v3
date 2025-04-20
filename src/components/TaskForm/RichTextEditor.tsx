@@ -16,13 +16,14 @@ export function RichTextEditor({ value, onChange, id }: RichTextEditorProps) {
     },
     editorProps: {
       attributes: {
-        class: 'prose max-w-none focus:outline-none min-h-[100px] max-h-[300px] overflow-y-auto',
+        class:
+          'prose max-w-none focus:outline-none min-h-[100px] max-h-[300px] overflow-y-auto',
       },
     },
   });
 
   return (
-    <div 
+    <div
       className="w-full bg-white rounded-lg border border-gray-300 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-colors"
       id={id}
     >

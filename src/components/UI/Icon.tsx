@@ -23,7 +23,7 @@ export const Icon: React.FC<IconProps> = ({
 }) => {
   // Get the Lucide icon component
   const LucideIconComponent = LucideIcons[name] as LucideIcon;
-  
+
   if (!LucideIconComponent) {
     console.warn(`Icon "${name}" not found`);
     return null;

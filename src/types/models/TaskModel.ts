@@ -16,12 +16,12 @@ export interface TaskModel {
   estimatedTimeMinutes: number | null; // Converted from interval to minutes
   actualTimeMinutes: number | null; // Converted from interval to minutes
   tags: string[];
-  
+
   // Notes and Checklist fields
-  notes: any | null;                     // JSONB in database - stores rich text content
-  checklistItems: any[] | null;          // JSONB array - stores checklist items
+  notes: any | null; // JSONB in database - stores rich text content
+  checklistItems: any[] | null; // JSONB array - stores checklist items
   noteType: 'text' | 'checklist' | 'both' | null; // Primary display type
-  
+
   // Metadata fields
   createdAt: Date;
   updatedAt: Date | null;
@@ -29,17 +29,17 @@ export interface TaskModel {
   isDeleted: boolean;
   listId: string | null;
   categoryName: string | null;
-  
+
   // Additional fields for NLP and AI features
   nlpTokens?: any | null;
   extractedEntities?: any | null;
   embeddingData?: any | null;
   confidenceScore?: number | null;
   processingMetadata?: any | null;
-  
+
   // UI helper fields (not stored in DB)
   rawInput?: string;
-  
+
   // Offline sync fields
   isSynced: boolean;
   syncStatus: 'pending' | 'synced' | 'failed' | 'none';
@@ -67,7 +67,9 @@ export interface NewTaskInput {
 /**
  * Task Update Input - Used when updating an existing task
  */
-export type TaskUpdateInput = Partial<Omit<TaskModel, 'id' | 'createdAt' | 'createdBy'>>;
+export type TaskUpdateInput = Partial<
+  Omit<TaskModel, 'id' | 'createdAt' | 'createdBy'>
+>;
 
 /**
  * Create default values for new tasks

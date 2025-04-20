@@ -25,14 +25,15 @@ interface LogConfig {
 
 // Default configuration
 const DEFAULT_CONFIG: LogConfig = {
-  minLevel: process.env.NODE_ENV === 'production' ? LogLevel.WARN : LogLevel.DEBUG,
+  minLevel:
+    process.env.NODE_ENV === 'production' ? LogLevel.WARN : LogLevel.DEBUG,
   enabled: {
     duration: process.env.NODE_ENV !== 'production',
     api: true,
     state: process.env.NODE_ENV !== 'production',
     component: process.env.NODE_ENV !== 'production',
     performance: true,
-  }
+  },
 };
 
 // Current configuration (can be updated at runtime)
@@ -43,7 +44,7 @@ let config: LogConfig = { ...DEFAULT_CONFIG };
  */
 export function configureLogging(newConfig: Partial<LogConfig>): void {
   config = { ...config, ...newConfig };
-  
+
   if (newConfig.enabled) {
     config.enabled = { ...config.enabled, ...newConfig.enabled };
   }
@@ -59,7 +60,11 @@ export function resetLoggingConfig(): void {
 /**
  * Debug level logging
  */
-export function logDebug(category: keyof LogConfig['enabled'], message: string, ...args: any[]): void {
+export function logDebug(
+  category: keyof LogConfig['enabled'],
+  message: string,
+  ...args: any[]
+): void {
   if (shouldLog(LogLevel.DEBUG, category)) {
     console.debug(`[${category.toUpperCase()}] ${message}`, ...args);
   }
@@ -68,7 +73,11 @@ export function logDebug(category: keyof LogConfig['enabled'], message: string, 
 /**
  * Info level logging
  */
-export function logInfo(category: keyof LogConfig['enabled'], message: string, ...args: any[]): void {
+export function logInfo(
+  category: keyof LogConfig['enabled'],
+  message: string,
+  ...args: any[]
+): void {
   if (shouldLog(LogLevel.INFO, category)) {
     console.log(`[${category.toUpperCase()}] ${message}`, ...args);
   }
@@ -77,7 +86,11 @@ export function logInfo(category: keyof LogConfig['enabled'], message: string, .
 /**
  * Warning level logging
  */
-export function logWarn(category: keyof LogConfig['enabled'], message: string, ...args: any[]): void {
+export function logWarn(
+  category: keyof LogConfig['enabled'],
+  message: string,
+  ...args: any[]
+): void {
   if (shouldLog(LogLevel.WARN, category)) {
     console.warn(`[${category.toUpperCase()}] ${message}`, ...args);
   }
@@ -86,7 +99,11 @@ export function logWarn(category: keyof LogConfig['enabled'], message: string, .
 /**
  * Error level logging
  */
-export function logError(category: keyof LogConfig['enabled'], message: string, ...args: any[]): void {
+export function logError(
+  category: keyof LogConfig['enabled'],
+  message: string,
+  ...args: any[]
+): void {
   if (shouldLog(LogLevel.ERROR, category)) {
     console.error(`[${category.toUpperCase()}] ${message}`, ...args);
   }
@@ -95,23 +112,33 @@ export function logError(category: keyof LogConfig['enabled'], message: string, 
 /**
  * Determines if a log should be shown based on current config
  */
-function shouldLog(level: LogLevel, category: keyof LogConfig['enabled']): boolean {
+function shouldLog(
+  level: LogLevel,
+  category: keyof LogConfig['enabled']
+): boolean {
   return level >= config.minLevel && config.enabled[category];
 }
 
 /**
  * Performance logging utility - logs execution time of functions
  */
-export function logPerformance<T>(category: string, name: string, fn: () => T): T {
+export function logPerformance<T>(
+  category: string,
+  name: string,
+  fn: () => T
+): T {
   if (!shouldLog(LogLevel.DEBUG, 'performance')) {
     return fn();
   }
-  
+
   const start = performance.now();
   const result = fn();
   const end = performance.now();
-  
-  logInfo('performance', `${category} - ${name} took ${(end - start).toFixed(2)}ms`);
+
+  logInfo(
+    'performance',
+    `${category} - ${name} took ${(end - start).toFixed(2)}ms`
+  );
   return result;
 }
 
@@ -120,11 +147,17 @@ export function logPerformance<T>(category: string, name: string, fn: () => T): 
  */
 export function createLogger(context: string) {
   return {
-    debug: (message: string, ...args: any[]) => logDebug('component', `[${context}] ${message}`, ...args),
-    info: (message: string, ...args: any[]) => logInfo('component', `[${context}] ${message}`, ...args),
-    warn: (message: string, ...args: any[]) => logWarn('component', `[${context}] ${message}`, ...args),
-    error: (message: string, ...args: any[]) => logError('component', `[${context}] ${message}`, ...args),
-    log: (message: string, ...args: any[]) => logInfo('component', `[${context}] ${message}`, ...args),
-    performance: <T>(name: string, fn: () => T): T => logPerformance(context, name, fn),
+    debug: (message: string, ...args: any[]) =>
+      logDebug('component', `[${context}] ${message}`, ...args),
+    info: (message: string, ...args: any[]) =>
+      logInfo('component', `[${context}] ${message}`, ...args),
+    warn: (message: string, ...args: any[]) =>
+      logWarn('component', `[${context}] ${message}`, ...args),
+    error: (message: string, ...args: any[]) =>
+      logError('component', `[${context}] ${message}`, ...args),
+    log: (message: string, ...args: any[]) =>
+      logInfo('component', `[${context}] ${message}`, ...args),
+    performance: <T>(name: string, fn: () => T): T =>
+      logPerformance(context, name, fn),
   };
 }

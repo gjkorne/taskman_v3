@@ -9,9 +9,7 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   return (
     <TaskDataProvider>
       <TaskUIProvider>
-        <LegacyBridge>
-          {children}
-        </LegacyBridge>
+        <LegacyBridge>{children}</LegacyBridge>
       </TaskUIProvider>
     </TaskDataProvider>
   );
@@ -21,13 +19,16 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
 const LegacyBridge = ({ children }: { children: ReactNode }) => {
   const dataContext = useTaskData();
   const uiContext = useTaskUI();
-  
+
   // Combine contexts for backward compatibility
-  const combinedContext = useMemo(() => ({
-    ...dataContext,
-    ...uiContext
-  }), [dataContext, uiContext]);
-  
+  const combinedContext = useMemo(
+    () => ({
+      ...dataContext,
+      ...uiContext,
+    }),
+    [dataContext, uiContext]
+  );
+
   return (
     <TaskContext.Provider value={combinedContext}>
       {children}

@@ -11,7 +11,7 @@ export enum ErrorType {
   NOT_FOUND = 'NOT_FOUND',
   DATA_SYNC = 'DATA_SYNC',
   DATABASE = 'DATABASE',
-  UNKNOWN = 'UNKNOWN'
+  UNKNOWN = 'UNKNOWN',
 }
 
 export interface ErrorDetails {
@@ -44,7 +44,7 @@ export class AppError extends Error {
     this.details = {
       message,
       timestamp: new Date().toISOString(),
-      ...details
+      ...details,
     };
     this.isHandled = false;
     this.isOperational = isOperational;
@@ -56,60 +56,89 @@ export class AppError extends Error {
   /**
    * Create a network error
    */
-  static network(message: string, details?: Omit<ErrorDetails, 'message'>): AppError {
+  static network(
+    message: string,
+    details?: Omit<ErrorDetails, 'message'>
+  ): AppError {
     return new AppError(ErrorType.NETWORK, message, details);
   }
 
   /**
    * Create an authentication error
    */
-  static authentication(message: string, details?: Omit<ErrorDetails, 'message'>): AppError {
+  static authentication(
+    message: string,
+    details?: Omit<ErrorDetails, 'message'>
+  ): AppError {
     return new AppError(ErrorType.AUTHENTICATION, message, details);
   }
 
   /**
    * Create an authorization error
    */
-  static authorization(message: string, details?: Omit<ErrorDetails, 'message'>): AppError {
+  static authorization(
+    message: string,
+    details?: Omit<ErrorDetails, 'message'>
+  ): AppError {
     return new AppError(ErrorType.AUTHORIZATION, message, details);
   }
 
   /**
    * Create a validation error
    */
-  static validation(message: string, details?: Omit<ErrorDetails, 'message'>): AppError {
+  static validation(
+    message: string,
+    details?: Omit<ErrorDetails, 'message'>
+  ): AppError {
     return new AppError(ErrorType.VALIDATION, message, details);
   }
 
   /**
    * Create a not found error
    */
-  static notFound(message: string, details?: Omit<ErrorDetails, 'message'>): AppError {
+  static notFound(
+    message: string,
+    details?: Omit<ErrorDetails, 'message'>
+  ): AppError {
     return new AppError(ErrorType.NOT_FOUND, message, details);
   }
 
   /**
    * Create a data sync error
    */
-  static dataSync(message: string, details?: Omit<ErrorDetails, 'message'>): AppError {
+  static dataSync(
+    message: string,
+    details?: Omit<ErrorDetails, 'message'>
+  ): AppError {
     return new AppError(ErrorType.DATA_SYNC, message, details);
   }
 
   /**
    * Create a database error
    */
-  static database(message: string, details?: Omit<ErrorDetails, 'message'>): AppError {
+  static database(
+    message: string,
+    details?: Omit<ErrorDetails, 'message'>
+  ): AppError {
     return new AppError(ErrorType.DATABASE, message, details);
   }
 
   /**
    * Create an unknown error
    */
-  static unknown(message = 'An unexpected error occurred', originalError?: any): AppError {
-    return new AppError(ErrorType.UNKNOWN, message, { 
-      originalError,
-      code: originalError?.code || 'UNKNOWN_ERROR'
-    }, false);
+  static unknown(
+    message = 'An unexpected error occurred',
+    originalError?: any
+  ): AppError {
+    return new AppError(
+      ErrorType.UNKNOWN,
+      message,
+      {
+        originalError,
+        code: originalError?.code || 'UNKNOWN_ERROR',
+      },
+      false
+    );
   }
 
   /**
@@ -124,26 +153,29 @@ export class AppError extends Error {
     if (error?.code && error?.message && error?.code.startsWith('PGRST')) {
       return AppError.database(error.message, {
         code: error.code,
-        originalError: error
+        originalError: error,
       });
     }
 
     // Handle network errors
     if (error?.name === 'NetworkError' || error?.message?.includes('network')) {
       return AppError.network('Network connection error', {
-        originalError: error
+        originalError: error,
       });
     }
 
     // Handle authentication errors
     if (error?.message?.includes('auth') || error?.message?.includes('login')) {
       return AppError.authentication('Authentication error', {
-        originalError: error
+        originalError: error,
       });
     }
 
     // Default to unknown error
-    return AppError.unknown(error?.message || 'An unknown error occurred', error);
+    return AppError.unknown(
+      error?.message || 'An unknown error occurred',
+      error
+    );
   }
 
   /**
@@ -154,20 +186,20 @@ export class AppError extends Error {
     const handledError = new AppError(
       this.type,
       this.message,
-      { 
+      {
         ...this.details,
         code: this.details.code,
         field: this.details.field,
-        originalError: this.details.originalError
+        originalError: this.details.originalError,
       },
       this.isOperational
     );
-    
+
     Object.defineProperty(handledError, 'isHandled', {
       value: true,
-      writable: false
+      writable: false,
     });
-    
+
     return handledError;
   }
 
@@ -181,10 +213,10 @@ export class AppError extends Error {
       case ErrorType.AUTHENTICATION:
         return 'Authentication error. Please sign in again.';
       case ErrorType.AUTHORIZATION:
-        return 'You don\'t have permission to perform this action.';
+        return "You don't have permission to perform this action.";
       case ErrorType.VALIDATION:
-        return this.details.field 
-          ? `Invalid input: ${this.details.field}` 
+        return this.details.field
+          ? `Invalid input: ${this.details.field}`
           : 'Invalid input. Please check your data and try again.';
       case ErrorType.NOT_FOUND:
         return 'The requested resource was not found.';
@@ -216,22 +248,22 @@ export class ErrorHandler {
    */
   static handleError(error: any): AppError {
     const appError = AppError.from(error);
-    
+
     // Log the error
     console.error(
       `[${appError.type}] ${appError.message}`,
       appError.details.originalError || ''
     );
-    
+
     // Run all handlers
-    ErrorHandler.handlers.forEach(handler => {
+    ErrorHandler.handlers.forEach((handler) => {
       try {
         handler(appError);
       } catch (handlerError) {
         console.error('Error handler failed:', handlerError);
       }
     });
-    
+
     return appError.markAsHandled();
   }
 }

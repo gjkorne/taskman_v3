@@ -18,13 +18,13 @@ export function Dashboard() {
   // Get task and time session data functions from our contexts
   const { fetchTasks, isLoading: isTasksLoading } = useTaskData();
   const { fetchSessions, isLoading: isSessionsLoading } = useTimeSessionData();
-  
+
   // Fetch initial data on mount
   useEffect(() => {
     fetchTasks();
     fetchSessions();
   }, [fetchTasks, fetchSessions]);
-  
+
   // Show loading state while data is being fetched
   if (isTasksLoading && isSessionsLoading) {
     return (
@@ -33,24 +33,24 @@ export function Dashboard() {
       </div>
     );
   }
-  
+
   return (
     <DashboardLayout>
       {/* Task overview widget - spans 2 columns on larger screens */}
       <TaskOverviewWidget />
-      
+
       {/* Task Priority Widget - spans 1 column */}
       <TaskPriorityWidget />
-      
+
       {/* Time tracking widget - spans 1 column */}
       <TimeTrackingWidget />
-      
+
       {/* Upcoming Tasks Widget - shows tasks with upcoming due dates */}
       <UpcomingTasksWidget />
-      
+
       {/* Project progress widget - spans 2 columns */}
       <ProjectProgressWidget />
-      
+
       {/* Productivity trends widget - spans 2 columns and 2 rows */}
       <ProductivityTrendsWidget />
     </DashboardLayout>

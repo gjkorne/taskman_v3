@@ -56,7 +56,9 @@ export function LoginForm() {
                 type="email"
                 required
                 value={formData.email}
-                onChange={(e) => setFormData(d => ({ ...d, email: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((d) => ({ ...d, email: e.target.value }))
+                }
                 className="w-full rounded-lg glass-input"
                 placeholder="you@example.com"
               />
@@ -70,7 +72,9 @@ export function LoginForm() {
                 type="password"
                 required
                 value={formData.password}
-                onChange={(e) => setFormData(d => ({ ...d, password: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((d) => ({ ...d, password: e.target.value }))
+                }
                 className="w-full rounded-lg glass-input"
                 placeholder="••••••••"
               />
@@ -80,13 +84,13 @@ export function LoginForm() {
               type="submit"
               disabled={loading}
               className={cn(
-                "w-full px-6 py-3 rounded-lg shadow-xl text-sm font-medium text-white",
-                "bg-gradient-to-r from-indigo-600 to-purple-600",
-                "hover:from-indigo-700 hover:to-purple-700",
-                "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500",
-                "transition-all",
-                "flex items-center justify-center",
-                loading && "opacity-80 cursor-not-allowed"
+                'w-full px-6 py-3 rounded-lg shadow-xl text-sm font-medium text-white',
+                'bg-gradient-to-r from-indigo-600 to-purple-600',
+                'hover:from-indigo-700 hover:to-purple-700',
+                'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500',
+                'transition-all',
+                'flex items-center justify-center',
+                loading && 'opacity-80 cursor-not-allowed'
               )}
             >
               {loading ? (

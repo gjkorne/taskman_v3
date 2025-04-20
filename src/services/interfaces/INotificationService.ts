@@ -7,7 +7,7 @@ export enum NotificationType {
   INFO = 'info',
   SUCCESS = 'success',
   WARNING = 'warning',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 /**
@@ -19,7 +19,7 @@ export enum NotificationPosition {
   TOP_RIGHT = 'top-right',
   BOTTOM_LEFT = 'bottom-left',
   BOTTOM_CENTER = 'bottom-center',
-  BOTTOM_RIGHT = 'bottom-right'
+  BOTTOM_RIGHT = 'bottom-right',
 }
 
 /**
@@ -45,7 +45,7 @@ export interface Notification {
  */
 export interface NotificationOptions {
   title?: string;
-  autoClose?: boolean; 
+  autoClose?: boolean;
   duration?: number;
   position?: NotificationPosition;
   actionText?: string;
@@ -62,64 +62,69 @@ export interface NotificationServiceEvents {
   'notification-clicked': Notification;
   'notification-action-triggered': Notification;
   'notifications-cleared': void;
-  'error': Error;
+  error: Error;
 }
 
 /**
  * Interface for the NotificationService
  * Provides methods to manage application notifications
  */
-export interface INotificationService extends IService<NotificationServiceEvents> {
+export interface INotificationService
+  extends IService<NotificationServiceEvents> {
   /**
    * Show an info notification
    */
   info(message: string, options?: NotificationOptions): string; // returns notification id
-  
+
   /**
    * Show a success notification
    */
   success(message: string, options?: NotificationOptions): string;
-  
+
   /**
    * Show a warning notification
    */
   warning(message: string, options?: NotificationOptions): string;
-  
+
   /**
    * Show an error notification
    */
   error(message: string, options?: NotificationOptions): string;
-  
+
   /**
    * Show a notification with custom type
    */
-  notify(type: NotificationType, message: string, options?: NotificationOptions): string;
-  
+  notify(
+    type: NotificationType,
+    message: string,
+    options?: NotificationOptions
+  ): string;
+
   /**
    * Get all active notifications
    */
   getNotifications(): Notification[];
-  
+
   /**
    * Get a specific notification by id
    */
   getNotification(id: string): Notification | undefined;
-  
+
   /**
    * Remove a specific notification
    */
   removeNotification(id: string): void;
-  
+
   /**
    * Clear all notifications
    */
   clearAll(): void;
-  
+
   /**
    * Mark a notification as read
    */
   markAsRead(id: string): void;
-  
+
   /**
    * Update notification settings
    */

@@ -5,7 +5,9 @@ interface ProjectProgressWidgetProps {
 /**
  * ProjectProgressWidget - Displays active projects
  */
-export function ProjectProgressWidget({ title = "Active Projects" }: ProjectProgressWidgetProps) {
+export function ProjectProgressWidget({
+  title = 'Active Projects',
+}: ProjectProgressWidgetProps) {
   // Using static data for the UI mockup
   return (
     <div className="bg-white rounded-lg shadow-md p-4 col-span-1 h-full">

@@ -4,9 +4,7 @@ import { TimerUIProvider, useTimerUI } from './TimerUIContext';
 
 export const TimerProvider = ({ children }: { children: ReactNode }) => (
   <TimerDataProvider>
-    <TimerUIProvider>
-      {children}
-    </TimerUIProvider>
+    <TimerUIProvider>{children}</TimerUIProvider>
   </TimerDataProvider>
 );
 
