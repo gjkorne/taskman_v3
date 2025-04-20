@@ -4,11 +4,6 @@ import { Task, TaskStatusType } from '../../types/task';
 import { TaskStatus } from '../../components/TaskForm/schema';
 import { ServiceRegistry } from '../../services/ServiceRegistry';
 import { useToast } from '../../components/Toast/ToastContext';
-import { filterTasks } from '../../lib/taskUtils';
-import {
-  TaskFilter,
-  defaultFilters,
-} from '../../components/TaskList/FilterPanel';
 import { TaskUpdateDTO } from '../../repositories/taskRepository';
 
 // Cache keys for React Query
@@ -25,7 +20,6 @@ export const TASK_QUERY_KEYS = {
 // Context type
 export interface TaskDataContextType {
   tasks: Task[];
-  filteredTasks: Task[];
   isLoading: boolean;
   isError: boolean;
   error: string | null;
@@ -41,18 +35,11 @@ export interface TaskDataContextType {
   ) => Promise<void>;
   updateTask: (taskId: string, taskData: TaskUpdateDTO) => Promise<Task | null>;
   deleteTask: (taskId: string) => Promise<void>;
-  searchQuery: string;
-  filters: TaskFilter;
-  setSearchQuery: (query: string) => void;
-  setFilters: (filters: TaskFilter) => void;
-  resetFilters: () => void;
 }
 
 export default function useTaskDataHook(): TaskDataContextType {
   const taskService = ServiceRegistry.getTaskService();
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filters, setFilters] = useState<TaskFilter>(defaultFilters);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [hasPendingChanges, setHasPendingChanges] = useState<boolean>(false);
   const { addToast } = useToast();
@@ -65,7 +52,7 @@ export default function useTaskDataHook(): TaskDataContextType {
     refetch,
     isRefetching: isRefreshing,
   } = useQuery({
-    queryKey: TASK_QUERY_KEYS.list(JSON.stringify(filters)),
+    queryKey: TASK_QUERY_KEYS.list(),
     queryFn: async () => {
       try {
         return await taskService.getTasks();
@@ -232,19 +219,9 @@ export default function useTaskDataHook(): TaskDataContextType {
     [deleteTaskMutation]
   );
 
-  const resetFilters = useCallback(() => {
-    setFilters(defaultFilters);
-  }, []);
-
-  const filteredTasks = useMemo(
-    () => filterTasks(tasks, filters, searchQuery),
-    [tasks, filters, searchQuery]
-  );
-
   const value = useMemo<TaskDataContextType>(
     () => ({
       tasks,
-      filteredTasks,
       isLoading,
       isError,
       error,
@@ -257,15 +234,9 @@ export default function useTaskDataHook(): TaskDataContextType {
       updateTaskStatus,
       updateTask,
       deleteTask,
-      searchQuery,
-      filters,
-      setSearchQuery,
-      setFilters,
-      resetFilters,
     }),
     [
       tasks,
-      filteredTasks,
       isLoading,
       isError,
       error,
@@ -278,8 +249,6 @@ export default function useTaskDataHook(): TaskDataContextType {
       updateTaskStatus,
       updateTask,
       deleteTask,
-      searchQuery,
-      filters,
     ]
   );
 
