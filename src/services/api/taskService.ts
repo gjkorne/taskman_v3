@@ -67,6 +67,10 @@ export class TaskService implements ITaskService {
       formattedData.category_name = taskData.category;
     }
 
+    if ((taskData as any).categoryId !== undefined) {
+      formattedData.category_id = (taskData as any).categoryId;
+    }
+
     if (taskData.isDeleted !== undefined) {
       formattedData.is_deleted = taskData.isDeleted;
     } else {

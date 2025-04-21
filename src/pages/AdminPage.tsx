@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useTimer } from '../contexts/TimerContext';
+import { Card } from '../components/UI/Card';
+import { Badge } from '../components/UI/Badge';
 
 interface AdminAction {
   id: string;
@@ -277,6 +279,34 @@ export default function AdminPage() {
           Press F12 or right-click and select "Inspect" to view the console
           output.
         </p>
+      </div>
+
+      {/* Design System Preview */}
+      <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-medium text-gray-800 mb-3">Design System Preview</h3>
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-4">
+            <Card>Default Card</Card>
+            <Card variant="outlined">Outlined Card</Card>
+            <Card variant="elevated">Elevated Card</Card>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Badge>Default</Badge>
+            <Badge variant="primary">Primary</Badge>
+            <Badge variant="secondary">Secondary</Badge>
+            <Badge variant="success">Success</Badge>
+            <Badge variant="danger">Danger</Badge>
+            <Badge variant="warning">Warning</Badge>
+            <Badge variant="info">Info</Badge>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Badge size="xs">XS</Badge>
+            <Badge size="sm">SM</Badge>
+            <Badge size="md">MD</Badge>
+            <Badge variant="success" rounded="full">Full Rounding</Badge>
+            <Badge variant="danger" rounded="md">MD Rounding</Badge>
+          </div>
+        </div>
       </div>
     </div>
   );

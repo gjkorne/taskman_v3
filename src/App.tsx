@@ -24,11 +24,13 @@ import { QueryProvider } from './contexts/query/QueryProvider';
 import { OfflineIndicator } from './components/UI/OfflineIndicator';
 import { NetworkStatusProvider } from './contexts/NetworkStatusContext';
 import { FilterSortProvider } from './contexts/FilterSortContext';
+import { TimerProvider } from './contexts/TimerContext'; // Modified import
 
 // Import settings providers
 import { SettingsProvider } from './contexts/SettingsContext'; // Legacy provider for compatibility
 import SimpleSettingsPage from './pages/SettingsPage';
 import CategoryMappingPage from './pages/CategoryMappingPage';
+import AdminPage from './pages/AdminPage';
 
 // Enable debug tools in development
 if (import.meta.env.DEV) {
@@ -159,152 +161,156 @@ function App() {
                       <TaskProvider>
                         <FilterSortProvider>
                           <TimeSessionProvider>
-                            <AdminProvider>
-                              <OfflineIndicator />
-                              <Routes>
-                                {/* Auth routes */}
-                                <Route path="/login" element={<LoginForm />} />
-                                <Route
-                                  path="/register"
-                                  element={<RegisterForm />}
-                                />
+                            <TimerProvider>
+                              <TimerProvider> // Modified to use root TimerProvider
+                                <AdminProvider>
+                                  <OfflineIndicator />
+                                  <Routes>
+                                    {/* Auth routes */}
+                                    <Route path="/login" element={<LoginForm />} />
+                                    <Route
+                                      path="/register"
+                                      element={<RegisterForm />}
+                                    />
 
-                                {/* Protected routes */}
-                                <Route
-                                  path="/"
-                                  element={
-                                    <ProtectedRoute>
-                                      <Layout>
-                                        <HomePage />
-                                      </Layout>
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    {/* Protected routes */}
+                                    <Route
+                                      path="/"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <HomePage />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                <Route
-                                  path="/tasks"
-                                  element={
-                                    <ProtectedRoute>
-                                      <Layout>
-                                        <TaskList ref={taskListRef} />
-                                      </Layout>
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    <Route
+                                      path="/tasks"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <TaskList ref={taskListRef} />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                <Route
-                                  path="/categories"
-                                  element={
-                                    <ProtectedRoute>
-                                      <Layout>
-                                        <CategoriesPage />
-                                      </Layout>
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    <Route
+                                      path="/categories"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <CategoriesPage />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                <Route
-                                  path="/timer"
-                                  element={
-                                    <ProtectedRoute>
-                                      <Layout>
-                                        <Timer />
-                                      </Layout>
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    <Route
+                                      path="/timer"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <Timer />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                <Route
-                                  path="/reports"
-                                  element={
-                                    <ProtectedRoute>
-                                      <Layout>
-                                        <ReportsPage />
-                                      </Layout>
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    <Route
+                                      path="/reports"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <ReportsPage />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                <Route
-                                  path="/settings"
-                                  element={
-                                    <ProtectedRoute>
-                                      <Layout>
-                                        <SimpleSettingsPage />
-                                      </Layout>
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    <Route
+                                      path="/settings"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <SimpleSettingsPage />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                <Route
-                                  path="/category-mapping"
-                                  element={
-                                    <ProtectedRoute>
-                                      <Layout>
-                                        <CategoryMappingPage />
-                                      </Layout>
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    <Route
+                                      path="/category-mapping"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <CategoryMappingPage />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                <Route
-                                  path="/admin"
-                                  element={
-                                    <ProtectedRoute>
-                                      <Layout>
-                                        <div>Admin Dashboard</div>
-                                      </Layout>
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    <Route
+                                      path="/admin"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <AdminPage />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                <Route
-                                  path="/time-sessions"
-                                  element={
-                                    <ProtectedRoute>
-                                      <Layout>
-                                        <TimeSessionsPage />
-                                      </Layout>
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    <Route
+                                      path="/time-sessions"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <TimeSessionsPage />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                <Route
-                                  path="/calendar"
-                                  element={
-                                    <ProtectedRoute>
-                                      <Layout>
-                                        <CalendarPage />
-                                      </Layout>
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    <Route
+                                      path="/calendar"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <CalendarPage />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                {/* Task details page */}
-                                <Route
-                                  path="/tasks/:taskId"
-                                  element={
-                                    <ProtectedRoute>
-                                      <TaskDetailsPage />
-                                    </ProtectedRoute>
-                                  }
-                                />
+                                    {/* Task details page */}
+                                    <Route
+                                      path="/tasks/:taskId"
+                                      element={
+                                        <ProtectedRoute>
+                                          <TaskDetailsPage />
+                                        </ProtectedRoute>
+                                      }
+                                    />
 
-                                {/* Redirect for legacy URLs */}
-                                <Route
-                                  path="/app/task/:taskId"
-                                  element={
-                                    <Navigate to="/tasks/:taskId" replace />
-                                  }
-                                />
+                                    {/* Redirect for legacy URLs */}
+                                    <Route
+                                      path="/app/task/:taskId"
+                                      element={
+                                        <Navigate to="/tasks/:taskId" replace />
+                                      }
+                                    />
 
-                                {/* Fallback route - redirect to home */}
-                                <Route
-                                  path="*"
-                                  element={<Navigate to="/" replace />}
-                                />
-                              </Routes>
-                            </AdminProvider>
+                                    {/* Fallback route - redirect to home */}
+                                    <Route
+                                      path="*"
+                                      element={<Navigate to="/" replace />}
+                                    />
+                                  </Routes>
+                                </AdminProvider>
+                              </TimerProvider>
+                            </TimerProvider>
                           </TimeSessionProvider>
                         </FilterSortProvider>
                       </TaskProvider>

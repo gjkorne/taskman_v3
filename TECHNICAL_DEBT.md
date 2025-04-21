@@ -14,9 +14,9 @@ This document tracks our ongoing refactoring, improvements, and technical debt i
 - [x] Remove direct imports of `useTaskData`/`useTaskUI` in components
 - [x] Move filter/search out of TaskContext into `FilterSortContext`
 
-## 3. Styling consistency (Pending)
+## 3. Styling consistency (Done)
 
-- [ ] Build design system layer (`<Card>`, `<Badge>`, utilities)
+- [x] Build design system layer (`<Card>`, `<Badge>`, utilities)
 
 ## 4. Testing gaps (In progress)
 
