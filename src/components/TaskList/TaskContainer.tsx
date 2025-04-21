@@ -1,5 +1,6 @@
 import { Task } from '../../types/task';
-import { TaskSection } from './TaskSection';
+import { GridView } from './GridView';
+import { ListView } from './ListView';
 
 interface TaskContainerProps {
   tasks: Task[];
@@ -8,16 +9,6 @@ interface TaskContainerProps {
   onEdit?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onTimerStateChange?: () => void;
-}
-
-// Utility to group tasks by category_name
-function groupTasksByCategory(tasks: Task[]) {
-  return tasks.reduce((acc: Record<string, Task[]>, task) => {
-    const category = task.category_name || 'Uncategorized';
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(task);
-    return acc;
-  }, {} as Record<string, Task[]>);
 }
 
 export function TaskContainer({
@@ -68,23 +59,23 @@ export function TaskContainer({
     );
   }
 
-  // --- GROUP BY CATEGORY ---
-  const groupedByCategory = groupTasksByCategory(tasks);
-  const categoryNames = Object.keys(groupedByCategory);
-
+  // Delegate to list or grid view
+  if (viewMode === 'grid') {
+    return (
+      <GridView
+        tasks={tasks}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onTimerStateChange={onTimerStateChange}
+      />
+    );
+  }
   return (
-    <div className="space-y-6">
-      {categoryNames.map((category) => (
-        <TaskSection
-          key={category}
-          tasks={groupedByCategory[category]}
-          sectionKey={category as any}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onTimerStateChange={onTimerStateChange}
-          customTitle={category}
-        />
-      ))}
-    </div>
+    <ListView
+      tasks={tasks}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onTimerStateChange={onTimerStateChange}
+    />
   );
 }
