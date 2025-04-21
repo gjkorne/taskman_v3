@@ -158,7 +158,7 @@ export function EnhancedTaskCard({
       <div className="flex-grow min-w-0 mb-1 sm:mb-0">
         {/* Title and Category Row */}
         <div className="flex items-center mb-1">
-          <h3 className="font-bold text-base truncate mr-2 max-w-[70%]">
+          <h3 onClick={handleEdit} className="font-bold text-base truncate mr-2 max-w-[70%] cursor-pointer">
             {task.title}
           </h3>
 

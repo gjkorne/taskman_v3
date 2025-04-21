@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import { TaskSection } from './TaskSection';
+import type { TaskSectionKey } from '../../constants/taskSectionStyles';
 import { Task } from '../../types/task';
 
 // Mock TaskCard to simplify testing
@@ -18,14 +19,14 @@ describe('TaskSection', () => {
 
   it('renders null when tasks array is empty', () => {
     const { container } = render(
-      <TaskSection tasks={[]} sectionKey={'Work' as any} customTitle="Work" />
+      <TaskSection tasks={[]} sectionKey={'todo' as TaskSectionKey} customTitle="Work" />
     );
     expect(container.firstChild).toBeNull();
   });
 
   it('renders section header and tasks when tasks are provided', () => {
     render(
-      <TaskSection tasks={tasks} sectionKey={'Work' as any} customTitle="Work" />
+      <TaskSection tasks={tasks} sectionKey={'todo' as TaskSectionKey} customTitle="Work" />
     );
     // Header displays title and count
     expect(screen.getByText('Work')).toBeTruthy();

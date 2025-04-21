@@ -1,8 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import { vi } from 'vitest';
-import { EnhancedTaskCard } from './EnhancedTaskCard';
-import { TaskStatus } from '../../types/task';
 
 // Mock useTaskApp facade
 vi.mock('../../contexts/task/useTaskApp', () => ({
@@ -30,16 +26,31 @@ vi.mock('../../contexts/category', () => ({
   useCategories: () => ({ categories: [] }),
 }));
 
+// Mock TimerControls to bypass SettingsProvider requirement
+vi.mock('../Timer/TimerControls', () => ({
+  TimerControls: () => <div data-testid="timer-controls" />,
+}));
+
+// Mock SettingsCompat
+vi.mock('../../contexts/SettingsCompat', () => ({
+  useSettings: () => ({ settings: { allowTaskSwitching: false } }),
+}));
+
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { EnhancedTaskCard } from './EnhancedTaskCard';
+import { TaskStatus } from '../../types/task';
+
 describe('EnhancedTaskCard', () => {
   const sampleTask: any = {
     id: '1',
     title: 'Test Task',
     description: 'A sample task',
     status: TaskStatus.ACTIVE,
-    estimated_time: 60,
-    due_date: '2025-05-01T00:00:00.000Z',
+    estimated_time: '1 hour',
+    due_date: '2025-05-01T12:00:00.000Z',
     is_starred: false,
-    priority: 1,
+    priority: 'low',
     created_at: '',
     updated_at: '',
     category_name: 'Work',
