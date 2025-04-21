@@ -1,13 +1,14 @@
 import { Search, RefreshCw, ChevronDown } from 'lucide-react';
 import { useTaskApp } from '../../contexts/task';
+import { useFilterSort } from '../../contexts/FilterSortContext';
 
 /**
  * SearchPanel component that includes search input and filters
  * This is positioned at the top of the screen for quick access
  */
 export function SearchPanel() {
-  const { searchQuery, setSearchQuery, refreshTasks, isRefreshing } =
-    useTaskApp();
+  const { refreshTasks, isRefreshing } = useTaskApp();
+  const { searchQuery, setSearchQuery } = useFilterSort();
 
   return (
     <div className="flex flex-wrap gap-2 items-center relative">

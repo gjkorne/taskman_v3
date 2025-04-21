@@ -2,17 +2,17 @@
 
 This document tracks our ongoing refactoring, improvements, and technical debt items.
 
-## 1. Component complexity & duplication (Partially done)
+## 1. Component complexity & duplication (Done)
 
-- [ ] Extract `useTaskGrouping` hook
-- [ ] Split `TaskContainer` into container & presentation components (`GridView`, `ListView`)
+- [x] Extract `useTaskGrouping` hook
+- [x] Split `TaskContainer` into container & presentation components (`GridView`, `ListView`)
 
-## 2. Context & State Separation (Done/Largely done)
+## 2. Context & State Separation (Done)
 
 - [x] Combined `TaskDataProvider` & `TaskUIProvider` into `TaskProvider`
 - [x] Exposed `useTaskApp` façade
 - [x] Remove direct imports of `useTaskData`/`useTaskUI` in components
-- [ ] Move filter/search out of TaskContext into `FilterSortContext`
+- [x] Move filter/search out of TaskContext into `FilterSortContext`
 
 ## 3. Styling consistency (Pending)
 

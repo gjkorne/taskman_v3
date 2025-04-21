@@ -7,8 +7,6 @@ import {
   useCallback,
 } from 'react';
 import { Task, TaskStatusType } from '../types/task';
-import { TaskFilter, defaultFilters } from '../components/TaskList/FilterPanel';
-import { filterTasks } from '../lib/taskUtils';
 import { useToast } from '../components/Toast';
 import { ServiceRegistry } from '../services/ServiceRegistry';
 import { AppError } from '../utils/errorHandling';
@@ -17,7 +15,6 @@ import { AppError } from '../utils/errorHandling';
 interface TaskContextType {
   // State
   tasks: Task[];
-  filteredTasks: Task[];
   isLoading: boolean;
   error: string | null;
   isRefreshing: boolean;
@@ -45,13 +42,6 @@ interface TaskContextType {
   closeEditModal: () => void;
   openDeleteModal: (taskId: string) => void;
   closeDeleteModal: () => void;
-
-  // Search and filter
-  searchQuery: string;
-  filters: TaskFilter;
-  setSearchQuery: (query: string) => void;
-  setFilters: (filters: TaskFilter) => void;
-  resetFilters: () => void;
 }
 
 // Create context with default values
@@ -78,15 +68,8 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
 
-  // Search and filtering state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<TaskFilter>(defaultFilters);
-
   // Get toast notifications
   const { addToast } = useToast();
-
-  // Derived state - filtered and sorted tasks
-  const filteredTasks = filterTasks(tasks, filters, searchQuery);
 
   // Set up event listeners for task changes
   useEffect(() => {
@@ -262,17 +245,10 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     setIsDeleteModalOpen(false);
   }, []);
 
-  // Filter reset function
-  const resetFilters = useCallback(() => {
-    setFilters(defaultFilters);
-    setSearchQuery('');
-  }, []);
-
   // Memoize context value to prevent unnecessary re-renders
   const contextValue: TaskContextType = {
     // State
     tasks,
-    filteredTasks,
     isLoading,
     error,
     isRefreshing,
@@ -297,13 +273,6 @@ export const TaskProvider = ({ children }: { children: ReactNode }) => {
     closeEditModal,
     openDeleteModal,
     closeDeleteModal,
-
-    // Search and filter
-    searchQuery,
-    filters,
-    setSearchQuery,
-    setFilters,
-    resetFilters,
   };
 
   return (

@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle } from 'react';
 import { TaskListView } from './TaskListView';
 import { useTaskApp } from '../../contexts/task/useTaskApp';
+import { useFilterSort } from '../../contexts/FilterSortContext';
 
 export interface TaskListRefType {
   refreshTaskList: () => Promise<void>;
@@ -13,13 +14,10 @@ interface TaskListProps {
 export const TaskList = forwardRef<TaskListRefType, TaskListProps>(
   ({ onTimerStateChange }, ref) => {
     const {
-      filteredTasks,
       isLoading,
       error,
       isRefreshing,
       refreshTasks,
-      filters,
-      setFilters,
       openEditModal,
       closeEditModal,
       openDeleteModal,
@@ -30,6 +28,8 @@ export const TaskList = forwardRef<TaskListRefType, TaskListProps>(
       viewMode,
       deleteTask,
     } = useTaskApp();
+
+    const { filteredTasks, filters, setFilters } = useFilterSort();
 
     useImperativeHandle(ref, () => ({ refreshTaskList: refreshTasks }));
 
