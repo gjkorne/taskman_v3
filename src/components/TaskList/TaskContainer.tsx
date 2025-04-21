@@ -4,6 +4,7 @@ import { TaskSection } from './TaskSection';
 interface TaskContainerProps {
   tasks: Task[];
   isLoading: boolean;
+  viewMode?: 'list' | 'grid';
   onEdit?: (taskId: string) => void;
   onDelete?: (taskId: string) => void;
   onTimerStateChange?: () => void;
@@ -22,6 +23,7 @@ function groupTasksByCategory(tasks: Task[]) {
 export function TaskContainer({
   tasks,
   isLoading,
+  viewMode,
   onEdit,
   onDelete,
   onTimerStateChange,
