@@ -1,4 +1,3 @@
-// React import not needed with new JSX transform
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
@@ -37,31 +36,25 @@ describe('EnhancedTaskCard', () => {
     title: 'Test Task',
     description: 'A sample task',
     status: TaskStatus.ACTIVE,
-    estimated_time: '60',
+    estimated_time: 60,
     due_date: '2025-05-01T00:00:00.000Z',
     is_starred: false,
-    priority: 'low',
+    priority: 1,
     created_at: '',
     updated_at: '',
     category_name: 'Work',
   };
 
   it('renders title, estimated time and due date', () => {
-    render(
-      <EnhancedTaskCard task={sampleTask} index={0} />
-    );
+    render(<EnhancedTaskCard task={sampleTask} index={0} />);
     expect(screen.getByText('Test Task')).toBeInTheDocument();
-    // Estimated time '1h'
     expect(screen.getByText(/1h/)).toBeInTheDocument();
-    // Due date formatted
     expect(screen.getByText(/Due: 05\/01/)).toBeInTheDocument();
   });
 
   it('calls onEdit when clicked', () => {
     const onEdit = vi.fn();
-    render(
-      <EnhancedTaskCard task={sampleTask} index={0} onEdit={onEdit} />
-    );
+    render(<EnhancedTaskCard task={sampleTask} index={0} onEdit={onEdit} />);
     fireEvent.click(screen.getByText('Test Task'));
     expect(onEdit).toHaveBeenCalledWith('1');
   });

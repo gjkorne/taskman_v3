@@ -1,8 +1,9 @@
+// React import not needed
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import { TaskSection } from './TaskSection';
-import type { Task } from '../../types/task';
+import { Task } from '../../types/task';
 
 // Mock TaskCard to simplify testing
 vi.mock('./TaskCard', () => ({
@@ -27,8 +28,8 @@ describe('TaskSection', () => {
       <TaskSection tasks={tasks} sectionKey={'Work' as any} customTitle="Work" />
     );
     // Header displays title and count
-    expect(screen.getByText('Work')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('Work')).toBeTruthy();
+    expect(screen.getByText('2')).toBeTruthy();
     // TaskCard mocked titles
     const cards = screen.getAllByTestId('task-card');
     expect(cards).toHaveLength(2);
