@@ -4,6 +4,7 @@ import { useTaskUI } from './TaskUIContext';
 import { TaskProvider } from './TaskProvider';
 import { Task, TaskStatusType } from '../../types/task';
 import { TaskFilter } from '../../components/TaskList/FilterPanel';
+import { TaskUpdateDTO } from '../../repositories/taskRepository';
 
 // Combined context type for backward compatibility
 export interface TaskContextType {
@@ -34,6 +35,7 @@ export interface TaskContextType {
     taskId: string,
     newStatus: TaskStatusType
   ) => Promise<void>;
+  updateTask: (taskId: string, taskData: TaskUpdateDTO) => Promise<Task | null>;
   deleteTask: (taskId: string) => Promise<void>;
 
   // Modal controls
