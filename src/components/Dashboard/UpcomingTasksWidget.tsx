@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { DashboardWidget } from './DashboardWidget';
 import { Calendar, Clock, Tag } from 'lucide-react';
-import { useTaskData } from '../../contexts/task';
+import { useTaskApp } from '../../contexts/task';
 import {
   format,
   addDays,
@@ -23,7 +23,7 @@ interface UpcomingTasksWidgetProps {
 export function UpcomingTasksWidget({
   title = 'Upcoming Tasks',
 }: UpcomingTasksWidgetProps) {
-  const { tasks } = useTaskData();
+  const { tasks } = useTaskApp();
 
   // Use React Query for upcoming tasks
   const { data: upcomingTasks, isLoading } = useQuery({

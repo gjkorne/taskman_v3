@@ -11,7 +11,7 @@ import {
   isToday,
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Clock, Calendar, Info } from 'lucide-react';
-import { useTaskData } from '../../contexts/task';
+import { useTaskApp } from '../../contexts/task';
 import { TimeSession } from '../../services/api/timeSessionsService';
 import { timeSessionsService } from '../../services/api/timeSessionsService';
 import { TaskFormModal } from '../TaskForm/TaskFormModal';
@@ -156,7 +156,7 @@ export function DailyView({ date }: DailyViewProps) {
   }, [date]);
 
   // Get tasks from context
-  const { tasks } = useTaskData();
+  const { tasks } = useTaskApp();
 
   // Create a lookup map for tasks by ID for easier access
   const tasksById = useMemo(() => {

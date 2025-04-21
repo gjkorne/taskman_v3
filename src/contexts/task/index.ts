@@ -1,6 +1,5 @@
 import { createContext, useContext } from 'react';
-import { useTaskData } from './TaskDataContext';
-import { useTaskUI } from './TaskUIContext';
+import { useTaskApp } from './useTaskApp';
 import { TaskProvider } from './TaskProvider';
 import { Task, TaskStatusType } from '../../types/task';
 import { TaskFilter } from '../../components/TaskList/FilterPanel';
@@ -69,7 +68,7 @@ export function useTaskContext(): TaskContextType {
 }
 
 // Named exports for the new pattern
-export { TaskProvider, useTaskData, useTaskUI };
+export { TaskProvider, useTaskApp };
 
 // Export default for easier importing
 export default TaskProvider;

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useCategories } from '../../contexts/category';
-import { useTaskData } from '../../contexts/task';
+import { useTaskApp } from '../../contexts/task';
 import { ServiceRegistry } from '../../services/ServiceRegistry';
 import { useToast } from '../../components/Toast';
 
 export function CategoryMappingSettings() {
   const { categories } = useCategories();
-  const { tasks, refreshTasks } = useTaskData();
+  const { tasks, refreshTasks } = useTaskApp();
   const { addToast } = useToast();
 
   const [sourceCategory, setSourceCategory] = useState<string>('');

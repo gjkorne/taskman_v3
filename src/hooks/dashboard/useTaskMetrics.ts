@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
-import { useTaskData } from '../../contexts/task';
+import { useTaskApp } from '../../contexts/task';
 
 /**
  * Custom hook that provides task metrics for dashboard displays
  * Takes advantage of our optimized context structure with proper memoization
  */
 export function useTaskMetrics() {
-  const { tasks } = useTaskData();
+  const { tasks } = useTaskApp();
 
   // Calculate all metrics in a single pass for better performance
   return useMemo(() => {
@@ -102,7 +102,7 @@ export function useTaskMetrics() {
  * Hook for retrieving only tasks due today (for dashboard widget)
  */
 export function useTasksDueToday() {
-  const { tasks } = useTaskData();
+  const { tasks } = useTaskApp();
 
   return useMemo(() => {
     const today = new Date();
@@ -124,7 +124,7 @@ export function useTasksDueToday() {
  * Hook for retrieving open tasks grouped by project/category
  */
 export function useOpenTasksByProject() {
-  const { tasks } = useTaskData();
+  const { tasks } = useTaskApp();
 
   return useMemo(() => {
     const tasksByCategory: Record<

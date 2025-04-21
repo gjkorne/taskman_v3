@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useCategories } from '../contexts/category';
-import { useTaskData } from '../contexts/task';
+import { useTaskApp } from '../contexts/task';
 import { TaskTransformer } from '../utils/transforms/TaskTransformer';
 import { useLocalStorageState } from '../hooks/useLocalStorageState';
 import { useCategoriesPageData } from '../hooks/useCategoriesPageData';
@@ -10,7 +10,7 @@ import { EmptyState } from '../components/Categories/EmptyState';
 
 export function CategoriesPage() {
   const { categories } = useCategories();
-  const { tasks } = useTaskData();
+  const { tasks } = useTaskApp();
   const transformer = useMemo(() => new TaskTransformer(), []);
   const taskModels = useMemo(
     () => tasks.map((task) => transformer.toModel(task as any)),

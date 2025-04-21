@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { DashboardWidget } from './DashboardWidget';
 import { Clock, CheckCircle2 } from 'lucide-react';
-import { useTaskData } from '../../contexts/task';
+import { useTaskApp } from '../../contexts/task';
 import { formatDistanceToNow, isValid } from 'date-fns';
 import { TASK_QUERY_KEYS } from '../../contexts/task/TaskDataContext';
 import { Link } from 'react-router-dom';
@@ -19,7 +19,7 @@ export function RecentTasksWidget({
   title = 'Recent Tasks',
   limit = 5,
 }: RecentTasksWidgetProps) {
-  const { tasks } = useTaskData();
+  const { tasks } = useTaskApp();
 
   // Use React Query for recent tasks
   const { data: recentTasks, isLoading } = useQuery({

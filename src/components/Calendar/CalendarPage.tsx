@@ -15,7 +15,7 @@ import {
   Calendar as CalendarIcon,
   Clock,
 } from 'lucide-react';
-import { useTaskData } from '../../contexts/task';
+import { useTaskApp } from '../../contexts/task';
 import { TaskFormModal } from '../TaskForm/TaskFormModal';
 import DailyView from './DailyView';
 import { useCalendarData } from '../../hooks/useCalendarData';
@@ -31,7 +31,7 @@ export function CalendarPage() {
   const [viewMode, setViewMode] = useState<'month' | 'day'>('month');
 
   // Get tasks from context
-  const { tasks } = useTaskData();
+  const { tasks } = useTaskApp();
 
   // Group tasks by due date for efficient lookup
   const { tasksByDate } = useCalendarData(tasks);

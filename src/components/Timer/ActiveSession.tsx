@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTimer } from '../../contexts/TimerCompat';
-import { useTaskData } from '../../contexts/task';
+import { useTaskApp } from '../../contexts/task';
 import { useTimeSession } from '../../contexts/timeSession';
 import { Icon } from '../UI/Icon';
 import { useAdmin } from '../../contexts/AdminContext';
@@ -19,7 +19,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   const {
     queries: { activeSession },
   } = useTimeSession();
-  const { tasks } = useTaskData();
+  const { tasks } = useTaskApp();
   const [isExpanded, setIsExpanded] = useState(true);
   const { impersonatedUser } = useAdmin();
 

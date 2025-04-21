@@ -1,5 +1,4 @@
-import { useTaskData } from './task';
-import { useTaskUI } from './task';
+import { useTaskApp } from './task';
 
 /**
  * Compatibility layer for the old useTaskContext hook
@@ -7,7 +6,7 @@ import { useTaskUI } from './task';
  * while we transition to the new context structure
  */
 export function useTaskContext() {
-  // Get data and UI state from our new contexts
+  // Get data and UI state from our new context
   const {
     tasks,
     filteredTasks,
@@ -20,15 +19,13 @@ export function useTaskContext() {
     refreshTasks,
     syncTasks,
     updateTaskStatus,
+    updateTask,
     deleteTask,
     searchQuery,
     filters,
     setSearchQuery,
     setFilters,
     resetFilters,
-  } = useTaskData();
-
-  const {
     editTaskId,
     isEditModalOpen,
     isDeleteModalOpen,
@@ -39,7 +36,7 @@ export function useTaskContext() {
     openDeleteModal,
     closeDeleteModal,
     setViewMode,
-  } = useTaskUI();
+  } = useTaskApp();
 
   // Combine all the functionality to match the old context API
   return {
@@ -57,6 +54,7 @@ export function useTaskContext() {
     refreshTasks,
     syncTasks,
     updateTaskStatus,
+    updateTask,
     deleteTask,
 
     // UI state management
