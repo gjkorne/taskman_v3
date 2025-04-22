@@ -57,6 +57,9 @@ export const TaskContext = createContext<TaskContextType | undefined>(
 );
 
 // Legacy hook for backward compatibility
+/**
+ * @deprecated use useTaskData or useTaskApp (new hooks) instead. This legacy hook will be removed in a future release.
+ */
 export function useTaskContext(): TaskContextType {
   const context = useContext(TaskContext);
 
@@ -68,6 +71,10 @@ export function useTaskContext(): TaskContextType {
 }
 
 // Named exports for the new pattern
+/**
+ * @deprecated use useTaskData or useTaskUI hooks directly instead of useTaskApp. 
+ * This facade hook will be removed after full migration.
+ */
 export { TaskProvider, useTaskApp };
 export { useTaskData } from './TaskDataContext';
 

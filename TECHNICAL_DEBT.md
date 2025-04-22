@@ -11,7 +11,7 @@ This document tracks our ongoing refactoring, improvements, and technical debt i
 
 - [x] Combined `TaskDataProvider` & `TaskUIProvider` into `TaskProvider`
 - [x] Exposed `useTaskApp` façade
-- [x] Remove direct imports of `useTaskData`/`useTaskUI` in components
+- [x] Replace direct imports of `useTaskApp` with `useTaskData` and `useTaskUI` in all components
 - [x] Move filter/search out of TaskContext into `FilterSortContext`
 - [ ] Deprecate and remove legacy task context hooks (`useTaskContext`, `useTaskData`) after full migration
 
@@ -60,3 +60,14 @@ This document tracks our ongoing refactoring, improvements, and technical debt i
 
 - [x] Consolidated on repository-pattern taskService
 - [ ] Audit for any direct API leaks
+
+## 11. Next Steps
+
+- [x] Ensure app compiles cleanly after provider nesting fixes
+- [ ] Complete migration of all `useTaskApp` calls to `useTaskData`/`useTaskUI`
+- [ ] Deprecate and remove legacy hooks (`useTaskContext`, `useTaskApp`)
+- [ ] Add unit and E2E tests for new hooks and components
+- [ ] Wrap heavy components with `React.memo` and virtualize long lists
+- [ ] Enhance React-Query cache keys for filters and TimeSession data
+- [ ] Finalize offline sync UI and conflict resolution flows
+- [ ] Update documentation (README, technical debt, component docs)

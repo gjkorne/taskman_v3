@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -9,7 +9,7 @@ import React, {
 import { Task } from '../types/task';
 import { defaultFilters, TaskFilter } from '../components/TaskList/FilterPanel';
 import { filterTasks } from '../lib/taskUtils';
-import { useTaskApp } from './task/useTaskApp';
+import { useTaskData } from './task/TaskDataContext';
 
 interface FilterSortContextType {
   filters: TaskFilter;
@@ -25,7 +25,7 @@ const FilterSortContext = createContext<FilterSortContextType | undefined>(
 );
 
 export const FilterSortProvider = ({ children }: { children: ReactNode }) => {
-  const { tasks } = useTaskApp();
+  const { tasks } = useTaskData();
   const [filters, setFilters] = useState<TaskFilter>(defaultFilters);
   const [searchQuery, setSearchQuery] = useState<string>('');
 

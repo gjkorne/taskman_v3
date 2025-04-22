@@ -13,7 +13,7 @@ import { CalendarPage } from './components/Calendar/CalendarPage';
 import HomePage from './pages/HomePage';
 import { useAuth } from './lib/auth';
 import { TimeSessionProvider } from './contexts/timeSession';
-import { TaskProvider } from './contexts/task';
+import TaskProvider from './contexts/task';
 import { ToastProvider } from './components/Toast';
 import { CategoryProvider } from './contexts/category';
 import { AdminProvider } from './contexts/AdminContext';
@@ -163,11 +163,10 @@ function App() {
                         <FilterSortProvider>
                           <TimeSessionProvider>
                             <TimerProvider>
-                              <TimerProvider> // Modified to use root TimerProvider
-                                <AdminProvider>
-                                  <OfflineIndicator />
-                                  <Routes>
-                                    {/* Auth routes */}
+                              <AdminProvider>
+                                <OfflineIndicator />
+                                <Routes>
+                                  {/* Auth routes */}
                                     <Route path="/login" element={<LoginForm />} />
                                     <Route
                                       path="/register"
@@ -321,21 +320,21 @@ function App() {
                                   </Routes>
                                 </AdminProvider>
                               </TimerProvider>
-                            </TimerProvider>
-                          </TimeSessionProvider>
-                        </FilterSortProvider>
-                      </TaskProvider>
-                    </CategoryProvider>
-                  </SettingsProvider>{' '}
-                  {/* end merged SettingsProvider */}
-                </BrowserRouter>
-              </AuthProvider>
-            </ErrorProvider>
-          </ToastProvider>
-        </LoadingProvider>
-      </QueryProvider>
-    </NetworkStatusProvider>
-  );
-}
+                            </TimeSessionProvider>
+                          </FilterSortProvider>
+                        </TaskProvider>
+                      </CategoryProvider>
+                    </SettingsProvider>{' '}
+                    {/* end merged SettingsProvider */}
+                  </BrowserRouter>
+                </AuthProvider>
+              </ErrorProvider>
+            </ToastProvider>
+          </LoadingProvider>
+        </QueryProvider>
+      </NetworkStatusProvider>
+    );
+  } 
+
 
 export default App;
