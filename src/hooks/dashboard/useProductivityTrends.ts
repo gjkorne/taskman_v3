@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useTaskApp } from '../../contexts/task';
+import { useTaskData } from '../../contexts/task/TaskDataContext';
 import { useTimeSession } from '../../contexts/timeSession';
 import type { TimeSession } from '../../contexts/timeSession/types';
 import { addDays, differenceInDays, subDays } from 'date-fns';
@@ -10,7 +10,7 @@ import { addDays, differenceInDays, subDays } from 'date-fns';
  * Uses our optimized context structure for better performance
  */
 export function useProductivityTrends(days: number = 14) {
-  const { tasks } = useTaskApp();
+  const { tasks } = useTaskData();
   const { queries: { sessions } } = useTimeSession();
 
   return useMemo(() => {

@@ -64,7 +64,7 @@ This document tracks our ongoing refactoring, improvements, and technical debt i
 ## 11. Next Steps
 
 - [x] Ensure app compiles cleanly after provider nesting fixes
-- [ ] Complete migration of all `useTaskApp` calls to `useTaskData`/`useTaskUI`
+- [ ] Continue migrating `useTaskApp` → `useTaskData`/`useTaskUI` (in progress)
 - [ ] Deprecate and remove legacy hooks (`useTaskContext`, `useTaskApp`)
 - [ ] Add unit and E2E tests for new hooks and components
 - [ ] Wrap heavy components with `React.memo` and virtualize long lists

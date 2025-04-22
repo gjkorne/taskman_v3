@@ -1,8 +1,8 @@
 import { vi } from 'vitest';
 
-// Mock useTaskApp facade
-vi.mock('../../contexts/task/useTaskApp', () => ({
-  useTaskApp: () => ({
+// Mock useTaskData facade
+vi.mock('../../contexts/task/TaskDataContext', () => ({
+  useTaskData: () => ({
     refreshTasks: vi.fn(),
     updateTask: vi.fn(),
   }),

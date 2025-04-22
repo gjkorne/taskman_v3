@@ -1,5 +1,4 @@
-import { createContext, useContext } from 'react';
-import { useTaskApp } from './useTaskApp';
+import { createContext } from 'react';
 import { TaskProvider } from './TaskProvider';
 import { Task, TaskStatusType } from '../../types/task';
 import { TaskFilter } from '../../components/TaskList/FilterPanel';
@@ -56,26 +55,8 @@ export const TaskContext = createContext<TaskContextType | undefined>(
   undefined
 );
 
-// Legacy hook for backward compatibility
-/**
- * @deprecated use useTaskData or useTaskApp (new hooks) instead. This legacy hook will be removed in a future release.
- */
-export function useTaskContext(): TaskContextType {
-  const context = useContext(TaskContext);
-
-  if (context === undefined) {
-    throw new Error('useTaskContext must be used within a TaskProvider');
-  }
-
-  return context;
-}
-
 // Named exports for the new pattern
-/**
- * @deprecated use useTaskData or useTaskUI hooks directly instead of useTaskApp. 
- * This facade hook will be removed after full migration.
- */
-export { TaskProvider, useTaskApp };
+export { TaskProvider };
 export { useTaskData } from './TaskDataContext';
 
 // Export default for easier importing
