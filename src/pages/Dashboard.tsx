@@ -7,7 +7,7 @@ import ProductivityTrendsWidget from '../components/Dashboard/ProductivityTrends
 import TaskPriorityWidget from '../components/Dashboard/TaskPriorityWidget';
 import UpcomingTasksWidget from '../components/Dashboard/UpcomingTasksWidget';
 import { useTaskData } from '../contexts/task';
-import { useTimeSessionData } from '../contexts/timeSession';
+import { useTimeSession } from '../contexts/timeSession';
 
 /**
  * Dashboard page component that uses our new context pattern
@@ -17,7 +17,7 @@ import { useTimeSessionData } from '../contexts/timeSession';
 export function Dashboard() {
   // Get task and time session data functions from our contexts
   const { fetchTasks, isLoading: isTasksLoading } = useTaskData();
-  const { fetchSessions, isLoading: isSessionsLoading } = useTimeSessionData();
+  const { fetchers: { fetchSessions }, queries: { isLoading: isSessionsLoading } } = useTimeSession();
 
   // Fetch initial data on mount
   useEffect(() => {

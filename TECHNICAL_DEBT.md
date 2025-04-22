@@ -13,6 +13,7 @@ This document tracks our ongoing refactoring, improvements, and technical debt i
 - [x] Exposed `useTaskApp` façade
 - [x] Remove direct imports of `useTaskData`/`useTaskUI` in components
 - [x] Move filter/search out of TaskContext into `FilterSortContext`
+- [ ] Deprecate and remove legacy task context hooks (`useTaskContext`, `useTaskData`) after full migration
 
 ## 3. Styling consistency (Done)
 
@@ -23,22 +24,26 @@ This document tracks our ongoing refactoring, improvements, and technical debt i
 - [x] Vitest tests for components & contexts
 - [ ] Unit/snapshot tests for `TaskContainer`, `TaskCard`, grid layout
 - [ ] E2E tests for create/edit/delete/filter flows
+- [ ] Unit tests for dashboard page and custom hooks (`useTaskMetrics`, `useProductivityTrends`, `useOpenTasksByProject`, etc.)
 
 ## 5. Performance & re-renders (Pending)
 
 - [ ] Wrap `TaskCard` in `React.memo`
 - [ ] Consider virtualization (`react-window`) for long lists
 - [ ] Memoize filtered/grouped selectors
+- [ ] Memoize context values in `createDataContext` to prevent unnecessary re-renders
 
 ## 6. Type-safety & schema drift (Pending)
 
 - [ ] Generate TS types from Supabase schema (`supabase-cli`)
 - [ ] Audit repo methods & components for nullable fields and updated names
+- [ ] Add TS types for time session context values and hook payloads
 
 ## 7. Data layer & caching (Pending)
 
 - [ ] Include filter/search params in React-Query cache keys
 - [ ] Consider pagination/infinite scrolling
+- [ ] Extend React-Query cache keys to include `TimeSession` query keys and calculators
 
 ## 8. Offline & sync robustness (Partially done)
 

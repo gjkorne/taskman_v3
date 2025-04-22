@@ -31,6 +31,7 @@ import { SettingsProvider } from './contexts/SettingsContext'; // Legacy provide
 import SimpleSettingsPage from './pages/SettingsPage';
 import CategoryMappingPage from './pages/CategoryMappingPage';
 import AdminPage from './pages/AdminPage';
+import Dashboard from './pages/Dashboard';
 
 // Enable debug tools in development
 if (import.meta.env.DEV) {
@@ -171,6 +172,16 @@ function App() {
                                     <Route
                                       path="/register"
                                       element={<RegisterForm />}
+                                    />
+                                    <Route
+                                      path="/dashboard"
+                                      element={
+                                        <ProtectedRoute>
+                                          <Layout>
+                                            <Dashboard />
+                                          </Layout>
+                                        </ProtectedRoute>
+                                      }
                                     />
 
                                     {/* Protected routes */}

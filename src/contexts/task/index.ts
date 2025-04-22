@@ -69,6 +69,7 @@ export function useTaskContext(): TaskContextType {
 
 // Named exports for the new pattern
 export { TaskProvider, useTaskApp };
+export { useTaskData } from './TaskDataContext';
 
 // Export default for easier importing
 export default TaskProvider;
