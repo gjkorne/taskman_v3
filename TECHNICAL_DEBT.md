@@ -13,7 +13,7 @@ This document tracks our ongoing refactoring, improvements, and technical debt i
 - [x] Exposed `useTaskApp` façade
 - [x] Replace direct imports of `useTaskApp` with `useTaskData` and `useTaskUI` in all components
 - [x] Move filter/search out of TaskContext into `FilterSortContext`
-- [ ] Deprecate and remove legacy task context hooks (`useTaskContext`, `useTaskData`) after full migration
+- [x] Deprecate and remove legacy task context hooks (`useTaskContext`, `useTaskData`) after full migration
 
 ## 3. Styling consistency (Done)
 
@@ -64,8 +64,8 @@ This document tracks our ongoing refactoring, improvements, and technical debt i
 ## 11. Next Steps
 
 - [x] Ensure app compiles cleanly after provider nesting fixes
-- [ ] Continue migrating `useTaskApp` → `useTaskData`/`useTaskUI` (in progress)
-- [ ] Deprecate and remove legacy hooks (`useTaskContext`, `useTaskApp`)
+- [x] Continue migrating `useTaskApp` → `useTaskData`/`useTaskUI`
+- [x] Deprecate and remove legacy hooks (`useTaskContext`, `useTaskApp`)
 - [ ] Add unit and E2E tests for new hooks and components
 - [ ] Wrap heavy components with `React.memo` and virtualize long lists
 - [ ] Enhance React-Query cache keys for filters and TimeSession data
