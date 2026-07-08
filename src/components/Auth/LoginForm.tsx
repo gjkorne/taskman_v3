@@ -30,26 +30,45 @@ export function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen bg-kw-cream flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="form-card p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 text-transparent bg-clip-text">
-              Welcome to TaskStream
-            </h1>
-            <p className="mt-2 text-gray-600">Sign in to manage your tasks</p>
+        {/* Brand header */}
+        <div className="text-center mb-8">
+          <div className="inline-block mb-4">
+            <div
+              className="font-sans font-extrabold text-kw-navy"
+              style={{ fontSize: '18px', letterSpacing: '0.13em' }}
+            >
+              K WINDOWS &amp; DOORS
+            </div>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <span className="h-px w-5 bg-kw-rule" />
+              <span
+                className="font-sans font-semibold text-kw-muted"
+                style={{ fontSize: '9px', letterSpacing: '0.28em' }}
+              >
+                EST. 1957
+              </span>
+              <span className="h-px w-5 bg-kw-rule" />
+            </div>
           </div>
+          <h1 className="font-serif font-semibold text-2xl text-kw-ink mt-2">
+            Task Manager
+          </h1>
+          <p className="mt-1 text-sm text-kw-body">Sign in to your account</p>
+        </div>
 
+        <div className="bg-white border border-kw-border rounded shadow-card p-8">
           {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="mb-6 bg-red-50 border border-red-200 rounded p-4 flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-kw-text mb-1.5">
                 Email
               </label>
               <input
@@ -59,13 +78,13 @@ export function LoginForm() {
                 onChange={(e) =>
                   setFormData((d) => ({ ...d, email: e.target.value }))
                 }
-                className="w-full rounded-lg glass-input"
-                placeholder="you@example.com"
+                className="w-full rounded border border-kw-border px-3 py-2.5 text-sm text-kw-text placeholder:text-kw-muted focus:outline-none focus:ring-2 focus:ring-kw-navy/30 focus:border-kw-navy"
+                placeholder="you@kwindows.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-kw-text mb-1.5">
                 Password
               </label>
               <input
@@ -75,7 +94,7 @@ export function LoginForm() {
                 onChange={(e) =>
                   setFormData((d) => ({ ...d, password: e.target.value }))
                 }
-                className="w-full rounded-lg glass-input"
+                className="w-full rounded border border-kw-border px-3 py-2.5 text-sm text-kw-text placeholder:text-kw-muted focus:outline-none focus:ring-2 focus:ring-kw-navy/30 focus:border-kw-navy"
                 placeholder="••••••••"
               />
             </div>
@@ -84,34 +103,31 @@ export function LoginForm() {
               type="submit"
               disabled={loading}
               className={cn(
-                'w-full px-6 py-3 rounded-lg shadow-xl text-sm font-medium text-white',
-                'bg-gradient-to-r from-indigo-600 to-purple-600',
-                'hover:from-indigo-700 hover:to-purple-700',
-                'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500',
-                'transition-all',
-                'flex items-center justify-center',
-                loading && 'opacity-80 cursor-not-allowed'
+                'w-full px-6 py-3 rounded text-sm font-semibold text-white bg-kw-navy',
+                'hover:bg-kw-navy-deep focus:outline-none focus:ring-2 focus:ring-kw-navy focus:ring-offset-2',
+                'transition-colors flex items-center justify-center',
+                loading && 'opacity-70 cursor-not-allowed'
               )}
             >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                'Sign In'
-              )}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In'}
             </button>
 
-            <p className="text-center text-sm text-gray-600">
-              Don't have an account?{' '}
+            <p className="text-center text-sm text-kw-body">
+              Don&apos;t have an account?{' '}
               <button
                 type="button"
                 onClick={() => navigate('/register')}
-                className="text-indigo-600 hover:text-indigo-500 font-medium"
+                className="text-kw-navy hover:text-kw-navy-deep font-semibold"
               >
                 Sign up
               </button>
             </p>
           </form>
         </div>
+
+        <p className="text-center text-xs text-kw-label mt-6">
+          © 2026 K Windows &amp; Doors, LLC · Licensed &amp; Insured
+        </p>
       </div>
     </div>
   );

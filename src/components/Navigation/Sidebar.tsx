@@ -17,7 +17,6 @@ import { authService } from '../../services/api/authService';
 import { User } from '@supabase/supabase-js';
 import { Link, useNavigate } from 'react-router-dom';
 
-// Types
 export type ViewType =
   | 'tasks'
   | 'reports'
@@ -48,17 +47,17 @@ export const NavItem: React.FC<NavItemProps> = ({
   <Link
     to={to}
     className={cn(
-      'flex items-center gap-2 sm:gap-3 w-full px-3 sm:px-4 py-2 text-left rounded-lg transition-colors',
-      active ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50',
-      collapsed && 'justify-center sm:px-2'
+      'flex items-center gap-3 w-full px-3 py-2 text-left rounded transition-colors text-sm font-medium',
+      active
+        ? 'bg-white/15 text-white'
+        : 'text-kw-subtle hover:bg-white/10 hover:text-white',
+      collapsed && 'justify-center px-2'
     )}
     title={collapsed ? label : undefined}
     onClick={onClick}
   >
     {icon}
-    {!collapsed && (
-      <span className="font-medium text-sm sm:text-base">{label}</span>
-    )}
+    {!collapsed && <span>{label}</span>}
   </Link>
 );
 
@@ -86,7 +85,6 @@ export function Sidebar({
     };
     fetchUser();
 
-    // Check for saved collapse state
     const savedCollapsedState = localStorage.getItem('sidebarCollapsed');
     if (savedCollapsedState) {
       setIsCollapsed(savedCollapsedState === 'true');
@@ -99,7 +97,6 @@ export function Sidebar({
     localStorage.setItem('sidebarCollapsed', String(newState));
   };
 
-  // Handle mobile sidebar close after navigation
   const handleNavClick = () => {
     if (window.innerWidth < 1024) {
       onToggleSidebar();
@@ -108,10 +105,9 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile overlay when sidebar is open */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={onToggleSidebar}
           aria-hidden="true"
         />
@@ -119,102 +115,115 @@ export function Sidebar({
 
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 bg-white border-r border-gray-200 transition-all duration-300 transform lg:translate-x-0 lg:static shadow-lg lg:shadow-none',
+          'fixed inset-y-0 left-0 z-50 bg-kw-navy-dark border-r border-white/10 transition-all duration-300 transform lg:translate-x-0 lg:static shadow-lg lg:shadow-none',
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
           isCollapsed ? 'w-[70px]' : 'w-[240px] sm:w-64'
         )}
       >
         <div className="flex h-full flex-col">
           {/* Sidebar Header */}
-          <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 border-b border-gray-200">
-            {!isCollapsed && (
-              <h1 className="text-lg sm:text-xl font-semibold text-gray-800">
-                TaskMan
-              </h1>
+          <div
+            className={cn(
+              'flex items-center h-14 sm:h-16 px-3 sm:px-4 border-b border-white/10',
+              isCollapsed ? 'justify-center' : 'justify-between'
             )}
-            <div className="flex items-center ml-auto">
-              {/* Collapse toggle button - only visible on desktop */}
+          >
+            {!isCollapsed && (
+              <div className="flex flex-col leading-none">
+                <span
+                  className="font-sans font-extrabold text-white tracking-widest text-xs"
+                  style={{ letterSpacing: '0.13em' }}
+                >
+                  WINDOWS &amp; DOORS
+                </span>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="h-px w-4 bg-white/30" />
+                  <span
+                    className="font-sans font-semibold text-kw-subtle"
+                    style={{ fontSize: '8px', letterSpacing: '0.26em' }}
+                  >
+                    EST. 1957
+                  </span>
+                  <span className="h-px w-4 bg-white/30" />
+                </div>
+              </div>
+            )}
+
+            <div className={cn('flex items-center', isCollapsed ? '' : 'ml-auto')}>
               <button
                 onClick={toggleCollapsed}
-                className="p-1 sm:p-2 text-gray-500 rounded-md hover:bg-gray-100 hidden lg:block"
+                className="p-1.5 text-kw-subtle rounded hover:bg-white/10 hidden lg:block"
                 aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 {isCollapsed ? (
-                  <ChevronRight className="h-5 w-5" />
+                  <ChevronRight className="h-4 w-4" />
                 ) : (
-                  <ChevronLeft className="h-5 w-5" />
+                  <ChevronLeft className="h-4 w-4" />
                 )}
               </button>
 
-              {/* Close button - only visible on mobile */}
               <button
                 onClick={onToggleSidebar}
-                className="p-1 sm:p-2 text-gray-500 rounded-md lg:hidden hover:bg-gray-100"
+                className="p-1.5 text-kw-subtle rounded lg:hidden hover:bg-white/10"
                 aria-label="Close sidebar"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-1 sm:space-y-2">
+          <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
             <NavItem
-              icon={<Home className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<Home className="w-4 h-4 flex-shrink-0" />}
               label="Home"
               to="/"
               active={activeView === 'home'}
               collapsed={isCollapsed}
               onClick={handleNavClick}
             />
-
             <NavItem
-              icon={<List className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<List className="w-4 h-4 flex-shrink-0" />}
               label="Tasks"
               to="/tasks"
               active={activeView === 'tasks'}
               collapsed={isCollapsed}
               onClick={handleNavClick}
             />
-
             <NavItem
-              icon={<FolderClosed className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<FolderClosed className="w-4 h-4 flex-shrink-0" />}
               label="Categories"
               to="/categories"
               active={activeView === 'categories'}
               collapsed={isCollapsed}
               onClick={handleNavClick}
             />
-
             <NavItem
-              icon={<Calendar className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<Calendar className="w-4 h-4 flex-shrink-0" />}
               label="Calendar"
               to="/calendar"
               active={activeView === 'calendar'}
               collapsed={isCollapsed}
               onClick={handleNavClick}
             />
-
             <NavItem
-              icon={<Clock className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<Clock className="w-4 h-4 flex-shrink-0" />}
               label="Time Sessions"
               to="/time-sessions"
               active={activeView === 'time-sessions'}
               collapsed={isCollapsed}
               onClick={handleNavClick}
             />
-
             <NavItem
-              icon={<BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<BarChart3 className="w-4 h-4 flex-shrink-0" />}
               label="Reports"
               to="/reports"
               active={activeView === 'reports'}
               collapsed={isCollapsed}
               onClick={handleNavClick}
             />
-
             <NavItem
-              icon={<Settings className="w-4 h-4 sm:w-5 sm:h-5" />}
+              icon={<Settings className="w-4 h-4 flex-shrink-0" />}
               label="Settings"
               to="/settings"
               active={activeView === 'settings'}
@@ -222,26 +231,20 @@ export function Sidebar({
               onClick={handleNavClick}
             />
 
-            {/* Admin Section - Only visible in development mode */}
             {import.meta.env.DEV && (
               <div
                 className={cn(
-                  'mt-6 pt-6 border-t border-gray-200',
+                  'mt-4 pt-4 border-t border-white/10',
                   isCollapsed && 'flex flex-col items-center'
                 )}
               >
                 {!isCollapsed && (
-                  <div className="mb-2 px-3 sm:px-4 text-xs font-medium uppercase text-gray-400">
+                  <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-kw-subtle/60">
                     Admin
                   </div>
                 )}
-                {isCollapsed && (
-                  <div className="mb-2 text-xs font-medium uppercase text-gray-400">
-                    A
-                  </div>
-                )}
                 <NavItem
-                  icon={<AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5" />}
+                  icon={<AlertTriangle className="w-4 h-4 flex-shrink-0" />}
                   label="Admin Panel"
                   to="/admin"
                   active={activeView === 'admin'}
@@ -254,15 +257,15 @@ export function Sidebar({
 
           {/* User Section */}
           {user && !isCollapsed && (
-            <div className="border-t border-gray-200 p-4">
+            <div className="border-t border-white/10 p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
+                  <div className="w-8 h-8 rounded bg-kw-navy flex items-center justify-center text-white font-semibold text-sm">
                     {user.email?.charAt(0).toUpperCase() || 'U'}
                   </div>
                 </div>
                 <div className="ml-3 truncate">
-                  <p className="text-sm font-medium text-gray-700 truncate">
+                  <p className="text-xs font-medium text-kw-subtle truncate">
                     {user.email}
                   </p>
                   <button
@@ -270,7 +273,7 @@ export function Sidebar({
                       authService.signOut();
                       navigate('/login');
                     }}
-                    className="text-xs text-gray-500 hover:text-gray-700"
+                    className="text-xs text-kw-subtle/60 hover:text-white mt-0.5"
                   >
                     Sign out
                   </button>
@@ -279,11 +282,10 @@ export function Sidebar({
             </div>
           )}
 
-          {/* User Section (Collapsed) */}
           {user && isCollapsed && (
-            <div className="border-t border-gray-200 p-2 flex justify-center">
+            <div className="border-t border-white/10 p-2 flex justify-center">
               <button
-                className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold"
+                className="w-8 h-8 rounded bg-kw-navy flex items-center justify-center text-white font-semibold text-sm"
                 onClick={() => {
                   authService.signOut();
                   navigate('/login');

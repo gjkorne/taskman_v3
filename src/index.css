@@ -3,17 +3,56 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-family: 'Libre Franklin', system-ui, sans-serif;
+    color: #2B3340;
+  }
+
   body {
-    @apply bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen;
+    @apply bg-kw-cream min-h-screen;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    color: #1B2D43;
   }
 }
 
 @layer components {
+  /* K Windows card style */
+  .kw-card {
+    @apply bg-white rounded shadow-card overflow-hidden;
+  }
+
+  /* Eyebrow / section label */
+  .kw-eyebrow {
+    @apply font-sans font-semibold text-xs tracking-widest uppercase text-kw-label;
+    letter-spacing: 0.22em;
+  }
+
+  /* Primary CTA button */
+  .kw-btn-primary {
+    @apply inline-block bg-kw-navy text-white font-sans font-semibold
+           rounded px-5 py-3 text-sm leading-none
+           transition-colors hover:bg-kw-navy-deep focus:outline-none
+           focus:ring-2 focus:ring-kw-navy focus:ring-offset-2;
+  }
+
+  /* Secondary / outline button */
+  .kw-btn-secondary {
+    @apply inline-block bg-white text-kw-navy font-sans font-semibold
+           rounded px-5 py-3 text-sm leading-none border border-kw-border-card
+           transition-colors hover:bg-kw-cream focus:outline-none
+           focus:ring-2 focus:ring-kw-navy focus:ring-offset-2;
+  }
+
+  /* Legacy auth form card — keep functional while restyling */
   .form-card {
-    @apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-xl rounded-2xl;
+    @apply bg-white border border-kw-border shadow-card rounded;
   }
 
   .glass-input {
-    @apply bg-white/50 border-white/20 focus:border-indigo-400 focus:ring-indigo-400/30 placeholder:text-gray-500/70;
+    @apply bg-white border-kw-border focus:border-kw-navy focus:ring-kw-navy/30
+           placeholder:text-kw-muted;
   }
 }

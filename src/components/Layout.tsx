@@ -83,7 +83,7 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-white">
+    <div className="h-screen flex flex-col overflow-hidden bg-kw-cream">
       {/* Main Header Component */}
       <MainHeader
         onSearch={(query) => console.log('Searching for:', query)}
@@ -144,7 +144,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Floating action button */}
       <button
-        className="fixed w-14 h-14 rounded-full shadow-xl flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-150 z-50 group hover:scale-110 bottom-8 right-8 bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500 text-white"
+        className="fixed w-14 h-14 rounded shadow-card flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-kw-navy focus:ring-offset-2 transition-all duration-150 z-50 group hover:scale-105 bottom-8 right-8 bg-kw-navy hover:bg-kw-navy-deep text-white"
         aria-label="New Task"
         onClick={() => setShowTaskForm(true)}
       >

@@ -3,43 +3,66 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Libre Franklin"', 'system-ui', 'sans-serif'],
+        serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+      },
       colors: {
+        // K Windows brand palette
+        kw: {
+          navy: '#2F4866',       // primary — buttons, links, accents
+          'navy-deep': '#20344B', // stats bar, dark headings
+          'navy-dark': '#18283C', // footer background
+          ink: '#1B2D43',        // h1/h2 heading text
+          text: '#2B3340',       // default body text
+          body: '#4A525E',       // secondary body text
+          label: '#6E8199',      // eyebrow labels, muted UI
+          muted: '#8A93A0',      // lighter muted text
+          subtle: '#9CABBC',     // footer links, very muted
+          dim: '#8595A8',        // footer body copy
+          nav: '#3A4250',        // nav link color
+          cream: '#F6F4EF',      // alternate section background
+          'cream-light': '#FBFAF7', // card background
+          border: '#ECE8E0',     // dividers, nav borders
+          'border-card': '#E7E2D8', // card borders
+          step: '#C3CAD3',       // step numbers, decorative
+          rule: '#B7BCC4',       // horizontal rules in logo
+        },
+        // Legacy alias kept for backward compat during migration
         'taskman-blue': {
-          50: '#e6f1fe',
-          100: '#cce3fd',
-          200: '#99c7fb',
-          300: '#66abf9',
-          400: '#338ff7',
-          500: '#0073f5', // Primary blue
-          600: '#005cc4',
-          700: '#004593',
-          800: '#002e62',
-          900: '#001731',
+          50: '#e6edf4',
+          100: '#cddae9',
+          200: '#9ab5d3',
+          300: '#6890bd',
+          400: '#3a6ba0',
+          500: '#2F4866',
+          600: '#264057',
+          700: '#1d3047',
+          800: '#18283C',
+          900: '#0f1a28',
         },
       },
       boxShadow: {
-        card: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        'card-hover':
-          '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        header:
-          '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-        dropdown:
-          '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        card: '0 1px 3px rgba(0,0,0,.10), 0 12px 40px -16px rgba(31,49,75,.18)',
+        'card-hover': '0 4px 12px rgba(0,0,0,.12), 0 16px 48px -12px rgba(31,49,75,.24)',
+        header: '0 1px 3px 0 rgba(0,0,0,.08)',
+        dropdown: '0 4px 12px rgba(0,0,0,.12)',
       },
       ringColor: {
-        DEFAULT: 'rgb(59 130 246 / 0.4)',
-      },
-      dropShadow: {
-        sm: '0 1px 1px rgba(0, 0, 0, 0.05)',
-        DEFAULT: '0 1px 2px rgba(0, 0, 0, 0.1)',
-        md: '0 4px 3px rgba(0, 0, 0, 0.07), 0 2px 2px rgba(0, 0, 0, 0.06)',
-        lg: '0 10px 8px rgba(0, 0, 0, 0.04), 0 4px 3px rgba(0, 0, 0, 0.1)',
+        DEFAULT: 'rgba(47,72,102,0.35)',
       },
       borderRadius: {
-        sm: '0.125rem',
-        DEFAULT: '0.25rem',
-        md: '0.375rem',
-        lg: '0.5rem',
+        sm: '2px',
+        DEFAULT: '2px',
+        md: '3px',
+        lg: '4px',
+        xl: '6px',
+      },
+      dropShadow: {
+        sm: '0 1px 1px rgba(0,0,0,.05)',
+        DEFAULT: '0 1px 2px rgba(0,0,0,.10)',
+        md: '0 4px 3px rgba(0,0,0,.07)',
+        lg: '0 8px 8px rgba(0,0,0,.06)',
       },
       keyframes: {
         'pulse-subtle': {
