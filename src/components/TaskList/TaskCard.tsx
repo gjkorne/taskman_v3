@@ -152,44 +152,42 @@ export function TaskCard({
   return (
     <div
       className={cn(
-        'group relative flex flex-col sm:flex-row py-1 sm:py-2 px-2 sm:px-3 border-b border-gray-100 transition-colors',
-        `border-l-2 ${priorityColor}`, // Thin priority indicator
-        index % 2 === 1 ? 'bg-gray-50' : 'bg-white', // Alternating row colors
-        'hover:bg-gray-100 cursor-pointer' // Darken hover state for better contrast and add pointer cursor
+        'group relative flex flex-col sm:flex-row py-1.5 sm:py-2 px-2 sm:px-3 border-b border-kw-border transition-colors',
+        `border-l-2 ${priorityColor}`,
+        index % 2 === 1 ? 'bg-kw-cream-light' : 'bg-white',
+        'hover:bg-kw-cream cursor-pointer'
       )}
-      onClick={handleEdit} // Make the entire card clickable to edit
+      onClick={handleEdit}
     >
       {/* Left Section: Title and Metadata */}
       <div className="flex-grow min-w-0 mb-0.5 sm:mb-0">
         {/* Title and Category Row */}
         <div className="flex items-center mb-0.5 sm:mb-1">
-          <h3 className="font-bold text-base truncate mr-1 sm:mr-2 max-w-[70%]">
+          <h3 className="font-semibold text-sm text-kw-text truncate mr-1 sm:mr-2 max-w-[70%]">
             {task.title}
           </h3>
 
           {/* Category tag */}
           {categoryName && (
-            <span className="px-1 py-0.5 rounded-full bg-gray-100 text-xs text-gray-700 flex-shrink-0">
+            <span className="px-1.5 py-0.5 rounded border border-kw-border-card bg-kw-cream text-xs text-kw-label flex-shrink-0">
               {categoryName}
             </span>
           )}
         </div>
 
         {/* Metadata Row */}
-        <div className="flex items-center space-x-1 sm:space-x-2 text-xs text-gray-500">
-          {/* Estimated time if available */}
+        <div className="flex items-center space-x-1 sm:space-x-2 text-xs text-kw-body">
           {task.estimated_time && (
             <span className="flex items-center">
-              <Clock className="h-3 w-3 mr-0.5 text-gray-400" />
+              <Clock className="h-3 w-3 mr-0.5 text-kw-muted" />
               {formatEstimatedTime(task.estimated_time)}
             </span>
           )}
 
-          {/* Due date if available */}
           {task.due_date && (
             <span
               className={cn(
-                'px-1 py-0.5 rounded-full',
+                'px-1 py-0.5 rounded',
                 dueDateStyle?.className
               )}
             >
@@ -198,9 +196,8 @@ export function TaskCard({
           )}
         </div>
 
-        {/* Task notes/list if present */}
         {task.description && (
-          <div className="mt-1 sm:mt-2">
+          <div className="mt-1 sm:mt-1.5">
             <NotesViewer
               value={task.description}
               maxLength={100}
@@ -214,19 +211,20 @@ export function TaskCard({
       {/* Right Section: All Actions */}
       <div
         className="flex items-center justify-end space-x-1 sm:space-x-2 ml-auto"
-        onClick={(e) => e.stopPropagation()} // Prevent clicks on actions from opening edit form
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Star button */}
         <button
           onClick={handleStarToggle}
-          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-1 hover:bg-kw-cream rounded transition-colors"
           title={task.is_starred ? 'Unstar task' : 'Star task for Do Next'}
+          aria-label={task.is_starred ? 'Unstar task' : 'Star task'}
         >
           <Star
             className={`h-4 w-4 ${
               task.is_starred
-                ? 'text-yellow-500 fill-yellow-500'
-                : 'text-gray-400'
+                ? 'text-amber-400 fill-amber-400'
+                : 'text-kw-muted'
             }`}
           />
         </button>
@@ -256,23 +254,24 @@ export function TaskCard({
         {/* Menu button */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-1 hover:bg-kw-cream rounded transition-colors"
+          aria-label="Task options"
         >
           <MoreVertical className={`h-4 w-4 ${getCategoryColor()}`} />
         </button>
 
         {/* Menu popup */}
         {isMenuOpen && (
-          <div className="absolute top-full right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-10 py-1">
+          <div className="absolute top-full right-0 mt-1 bg-white rounded shadow-card border border-kw-border z-10 py-1 min-w-[120px]">
             <button
               onClick={handleEdit}
-              className="block w-full text-left px-4 py-1 text-sm text-gray-700 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-1.5 text-sm text-kw-text hover:bg-kw-cream"
             >
               Edit
             </button>
             <button
               onClick={handleDelete}
-              className="block w-full text-left px-4 py-1 text-sm text-red-600 hover:bg-gray-100"
+              className="block w-full text-left px-4 py-1.5 text-sm text-red-600 hover:bg-red-50"
             >
               Delete
             </button>

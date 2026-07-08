@@ -418,15 +418,15 @@ export function filterAndSortTasks(
 export function getPriorityBorderColor(priority: string): string {
   switch (priority) {
     case 'urgent':
-      return 'border-l-red-700'; // Level 10 - strongest visual impact
+      return 'border-l-red-600';
     case 'high':
-      return 'border-l-amber-200'; // Even more muted
+      return 'border-l-amber-400';
     case 'medium':
-      return 'border-l-sky-100'; // Very muted
+      return 'border-l-kw-navy';
     case 'low':
-      return 'border-l-emerald-100'; // Extremely subtle
+      return 'border-l-emerald-200';
     default:
-      return 'border-l-gray-100'; // Nearly invisible
+      return 'border-l-kw-border';
   }
 }
 
