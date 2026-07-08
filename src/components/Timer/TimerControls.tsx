@@ -217,9 +217,9 @@ export function TimerControls({
         onClick={handleStartTimer}
         className={cn(
           'rounded font-medium inline-flex items-center justify-center',
-          'px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200',
-          'text-blue-700 border border-blue-200',
-          'focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+          'px-3 py-1.5 text-sm bg-kw-navy/10 hover:bg-kw-navy/20',
+          'text-kw-navy border border-kw-navy/20',
+          'focus:ring-2 focus:ring-kw-navy/30 focus:ring-offset-2',
           'min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group',
           className
         )}
@@ -288,9 +288,9 @@ export function TimerControls({
         onClick={handleStartTimer}
         className={cn(
           'rounded font-medium inline-flex items-center justify-center',
-          'px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200',
-          'text-blue-700 border border-blue-200',
-          'focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+          'px-3 py-1.5 text-sm bg-kw-navy/10 hover:bg-kw-navy/20',
+          'text-kw-navy border border-kw-navy/20',
+          'focus:ring-2 focus:ring-kw-navy/30 focus:ring-offset-2',
           'min-w-[100px] shadow-sm transition-all duration-200 hover:shadow group',
           className
         )}

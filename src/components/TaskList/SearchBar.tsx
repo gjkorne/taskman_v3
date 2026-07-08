@@ -99,8 +99,8 @@ export function SearchBar({
         flex items-center px-3 py-2 bg-white border rounded-lg transition-all
         ${
           isFocused
-            ? 'border-blue-500 shadow-sm ring-1 ring-blue-500'
-            : 'border-gray-300'
+            ? 'border-kw-navy shadow-sm ring-1 ring-kw-navy/30'
+            : 'border-kw-border'
         }
       `}
       >

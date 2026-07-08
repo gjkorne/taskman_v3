@@ -53,7 +53,7 @@ export function Timer() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kw-navy" />
       </div>
     );
   }
@@ -75,7 +75,7 @@ export function Timer() {
         </h2>
 
         {activeTask ? (
-          <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
+          <div className="bg-white rounded shadow-card p-4 border-l-4 border-kw-navy">
             <div className="flex justify-between items-start mb-3">
               <div>
                 <h3 className="font-medium text-lg">{activeTask.title}</h3>
@@ -83,7 +83,7 @@ export function Timer() {
                   {activeTask.description}
                 </p>
               </div>
-              <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+              <div className="bg-kw-navy/10 text-kw-navy px-3 py-1 rounded text-sm font-medium">
                 {formatElapsedTime('short')} elapsed
               </div>
             </div>
@@ -125,7 +125,7 @@ export function Timer() {
                           <Play size={12} className="mr-1" /> In progress
                         </span>
                       ) : (
-                        <span className="flex items-center text-blue-600">
+                        <span className="flex items-center text-kw-navy">
                           <CheckCircle size={12} className="mr-1" /> Ready
                         </span>
                       )}

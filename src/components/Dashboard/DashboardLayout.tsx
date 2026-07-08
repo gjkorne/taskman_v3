@@ -59,7 +59,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <nav className="space-y-2">
               <a
                 href="#"
-                className="block px-4 py-2 rounded bg-taskman-blue-100 text-taskman-blue-700 font-medium transition duration-250"
+                className="block px-4 py-2 rounded bg-kw-navy/10 text-kw-navy font-medium transition duration-250"
               >
                 Dashboard
               </a>
@@ -151,7 +151,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <button className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium transition duration-250">
                     Today
                   </button>
-                  <button className="px-4 py-2 bg-taskman-blue-500 text-white rounded hover:bg-taskman-blue-600 text-sm font-medium transition duration-250">
+                  <button className="px-4 py-2 bg-kw-navy text-white rounded hover:bg-kw-navy-deep text-sm font-medium transition duration-250">
                     This Week
                   </button>
                   <button className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200 text-sm font-medium transition duration-250">

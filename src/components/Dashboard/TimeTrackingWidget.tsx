@@ -19,7 +19,7 @@ export function TimeTrackingWidget({
       <div className="relative">
         <div className="">
           <div className="flex flex-col items-center justify-center">
-            <div className="text-4xl font-bold text-blue-600">
+            <div className="text-4xl font-bold text-kw-navy">
               {timeThisWeek}
             </div>
             <div className="text-gray-500 text-sm mt-2">this week</div>

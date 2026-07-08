@@ -121,7 +121,7 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
                 value={category}
                 checked={selectedCategory === category}
                 onChange={() => setSelectedCategory(category)}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 mr-2"
+                className="h-4 w-4 text-kw-navy focus:ring-kw-navy/30 mr-2"
               />
               <span
                 className="inline-block w-3 h-3 rounded-full mr-2"
@@ -148,7 +148,7 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
                 (inputElement as HTMLElement).focus();
               }
             }}
-            className="w-16 h-16 flex items-center justify-center text-white bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-full shadow-lg hover:shadow-xl hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:scale-105 animate-pulse-subtle"
+            className="w-16 h-16 flex items-center justify-center text-white bg-kw-navy rounded shadow-lg hover:shadow-xl hover:bg-kw-navy-deep transition-all transform hover:scale-105"
             aria-label="Add a new task"
           >
             <Icon name="Plus" size={24} />
@@ -157,7 +157,7 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
 
         {/* Desktop: Full input with background */}
         <div className="relative flex-grow hidden md:block">
-          <div className="flex items-center px-4 py-3 bg-white border rounded-lg transition-all border-gray-300 hover:border-indigo-400 hover:shadow focus-within:border-indigo-500 focus-within:shadow-md">
+          <div className="flex items-center px-4 py-3 bg-white border rounded transition-all border-kw-border hover:border-kw-navy/40 hover:shadow-sm focus-within:border-kw-navy focus-within:shadow-sm">
             <Icon name="Plus" size={16} className="text-gray-400 mr-2" />
             <input
               type="text"
@@ -170,7 +170,7 @@ export function QuickTaskEntry({ onTaskCreated }: QuickTaskEntryProps) {
         </div>
         <button
           type="submit"
-          className="hidden md:block ml-2 px-3 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50"
+          className="hidden md:block ml-2 px-3 py-2 rounded bg-kw-navy text-white hover:bg-kw-navy-deep transition-colors disabled:opacity-50"
           disabled={isSubmitting || !taskTitle.trim()}
         >
           Add Task

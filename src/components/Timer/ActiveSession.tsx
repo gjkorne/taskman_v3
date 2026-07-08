@@ -65,10 +65,10 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   // show the loading state
   if (!activeTask) {
     return (
-      <div className="fixed top-0 left-0 right-0 w-full z-10 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
+      <div className="fixed top-0 left-0 right-0 w-full z-10 bg-kw-navy-dark text-white shadow-lg">
         <div className="mx-auto px-4 py-2">
           <div className="animate-pulse flex items-center space-x-2">
-            <div className="rounded-full bg-indigo-600 h-4 w-4"></div>
+            <div className="rounded-full bg-white/30 h-4 w-4"></div>
             <div className="text-sm font-medium opacity-90">
               Loading task details...
             </div>
@@ -87,12 +87,12 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
   // Compact mode (default when collapsed)
   if (!isExpanded) {
     return (
-      <div className="sticky top-0 left-0 right-0 w-full z-10 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
+      <div className="sticky top-0 left-0 right-0 w-full z-10 bg-kw-navy-dark text-white shadow-lg">
         <div className="mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setIsExpanded(true)}
-              className="p-1.5 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+              className="p-1.5 rounded bg-white/10 hover:bg-white/20 transition-colors"
               aria-label="Expand timer"
             >
               <Icon name="ChevronDown" size={18} />
@@ -113,7 +113,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
                   pauseTimer();
                   handleTimerStateChange();
                 }}
-                className="p-2 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+                className="p-2 rounded bg-white/10 hover:bg-white/20 transition-colors"
                 aria-label="Pause timer"
               >
                 <Icon name="Pause" size={20} />
@@ -124,7 +124,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
                   startTimer(activeTask.id);
                   handleTimerStateChange();
                 }}
-                className="p-2 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+                className="p-2 rounded bg-white/10 hover:bg-white/20 transition-colors"
                 aria-label="Resume timer"
               >
                 <Icon name="Play" size={20} />
@@ -136,7 +136,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
                 stopTimer();
                 handleTimerStateChange();
               }}
-              className="p-2 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+              className="p-2 rounded bg-white/10 hover:bg-white/20 transition-colors"
               aria-label="Stop timer"
             >
               <Icon name="Square" size={20} />
@@ -149,13 +149,13 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
 
   // Expanded mode
   return (
-    <div className="sticky top-0 left-0 right-0 w-full z-10 bg-gradient-to-r from-violet-700 to-indigo-800 text-white shadow-lg">
+    <div className="sticky top-0 left-0 right-0 w-full z-10 bg-kw-navy-dark text-white shadow-lg">
       <div className="container mx-auto px-4 py-3">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start sm:items-center mb-3 sm:mb-0">
             <button
               onClick={() => setIsExpanded(false)}
-              className="p-1.5 mt-1 sm:mt-0 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors mr-3"
+              className="p-1.5 mt-1 sm:mt-0 rounded bg-white/10 hover:bg-white/20 transition-colors mr-3"
               aria-label="Collapse timer"
             >
               <Icon name="ChevronUp" size={18} />
@@ -169,7 +169,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
 
           <div className="flex items-center sm:space-x-6">
             <div className="mr-6 sm:mr-0">
-              <div className="text-xs uppercase tracking-wide text-indigo-200 mb-1">
+              <div className="text-xs uppercase tracking-wide text-white/60 mb-1">
                 Elapsed Time
               </div>
               <div className="font-mono text-2xl font-bold">
@@ -184,7 +184,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
                     pauseTimer();
                     handleTimerStateChange();
                   }}
-                  className="flex items-center justify-center p-3 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+                  className="flex items-center justify-center p-3 rounded bg-white/10 hover:bg-white/20 transition-colors"
                   aria-label="Pause timer"
                 >
                   <Icon name="Pause" size={20} />
@@ -195,7 +195,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
                     startTimer(activeTask.id);
                     handleTimerStateChange();
                   }}
-                  className="flex items-center justify-center p-3 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+                  className="flex items-center justify-center p-3 rounded bg-white/10 hover:bg-white/20 transition-colors"
                   aria-label="Resume timer"
                 >
                   <Icon name="Play" size={20} />
@@ -207,7 +207,7 @@ export function ActiveSession({ onTimerStateChange }: ActiveSessionProps) {
                   stopTimer();
                   handleTimerStateChange();
                 }}
-                className="flex items-center justify-center p-3 rounded-full bg-indigo-800 hover:bg-indigo-600 transition-colors"
+                className="flex items-center justify-center p-3 rounded bg-white/10 hover:bg-white/20 transition-colors"
                 aria-label="Stop timer"
               >
                 <Icon name="Square" size={20} />

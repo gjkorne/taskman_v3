@@ -203,7 +203,7 @@ export function UnifiedTaskForm({
 
                     setValue('tags', updatedTags);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-kw-border rounded bg-white focus:outline-none focus:ring-2 focus:ring-kw-navy/30"
                 >
                   <option value="">-- Select Subcategory --</option>
                   {categoryName &&
@@ -228,7 +228,7 @@ export function UnifiedTaskForm({
                 <select
                   id="status"
                   {...register('status')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-kw-border rounded focus:outline-none focus:ring-2 focus:ring-kw-navy/30"
                 >
                   <option value="pending">Pending</option>
                   <option value="active">Active</option>
@@ -280,7 +280,7 @@ export function UnifiedTaskForm({
                     <NotesEditor
                       value={field.value || null}
                       onChange={field.onChange}
-                      className="w-full bg-white border rounded-md border-gray-300 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500"
+                      className="w-full bg-white border rounded border-kw-border focus-within:border-kw-navy focus-within:ring-1 focus-within:ring-kw-navy/30"
                     />
                   </div>
                 )}
@@ -334,7 +334,7 @@ export function UnifiedTaskForm({
               <input
                 type="checkbox"
                 {...register('hasDueDate')}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-kw-navy border-kw-border rounded focus:ring-kw-navy/30"
               />
               <span className="text-sm font-medium text-gray-700">
                 Has due date
@@ -377,7 +377,7 @@ export function UnifiedTaskForm({
             <button
               type="button"
               onClick={handleCancel}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="px-4 py-2 border border-kw-border rounded text-kw-text bg-white hover:bg-kw-cream focus:outline-none focus:ring-2 focus:ring-kw-navy/30"
             >
               Cancel
             </button>
@@ -387,7 +387,7 @@ export function UnifiedTaskForm({
           <button
             type="submit"
             disabled={isLoading}
-            className="px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
+            className="px-6 py-3 border border-transparent rounded shadow-sm text-sm font-semibold text-white bg-kw-navy hover:bg-kw-navy-deep focus:outline-none focus:ring-2 focus:ring-kw-navy/30 focus:ring-offset-2 disabled:opacity-75 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>

@@ -145,7 +145,7 @@ export function FilterPanel({
           {hasActiveFilters && (
             <button
               onClick={handleReset}
-              className="text-xs text-indigo-600 hover:text-indigo-800"
+              className="text-xs text-kw-navy hover:text-kw-navy-deep font-medium"
             >
               Reset
             </button>
@@ -190,7 +190,7 @@ export function FilterPanel({
                     type="checkbox"
                     checked={filters.status.includes(status)}
                     onChange={() => toggleFilter('status', status)}
-                    className="h-4 w-4 text-indigo-600 rounded"
+                    className="h-4 w-4 text-kw-navy rounded"
                   />
                   <span className="capitalize">{status.replace('_', ' ')}</span>
                 </label>
@@ -205,7 +205,7 @@ export function FilterPanel({
                 type="checkbox"
                 checked={filters.showCompleted}
                 onChange={toggleShowCompleted}
-                className="h-4 w-4 text-indigo-600 rounded"
+                className="h-4 w-4 text-kw-navy rounded"
               />
               <span>Include completed tasks</span>
             </label>
@@ -240,7 +240,7 @@ export function FilterPanel({
                     type="checkbox"
                     checked={filters.priority.includes(value)}
                     onChange={() => toggleFilter('priority', value)}
-                    className="h-4 w-4 text-indigo-600 rounded"
+                    className="h-4 w-4 text-kw-navy rounded"
                   />
                   <span className="flex items-center">
                     <Flag className={`h-3 w-3 ${color} mr-1`} />
@@ -264,7 +264,7 @@ export function FilterPanel({
                     type="checkbox"
                     checked={filters.category.includes(category)}
                     onChange={() => toggleFilter('category', category)}
-                    className="h-4 w-4 text-indigo-600 rounded"
+                    className="h-4 w-4 text-kw-navy rounded"
                   />
                   <span className="capitalize">{category}</span>
                 </label>
@@ -295,7 +295,7 @@ export function FilterPanel({
                     type="checkbox"
                     checked={filters.dueDate.includes(value)}
                     onChange={() => toggleFilter('dueDate', value)}
-                    className="h-4 w-4 text-indigo-600 rounded"
+                    className="h-4 w-4 text-kw-navy rounded"
                   />
                   <span>{label}</span>
                 </label>
@@ -321,7 +321,7 @@ export function FilterPanel({
                   className={cn(
                     'flex items-center space-x-2 text-sm cursor-pointer',
                     filters.sortBy === value
-                      ? 'text-indigo-600 font-medium'
+                      ? 'text-kw-navy font-medium'
                       : 'text-gray-600'
                   )}
                   onClick={() => updateSort(value as TaskFilter['sortBy'])}
@@ -330,12 +330,12 @@ export function FilterPanel({
                     type="radio"
                     checked={filters.sortBy === value}
                     onChange={() => {}} // Handled by the label click
-                    className="h-4 w-4 text-indigo-600"
+                    className="h-4 w-4 text-kw-navy"
                   />
                   <span>{label}</span>
 
                   {filters.sortBy === value && (
-                    <span className="ml-auto text-indigo-600">
+                    <span className="ml-auto text-kw-navy">
                       {filters.sortOrder === 'asc' ? (
                         <ChevronUp className="h-4 w-4" />
                       ) : (
